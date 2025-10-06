@@ -1,0 +1,45 @@
+{
+    "name": "@qualisero/openapi-endpoint",
+    "version": "0.1.0",
+    "description": "Type-safe OpenAPI integration for Vue Query",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "types": "tsc --noEmit",
+        "prepublishOnly": "npm run build && npm run types"
+    },
+    "keywords": [
+        "vue",
+        "openapi",
+        "rest",
+        "api",
+        "vue-query",
+        "tanstack-query",
+        "typescript"
+    ],
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
+    "peerDependencies": {
+        "@tanstack/vue-query": "^5.76.0",
+        "axios": "^1.9.0",
+        "vue": "^3.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.2"
+    },
+    "license": "MIT",
+    "author": ""
+}
