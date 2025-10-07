@@ -5,7 +5,6 @@
 This is a TypeScript library that provides type-safe OpenAPI integration for Vue Query (TanStack Query). The package enables developers to generate TypeScript types and operation definitions from OpenAPI specifications and use them seamlessly with Vue composition API and TanStack Query.
 
 ### Key Features
-
 - **Code Generation**: CLI tool to generate TypeScript types and operation metadata from OpenAPI specs
 - **Type Safety**: Full TypeScript support with strict typing for API operations
 - **Vue Integration**: Built for Vue 3 with composition API support
@@ -42,7 +41,7 @@ bin/
    - Return consistent object structure from composables
    - Support reactive parameters with `MaybeRefOrGetter<T>`
 
-3. **Error Handling**:
+3. **Error Handling**: 
    - Use descriptive error messages with operation context
    - Validate path parameters before making requests
    - Handle axios errors gracefully with proper typing
@@ -55,13 +54,11 @@ bin/
 ### Key Dependencies
 
 **Peer Dependencies** (required by consumers):
-
 - `vue`: ^3.5.22 - Vue 3 composition API
 - `@tanstack/vue-query`: ^5.90.2 - Data fetching and caching
 - `axios`: ^1.12.2 - HTTP client
 
 **Dev Dependencies**:
-
 - `typescript`: ^5.9.2 - TypeScript compiler
 - `openapi-typescript`: ^7.9.1 - OpenAPI type generation
 - `@types/node`: ^24.7.0 - Node.js type definitions
@@ -89,19 +86,16 @@ The package provides a CLI tool for generating TypeScript definitions:
 # Generate from local OpenAPI file
 npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 
-# Generate from remote URL
+# Generate from remote URL  
 npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 ```
 
 Generated files:
-
 - `openapi-types.ts` - TypeScript type definitions
 - `api-operations.ts` - Operation metadata for the library
 
 #### CLI Implementation Patterns
-
 The CLI follows these patterns:
-
 - **Error Messages**: Use emoji prefixes (❌, ✅, 🔨, 📁, 📊, 🎉) for clear visual feedback
 - **Validation**: Strict argument validation with helpful usage messages
 - **Async Operations**: Use `Promise.all()` for parallel generation of both files
@@ -111,18 +105,13 @@ The CLI follows these patterns:
 ### Implementation Patterns
 
 #### Query Operations (GET/HEAD/OPTIONS)
-
 ```typescript
 // Use for read-only operations with automatic type inference
-const userQuery = api.useQuery(
-  'getUser',
-  { userId: '123' },
-  {
-    enabled: true,
-    onLoad: (data) => console.log('User loaded:', data),
-    axiosOptions: { headers: { 'Custom-Header': 'value' } },
-  }
-)
+const userQuery = api.useQuery('getUser', { userId: '123' }, {
+  enabled: true,
+  onLoad: (data) => console.log('User loaded:', data),
+  axiosOptions: { headers: { 'Custom-Header': 'value' } }
+})
 
 // Access reactive properties
 const userData = userQuery.data
@@ -131,29 +120,27 @@ const queryKey = userQuery.queryKey
 ```
 
 #### Mutation Operations (POST/PUT/PATCH/DELETE)
-
 ```typescript
 // Use for data modifications with cache management
 const createUser = api.useMutation('createUser', {
   onSuccess: async (data, vars) => {
     // Automatic cache invalidation and updates
-  },
+  }
 })
 
 // Execute the mutation
-await createUser.mutateAsync({
+await createUser.mutateAsync({ 
   data: userData,
-  pathParams: { orgId: '123' }, // if needed
+  pathParams: { orgId: '123' } // if needed
 })
 ```
 
 #### Path Parameter Resolution
-
 ```typescript
 // Supports dynamic path parameters with validation
 const resolvedPath = resolvePath('/users/{userId}/posts/{postId}', {
   userId: '123',
-  postId: '456',
+  postId: '456'
 })
 // Results in: '/users/123/posts/456'
 
@@ -162,7 +149,6 @@ const isResolved = isPathResolved(resolvedPath)
 ```
 
 #### Error Handling Pattern
-
 ```typescript
 // Structured error handling with context
 if (!isPathResolved(resolvedPath.value)) {
@@ -184,32 +170,27 @@ if (!isPathResolved(resolvedPath.value)) {
 ### Common Patterns to Follow
 
 1. **Reactive Parameters**: Always support `MaybeRefOrGetter<T>` for dynamic values
-
    ```typescript
    // Good: supports both static and reactive values
    pathParams?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
    ```
 
 2. **Query Keys**: Generate consistent query keys from resolved paths
-
    ```typescript
    const queryKey = computed(() => generateQueryKey(resolvedPath.value))
    ```
 
 3. **Cache Management**: Implement automatic cache invalidation for related operations
-
    ```typescript
    await queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
    ```
 
 4. **Error Context**: Include operation ID and path information in error messages
-
    ```typescript
    throw new Error(`Operation '${String(operationId)}' failed: ${resolvedPath.value}`)
    ```
 
 5. **TypeScript Documentation**: Use comprehensive JSDoc comments for public APIs
-
    ```typescript
    /**
     * @template Ops Operations interface extending base Operations type
@@ -221,11 +202,10 @@ if (!isPathResolved(resolvedPath.value)) {
 
 6. **Composable Return Types**: Define explicit return types for composables
    ```typescript
-   export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
-     typeof useEndpointQuery<Ops, Op>
-   > & {
-     onLoad: (callback: (data: GetResponseData<Ops, Op>) => void) => void
-   }
+   export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = 
+     ReturnType<typeof useEndpointQuery<Ops, Op>> & {
+       onLoad: (callback: (data: GetResponseData<Ops, Op>) => void) => void
+     }
    ```
 
 ### What NOT to do
@@ -239,7 +219,6 @@ if (!isPathResolved(resolvedPath.value)) {
 ### Testing Considerations
 
 When adding tests (if requested):
-
 - Mock axios responses appropriately
 - Test both success and error scenarios
 - Verify reactive parameter updates work correctly
@@ -249,7 +228,6 @@ When adding tests (if requested):
 ### Documentation Updates
 
 When making changes:
-
 - Update README.md if public API changes
 - Update TypeScript comments for public functions
 - Ensure code examples in docs remain accurate
@@ -268,7 +246,6 @@ When making changes:
 ### Package Configuration
 
 The package.json includes these important configurations:
-
 - **Type: module** - Uses ES modules exclusively
 - **Exports field** - Provides both types and import paths
 - **Bin field** - Exposes the CLI tool as `openapi-codegen`
@@ -276,7 +253,6 @@ The package.json includes these important configurations:
 - **PeerDependencies** - Vue, TanStack Query, and Axios must be provided by consumers
 
 ### Available Scripts
-
 - `npm run build` - Compile TypeScript to dist/
 - `npm run types` - Type checking without emit
 - `npm run prepublishOnly` - Build and type check before publishing
