@@ -27,7 +27,7 @@ describe('useOpenApi', () => {
 
   it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
     const api = useOpenApi(mockConfig)
-    
+
     expect(api).toHaveProperty('useQuery')
     expect(api).toHaveProperty('useMutation')
     expect(api).toHaveProperty('useEndpoint')
@@ -39,10 +39,10 @@ describe('useOpenApi', () => {
   describe('useQuery', () => {
     it('should create a query for GET operations', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useQuery can be called with a GET operation
       const query = api.useQuery('listPets', {})
-      
+
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
@@ -50,10 +50,10 @@ describe('useOpenApi', () => {
 
     it('should create a query with path parameters', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useQuery can be called with path parameters
       const query = api.useQuery('getPet', { petId: '123' })
-      
+
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
@@ -61,11 +61,11 @@ describe('useOpenApi', () => {
 
     it('should create a query with options', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useQuery can be called with options
       const onLoad = vi.fn()
       const query = api.useQuery('listPets', {}, { enabled: true, onLoad })
-      
+
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
@@ -75,10 +75,10 @@ describe('useOpenApi', () => {
   describe('useMutation', () => {
     it('should create a mutation for POST operations', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useMutation can be called with a POST operation
       const mutation = api.useMutation('createPet', {})
-      
+
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
@@ -86,10 +86,10 @@ describe('useOpenApi', () => {
 
     it('should create a mutation with path parameters', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useMutation can be called with path parameters
       const mutation = api.useMutation('updatePet', { petId: '123' })
-      
+
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
@@ -97,11 +97,11 @@ describe('useOpenApi', () => {
 
     it('should create a mutation with options', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useMutation can be called with options
       const onSuccess = vi.fn()
       const mutation = api.useMutation('createPet', {}, { onSuccess })
-      
+
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
@@ -111,28 +111,28 @@ describe('useOpenApi', () => {
   describe('useEndpoint', () => {
     it('should create an endpoint handler for any operation', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useEndpoint can be called with any operation
       const endpoint = api.useEndpoint('listPets', {})
-      
+
       expect(endpoint).toBeTruthy()
     })
 
     it('should create an endpoint handler with path parameters', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useEndpoint can be called with path parameters
       const endpoint = api.useEndpoint('getPet', { petId: '123' })
-      
+
       expect(endpoint).toBeTruthy()
     })
 
     it('should create an endpoint handler with options', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // Test that useEndpoint can be called with options
       const endpoint = api.useEndpoint('listPets', {}, { enabled: true })
-      
+
       expect(endpoint).toBeTruthy()
     })
   })
@@ -143,14 +143,14 @@ describe('useOpenApi', () => {
         getUser: { method: HttpMethod.GET, path: '/users/{userId}' },
         createUser: { method: HttpMethod.POST, path: '/users' },
       }
-      
+
       const customConfig: OpenApiConfig<typeof customOperations> = {
         operations: customOperations,
         axios: mockAxios,
       }
-      
+
       const api = useOpenApi(customConfig)
-      
+
       expect(api.useQuery('getUser', { userId: '123' })).toBeTruthy()
       expect(api.useMutation('createUser', {})).toBeTruthy()
     })
@@ -161,9 +161,9 @@ describe('useOpenApi', () => {
         operations: emptyOperations,
         axios: mockAxios,
       }
-      
+
       const api = useOpenApi(emptyConfig)
-      
+
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
       expect(api).toHaveProperty('useEndpoint')
@@ -173,16 +173,16 @@ describe('useOpenApi', () => {
   describe('type safety', () => {
     it('should enforce operation type constraints at compile time', () => {
       const api = useOpenApi(mockConfig)
-      
+
       // These should work (GET operations with useQuery)
       api.useQuery('listPets', {})
       api.useQuery('getPet', { petId: '123' })
-      
+
       // These should work (non-GET operations with useMutation)
       api.useMutation('createPet', {})
       api.useMutation('updatePet', { petId: '123' })
       api.useMutation('deletePet', { petId: '123' })
-      
+
       // useEndpoint should work with any operation
       api.useEndpoint('listPets', {})
       api.useEndpoint('createPet', {})

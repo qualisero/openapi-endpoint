@@ -25,7 +25,7 @@ describe('Advanced composable functionality', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     mockAxios = vi.fn().mockResolvedValue({ data: { id: '123', name: 'Test Pet' } })
     mockConfig = {
       operations: mockOperations,
@@ -56,11 +56,16 @@ describe('Advanced composable functionality', () => {
 
     it('should handle options correctly', () => {
       const onLoad = vi.fn()
-      const query = useEndpointQuery('listPets', helpers, {}, { 
-        enabled: true, 
-        onLoad,
-        axiosOptions: { headers: { 'X-Test': 'value' } }
-      })
+      const query = useEndpointQuery(
+        'listPets',
+        helpers,
+        {},
+        {
+          enabled: true,
+          onLoad,
+          axiosOptions: { headers: { 'X-Test': 'value' } },
+        },
+      )
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('onLoad')
     })
@@ -119,10 +124,15 @@ describe('Advanced composable functionality', () => {
 
     it('should handle options correctly', () => {
       const onSuccess = vi.fn()
-      const mutation = useEndpointMutation('createPet', helpers, {}, {
-        onSuccess,
-        invalidateQueries: ['listPets'],
-      })
+      const mutation = useEndpointMutation(
+        'createPet',
+        helpers,
+        {},
+        {
+          onSuccess,
+          invalidateQueries: ['listPets'],
+        },
+      )
       expect(mutation).toBeTruthy()
     })
   })
@@ -165,11 +175,16 @@ describe('Advanced composable functionality', () => {
       }
       const nestedHelpers = getHelpers(nestedConfig)
 
-      const query = useEndpointQuery('getUserPet', nestedHelpers, { 
-        userId: 'user1', 
-        petId: 'pet1' 
-      }, {})
-      
+      const query = useEndpointQuery(
+        'getUserPet',
+        nestedHelpers,
+        {
+          userId: 'user1',
+          petId: 'pet1',
+        },
+        {},
+      )
+
       expect(query.queryKey.value).toEqual(['users', 'user1', 'pets', 'pet1'])
       expect(query.isEnabled.value).toBe(true)
     })
@@ -183,17 +198,22 @@ describe('Advanced composable functionality', () => {
       // Create a ref-like object for testing
       const reactiveParams = { petId: '123' }
       const query = useEndpointQuery('getPet', helpers, reactiveParams, {})
-      
+
       expect(query.queryKey.value).toEqual(['pets', '123'])
       expect(query.isEnabled.value).toBe(true)
     })
 
     it('should handle different axios options', () => {
-      const customHeaders = { 'Authorization': 'Bearer token' }
-      const query = useEndpointQuery('listPets', helpers, {}, {
-        axiosOptions: { headers: customHeaders }
-      })
-      
+      const customHeaders = { Authorization: 'Bearer token' }
+      const query = useEndpointQuery(
+        'listPets',
+        helpers,
+        {},
+        {
+          axiosOptions: { headers: customHeaders },
+        },
+      )
+
       expect(query).toBeTruthy()
       // Axios options should be passed through to the actual request
     })
@@ -201,7 +221,7 @@ describe('Advanced composable functionality', () => {
     it('should support onLoad callbacks', () => {
       const onLoad = vi.fn()
       const query = useEndpointQuery('listPets', helpers, {}, { onLoad })
-      
+
       expect(query).toHaveProperty('onLoad')
       expect(typeof query.onLoad).toBe('function')
     })

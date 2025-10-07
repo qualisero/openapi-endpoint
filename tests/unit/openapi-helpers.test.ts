@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { getHelpers } from '@/openapi-helpers'
-import { HttpMethod, OpenApiConfig, OperationInfo } from '@/types'
+import { HttpMethod, OpenApiConfig } from '@/types'
 
 // Define mock operations for testing
 const mockOperations = {
@@ -42,7 +42,7 @@ describe('openapi-helpers', () => {
   describe('getHelpers', () => {
     it('should return all helper functions', () => {
       const helpers = getHelpers(mockConfig)
-      
+
       expect(helpers).toHaveProperty('getOperationInfo')
       expect(helpers).toHaveProperty('getListOperationPath')
       expect(helpers).toHaveProperty('getCrudListPathPrefix')
@@ -56,7 +56,7 @@ describe('openapi-helpers', () => {
       it('should return operation info for valid operation ID', () => {
         const helpers = getHelpers(mockConfig)
         const operationInfo = helpers.getOperationInfo('getPet')
-        
+
         expect(operationInfo).toEqual({
           method: HttpMethod.GET,
           path: '/pets/{petId}',
@@ -66,7 +66,7 @@ describe('openapi-helpers', () => {
       it('should return operation info for POST operation', () => {
         const helpers = getHelpers(mockConfig)
         const operationInfo = helpers.getOperationInfo('createPet')
-        
+
         expect(operationInfo).toEqual({
           method: HttpMethod.POST,
           path: '/pets',
