@@ -50,7 +50,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
   operationId: Op,
   h: ReturnType<typeof getHelpers<Ops, Op>>,
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
-  optionsOrNull?: QueryOptions<Ops, Op>
+  optionsOrNull?: QueryOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a query operation
   if (!h.isQueryOperation(operationId)) {
@@ -59,7 +59,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
   const { path, method } = h.getOperationInfo(operationId)
   const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QueryOptions<Ops, Op>>(
     pathParamsOrOptions,
-    optionsOrNull
+    optionsOrNull,
   )
   const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, ...useQueryOptions } = options
 
@@ -97,7 +97,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
 
       ...useQueryOptions,
     },
-    queryClient
+    queryClient,
   )
 
   // onLoad callback is called once, as soon as data is available (immediately or when loading finishes)

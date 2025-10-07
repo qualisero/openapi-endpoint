@@ -121,7 +121,7 @@ const userQuery = api.useQuery(
     enabled: true,
     onLoad: (data) => console.log('User loaded:', data),
     axiosOptions: { headers: { 'Custom-Header': 'value' } },
-  }
+  },
 )
 
 // Access reactive properties
@@ -168,8 +168,8 @@ const isResolved = isPathResolved(resolvedPath)
 if (!isPathResolved(resolvedPath.value)) {
   return Promise.reject(
     new Error(
-      `Query for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(pathParams)})`
-    )
+      `Query for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(pathParams)})`,
+    ),
   )
 }
 ```

@@ -50,7 +50,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   operationId: Op,
   h: ReturnType<typeof getHelpers<Ops, Op>>, // helpers
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
-  optionsOrNull?: MutationOptions<Ops, Op>
+  optionsOrNull?: MutationOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a mutation operation
   if (!h.isMutationOperation(operationId)) {
@@ -60,7 +60,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   const { path, method } = h.getOperationInfo(operationId)
   const { pathParams, options } = getParamsOptionsFrom<Ops, Op, MutationOptions<Ops, Op>>(
     pathParamsOrOptions,
-    optionsOrNull
+    optionsOrNull,
   )
   const {
     axiosOptions,
@@ -89,8 +89,8 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
       if (!isPathResolved(resolvedPath.value)) {
         return Promise.reject(
           new Error(
-            `Mutation for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(allPathParams.value)})`
-          )
+            `Mutation for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(allPathParams.value)})`,
+          ),
         )
       }
       // Cancel any ongoing queries for this path (prevent race conditions with refresh)
@@ -142,7 +142,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         operationsWithPathParams.push(
           ...((typeof ops === 'object' && !Array.isArray(ops)
             ? Object.entries(ops)
-            : ops?.map((opId) => [opId, {}]) || []) as [Op, GetPathParameters<Ops, Op>][])
+            : ops?.map((opId) => [opId, {}]) || []) as [Op, GetPathParameters<Ops, Op>][]),
         )
       })
 
@@ -158,7 +158,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
             return queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
           } else {
             console.warn(
-              `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`
+              `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,
             )
             return Promise.reject()
           }
