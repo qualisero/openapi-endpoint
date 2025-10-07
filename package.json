@@ -1,6 +1,6 @@
 {
   "name": "@qualisero/openapi-endpoint",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Type-safe OpenAPI integration for Vue Query",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
