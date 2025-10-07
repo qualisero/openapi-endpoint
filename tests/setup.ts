@@ -1,16 +1,17 @@
 import { vi } from 'vitest'
+import type { AxiosInstance } from 'axios'
 
 // Mock Axios before any other imports
-const mockAxiosInstance = vi.fn(() => Promise.resolve({ data: { id: '123', name: 'Test' } }))
-mockAxiosInstance.create = vi.fn(() => mockAxiosInstance)
-mockAxiosInstance.get = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.post = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.put = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.patch = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.delete = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.head = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.options = vi.fn(() => Promise.resolve({ data: {} }))
-mockAxiosInstance.request = vi.fn(() => Promise.resolve({ data: {} }))
+const mockAxiosInstance = {
+  get: vi.fn(() => Promise.resolve({ data: {} })),
+  post: vi.fn(() => Promise.resolve({ data: {} })),
+  put: vi.fn(() => Promise.resolve({ data: {} })),
+  patch: vi.fn(() => Promise.resolve({ data: {} })),
+  delete: vi.fn(() => Promise.resolve({ data: {} })),
+  head: vi.fn(() => Promise.resolve({ data: {} })),
+  options: vi.fn(() => Promise.resolve({ data: {} })),
+  request: vi.fn(() => Promise.resolve({ data: {} })),
+} as unknown as AxiosInstance
 
 // Set up mocks at the top level before any imports
 vi.mock('axios', () => ({
