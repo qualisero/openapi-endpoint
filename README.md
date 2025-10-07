@@ -43,9 +43,13 @@ const axiosInstance = axios.create({
   baseURL: 'https://api.example.com',
 })
 
+// Properly type the operations for the library
+const operationInfoDict = OPERATION_INFO
+type OperationsWithInfo = operations & typeof operationInfoDict
+
 // Initialize the package  
 const api = useOpenApi({
-  operations: OPERATION_INFO,
+  operations: operationInfoDict as OperationsWithInfo,
   axios: axiosInstance,
 })
 ```
