@@ -232,6 +232,8 @@ When making changes:
 - Update TypeScript comments for public functions
 - Ensure code examples in docs remain accurate
 - Update CLI usage examples if command interface changes
+- Increment version in package.json (either minor or patch, based on the amount of change)
+- Update changelog for new features or breaking changes
 
 ## Notes for AI Assistants
 
