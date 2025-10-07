@@ -30,7 +30,7 @@ async function fetchOpenAPISpec(input: string): Promise<string> {
   // Check if input is a URL
   if (input.startsWith('http://') || input.startsWith('https://')) {
     console.log(`📡 Fetching OpenAPI spec from URL: ${input}`)
-    
+
     // Use node's built-in fetch (available in Node 18+)
     try {
       const response = await fetch(input)
@@ -45,27 +45,27 @@ async function fetchOpenAPISpec(input: string): Promise<string> {
   } else {
     // Local file
     console.log(`📂 Reading OpenAPI spec from file: ${input}`)
-    
+
     if (!fs.existsSync(input)) {
       throw new Error(`File not found: ${input}`)
     }
-    
+
     return fs.readFileSync(input, 'utf8')
   }
 }
 
 async function generateTypes(openapiContent: string, outputDir: string): Promise<void> {
   console.log('🔨 Generating TypeScript types using openapi-typescript...')
-  
+
   // Write the OpenAPI spec to a temporary file
   const tempSpecPath = path.join(outputDir, 'temp-openapi.json')
   fs.writeFileSync(tempSpecPath, openapiContent)
-  
+
   try {
     // Run openapi-typescript
     const typesOutputPath = path.join(outputDir, 'openapi-types.ts')
     const command = `npx openapi-typescript "${tempSpecPath}" --output "${typesOutputPath}"`
-    
+
     await execAsync(command)
     console.log(`✅ Generated types file: ${typesOutputPath}`)
   } finally {
@@ -76,7 +76,10 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
   }
 }
 
-function parseOperationsFromSpec(openapiContent: string): { operationIds: string[], operationInfoMap: Record<string, OperationInfo> } {
+function parseOperationsFromSpec(openapiContent: string): {
+  operationIds: string[]
+  operationInfoMap: Record<string, OperationInfo>
+} {
   const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
 
   if (!openApiSpec.paths) {
@@ -152,9 +155,9 @@ ${dictionaryContent}
 
 async function generateApiOperations(openapiContent: string, outputDir: string): Promise<void> {
   console.log('🔨 Generating api-operations.ts file...')
-  
+
   const { operationIds, operationInfoMap } = parseOperationsFromSpec(openapiContent)
-  
+
   // Generate TypeScript content
   const tsContent = generateApiOperationsContent(operationIds, operationInfoMap)
 
@@ -211,10 +214,7 @@ async function main(): Promise<void> {
     const openapiContent = await fetchOpenAPISpec(openapiInput)
 
     // Generate both files
-    await Promise.all([
-      generateTypes(openapiContent, outputDir),
-      generateApiOperations(openapiContent, outputDir)
-    ])
+    await Promise.all([generateTypes(openapiContent, outputDir), generateApiOperations(openapiContent, outputDir)])
 
     console.log('🎉 Code generation completed successfully!')
   } catch (error) {
