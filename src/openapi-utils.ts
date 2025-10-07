@@ -4,7 +4,7 @@ import { type GetPathParameters, type MutationOptions, type QueryOptions, Operat
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
   path: string,
-  pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>
+  pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
 ): string {
   if (pathParams === null || pathParams === undefined) return path
   const pathParamsValue = toValue(pathParams)
@@ -36,7 +36,7 @@ export function getParamsOptionsFrom<
   Options extends MutationOptions<Ops, Op> | QueryOptions<Ops, Op>,
 >(
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | Options,
-  optionsOrNull?: Options
+  optionsOrNull?: Options,
 ): {
   pathParams: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
   options: Options

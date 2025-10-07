@@ -1,51 +1,70 @@
 {
-    "name": "@qualisero/openapi-endpoint",
-    "version": "0.1.0",
-    "description": "Type-safe OpenAPI integration for Vue Query",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "type": "module",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js"
-        }
-    },
-    "files": [
-        "dist",
-        "bin"
-    ],
-    "bin": {
-        "openapi-codegen": "./bin/openapi-codegen.js"
-    },
-    "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "types": "tsc --noEmit",
-        "prepublishOnly": "npm run build && npm run types"
-    },
-    "keywords": [
-        "vue",
-        "openapi",
-        "rest",
-        "api",
-        "vue-query",
-        "tanstack-query",
-        "typescript"
-    ],
-    "publishConfig": {
-        "access": "public",
-        "provenance": true
-    },
-    "peerDependencies": {
-        "@tanstack/vue-query": "^5.90.2",
-        "axios": "^1.12.2",
-        "vue": "^3.5.22"
-    },
-    "devDependencies": {
-        "@types/node": "^24.7.0",
-        "openapi-typescript": "^7.9.1",
-        "typescript": "^5.9.2"
-    },
-    "license": "MIT",
-    "author": ""
+  "name": "@qualisero/openapi-endpoint",
+  "version": "0.2.0",
+  "description": "Type-safe OpenAPI integration for Vue Query",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "bin": {
+    "openapi-codegen": "./bin/openapi-codegen.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "types": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run build && npm run types"
+  },
+  "keywords": [
+    "vue",
+    "openapi",
+    "rest",
+    "api",
+    "vue-query",
+    "tanstack-query",
+    "typescript"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@tanstack/vue-query": "^5.90.2",
+    "axios": "^1.12.2",
+    "vue": "^3.5.22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@types/node": "^24.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^9.37.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.4.0",
+    "openapi-typescript": "^7.9.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "all",
+    "printWidth": 120,
+    "endOfLine": "lf"
+  },
+  "license": "MIT",
+  "author": ""
 }
