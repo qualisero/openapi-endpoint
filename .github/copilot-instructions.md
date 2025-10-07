@@ -240,3 +240,17 @@ When making changes:
 - Pay attention to Vue reactivity patterns and TanStack Query integration
 - The CLI tool is a crucial part of the developer workflow
 - Maintain backward compatibility unless explicitly requested to break it
+
+### Package Configuration
+
+The package.json includes these important configurations:
+- **Type: module** - Uses ES modules exclusively
+- **Exports field** - Provides both types and import paths
+- **Bin field** - Exposes the CLI tool as `openapi-codegen`
+- **Files field** - Only dist and bin directories are published
+- **PeerDependencies** - Vue, TanStack Query, and Axios must be provided by consumers
+
+### Available Scripts
+- `npm run build` - Compile TypeScript to dist/
+- `npm run types` - Type checking without emit
+- `npm run prepublishOnly` - Build and type check before publishing
