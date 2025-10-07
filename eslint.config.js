@@ -11,8 +11,9 @@ import tsPlugin from '@typescript-eslint/eslint-plugin'
 import globals from 'globals'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const prettierConfigPath = path.join(__dirname, '.prettierrc.json')
-const prettierOptions = JSON.parse(fs.readFileSync(prettierConfigPath, 'utf8'))
+const packageJsonPath = path.join(__dirname, 'package.json')
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+const prettierOptions = packageJson.prettier
 
 export default [
   js.configs.recommended,

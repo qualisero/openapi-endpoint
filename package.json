@@ -57,6 +57,14 @@
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"
   },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 120,
+    "endOfLine": "lf"
+  },
   "license": "MIT",
   "author": ""
 }
