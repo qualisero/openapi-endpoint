@@ -135,6 +135,27 @@ describe('useOpenApi', () => {
 
       expect(endpoint).toBeTruthy()
     })
+
+    it('should work with mutation operations', () => {
+      const api = useOpenApi(mockConfig)
+
+      // Test that useEndpoint can be called with mutation operations
+      const createEndpoint = api.useEndpoint('createPet', {})
+      const updateEndpoint = api.useEndpoint('updatePet', { petId: '123' })
+      const deleteEndpoint = api.useEndpoint('deletePet', { petId: '123' })
+
+      expect(createEndpoint).toBeTruthy()
+      expect(updateEndpoint).toBeTruthy()
+      expect(deleteEndpoint).toBeTruthy()
+
+      // Verify these have mutation-like properties
+      expect(createEndpoint).toHaveProperty('mutate')
+      expect(createEndpoint).toHaveProperty('mutateAsync')
+      expect(updateEndpoint).toHaveProperty('mutate')
+      expect(updateEndpoint).toHaveProperty('mutateAsync')
+      expect(deleteEndpoint).toHaveProperty('mutate')
+      expect(deleteEndpoint).toHaveProperty('mutateAsync')
+    })
   })
 
   describe('configuration validation', () => {
