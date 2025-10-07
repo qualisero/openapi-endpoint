@@ -264,6 +264,7 @@ When making changes:
 - Pay attention to Vue reactivity patterns and TanStack Query integration
 - The CLI tool is a crucial part of the developer workflow
 - Maintain backward compatibility unless explicitly requested to break it
+- Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### Package Configuration
 
