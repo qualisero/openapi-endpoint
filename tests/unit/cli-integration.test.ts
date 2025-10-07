@@ -42,6 +42,7 @@ describe('CLI Integration Tests', () => {
 
       // Extract all operation IDs
       for (const [_pathUrl, pathItem] of Object.entries(spec.paths)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [_method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push(operation.operationId)
@@ -153,6 +154,7 @@ describe('CLI Integration Tests', () => {
       const operations = []
 
       for (const [pathUrl, pathItem] of Object.entries(spec.paths)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push({

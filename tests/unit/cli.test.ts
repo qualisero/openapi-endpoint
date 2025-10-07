@@ -18,7 +18,9 @@ describe('CLI codegen functionality', () => {
       const operationIds: string[] = []
       const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
           const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
           if (!httpMethods.includes(method.toLowerCase())) {
@@ -161,7 +163,9 @@ export type OperationId = typeof OperationId[keyof typeof OperationId]
         const operationIds: string[] = []
         const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
             const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
             if (!httpMethods.includes(method.toLowerCase())) return

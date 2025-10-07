@@ -238,6 +238,7 @@ describe('Advanced composable functionality', () => {
       }
 
       expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useEndpointQuery('invalidOp' as any, invalidHelpers, {}, {})
       }).toThrow()
     })
