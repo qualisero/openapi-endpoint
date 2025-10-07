@@ -12,8 +12,12 @@
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "bin"
     ],
+    "bin": {
+        "openapi-codegen": "./bin/openapi-codegen.js"
+    },
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "types": "tsc --noEmit",
@@ -33,11 +37,13 @@
         "provenance": true
     },
     "peerDependencies": {
-        "@tanstack/vue-query": "^5.76.0",
-        "axios": "^1.9.0",
-        "vue": "^3.0.0"
+        "@tanstack/vue-query": "^5.90.2",
+        "axios": "^1.12.2",
+        "vue": "^3.5.22"
     },
     "devDependencies": {
+        "@types/node": "^24.7.0",
+        "openapi-typescript": "^7.9.1",
         "typescript": "^5.9.2"
     },
     "license": "MIT",
