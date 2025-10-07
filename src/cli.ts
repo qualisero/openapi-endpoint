@@ -123,7 +123,7 @@ function generateApiOperationsContent(operationIds: string[], operationInfoMap: 
   const dictionaryContent = operationIds
     .map((id) => {
       const info = operationInfoMap[id]
-      return `  ${id}: {\n    path: '${info.path}',\n    method: HttpMethod.${info.method}\n  },`
+      return `  ${id}: {\n    path: '${info.path}',\n    method: HttpMethod.${info.method},\n  },`
     })
     .join('\n')
 
@@ -143,13 +143,13 @@ export enum HttpMethod {
 
 export const OperationId = {
 ${enumContent}
-} as const;
+} as const
 
-export type OperationId = typeof OperationId[keyof typeof OperationId];
+export type OperationId = (typeof OperationId)[keyof typeof OperationId]
 
 export const OPERATION_INFO = {
 ${dictionaryContent}
-} as const;
+} as const
 `
 }
 
