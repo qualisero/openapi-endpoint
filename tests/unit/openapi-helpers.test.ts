@@ -165,7 +165,6 @@ describe('openapi-helpers', () => {
       })
 
       it('should extract list path prefix from nested resource', () => {
-        const helpers = getHelpers(mockConfig)
         // Add a nested resource operation for testing
         const nestedConfig = {
           operations: {
@@ -186,7 +185,6 @@ describe('openapi-helpers', () => {
       })
 
       it('should handle single segment paths', () => {
-        const helpers = getHelpers(mockConfig)
         // Add a simple resource for testing
         const simpleConfig = {
           operations: {

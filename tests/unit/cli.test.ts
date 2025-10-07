@@ -156,8 +156,8 @@ export type OperationId = typeof OperationId[keyof typeof OperationId]
 
     it('should generate valid TypeScript for toy OpenAPI spec', () => {
       const openapiContent = JSON.stringify(toyOpenApiSpec)
-      const parseOperationsFromSpec = (openapiContent: string) => {
-        const openApiSpec = JSON.parse(openapiContent)
+      const parseOperationsFromSpec = (content: string) => {
+        const openApiSpec = JSON.parse(content)
         const operationIds: string[] = []
         const operationInfoMap: Record<string, { path: string; method: string }> = {}
 

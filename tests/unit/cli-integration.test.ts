@@ -41,8 +41,8 @@ describe('CLI Integration Tests', () => {
       const operations = []
 
       // Extract all operation IDs
-      for (const [pathUrl, pathItem] of Object.entries(spec.paths)) {
-        for (const [method, operation] of Object.entries(pathItem as any)) {
+      for (const [_pathUrl, pathItem] of Object.entries(spec.paths)) {
+        for (const [_method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push(operation.operationId)
           }
@@ -242,7 +242,7 @@ describe('CLI Integration Tests', () => {
       expect(Object.keys(expectedOperationInfo).length).toBe(6)
 
       // Verify each operation has correct structure
-      Object.entries(expectedOperationInfo).forEach(([opId, info]) => {
+      Object.entries(expectedOperationInfo).forEach(([_opId, info]) => {
         expect(info).toHaveProperty('path')
         expect(info).toHaveProperty('method')
         expect(typeof info.path).toBe('string')
