@@ -12,6 +12,9 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/cli.ts'], // CLI tests will be separate
     },
+    clearMocks: true,
+    mockReset: true,
+    restoreMocks: true,
   },
   resolve: {
     alias: {

@@ -4,6 +4,7 @@ import { useEndpointMutation } from '@/openapi-mutation'
 import { useEndpoint } from '@/openapi-endpoint'
 import { getHelpers } from '@/openapi-helpers'
 import { HttpMethod, OpenApiConfig } from '@/types'
+import { mockAxios } from '../setup'
 
 // Define mock operations for testing
 const mockOperations = {
@@ -19,14 +20,12 @@ const mockOperations = {
 type MockOps = typeof mockOperations
 
 describe('Advanced composable functionality', () => {
-  let mockAxios: any
   let mockConfig: OpenApiConfig<MockOps>
   let helpers: ReturnType<typeof getHelpers<MockOps>>
 
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockAxios = vi.fn().mockResolvedValue({ data: { id: '123', name: 'Test Pet' } })
     mockConfig = {
       operations: mockOperations,
       axios: mockAxios,

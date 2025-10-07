@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { getHelpers } from '@/openapi-helpers'
 import { HttpMethod, OpenApiConfig } from '@/types'
+import { mockAxios } from '../setup'
 
 // Define mock operations for testing
 const mockOperations = {
@@ -28,11 +29,9 @@ type MockOps = typeof mockOperations
 type MockConfig = OpenApiConfig<MockOps>
 
 describe('openapi-helpers', () => {
-  let mockAxios: any
   let mockConfig: MockConfig
 
   beforeEach(() => {
-    mockAxios = vi.fn()
     mockConfig = {
       operations: mockOperations,
       axios: mockAxios,

@@ -1,15 +1,31 @@
 import { vi } from 'vitest'
 
-// Mock Vue reactivity functions
-export const mockVue = {
+// Mock Axios before any other imports
+const mockAxiosInstance = vi.fn(() => Promise.resolve({ data: { id: '123', name: 'Test' } }))
+mockAxiosInstance.create = vi.fn(() => mockAxiosInstance)
+mockAxiosInstance.get = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.post = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.put = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.patch = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.delete = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.head = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.options = vi.fn(() => Promise.resolve({ data: {} }))
+mockAxiosInstance.request = vi.fn(() => Promise.resolve({ data: {} }))
+
+// Set up mocks at the top level before any imports
+vi.mock('axios', () => ({
+  default: mockAxiosInstance,
+  create: vi.fn(() => mockAxiosInstance),
+}))
+
+vi.mock('vue', () => ({
   computed: vi.fn((fn) => ({ value: fn() })),
   ref: vi.fn((value) => ({ value })),
   toValue: vi.fn((value) => (typeof value === 'function' ? value() : value)),
   watch: vi.fn(),
-}
+}))
 
-// Mock TanStack Query
-export const mockTanStackQuery = {
+vi.mock('@tanstack/vue-query', () => ({
   QueryClient: vi.fn(() => ({
     getQueryData: vi.fn(),
     setQueryData: vi.fn(),
@@ -30,21 +46,7 @@ export const mockTanStackQuery = {
     isLoading: { value: false },
     error: { value: null },
   })),
-}
+}))
 
-// Mock Axios
-export const mockAxios = vi.fn(() => Promise.resolve({ data: { id: '123', name: 'Test' } }))
-mockAxios.create = vi.fn(() => mockAxios)
-mockAxios.get = vi.fn()
-mockAxios.post = vi.fn()
-mockAxios.put = vi.fn()
-mockAxios.patch = vi.fn()
-mockAxios.delete = vi.fn()
-mockAxios.head = vi.fn()
-mockAxios.options = vi.fn()
-mockAxios.request = vi.fn()
-
-// Set up global mocks
-vi.mock('vue', () => mockVue)
-vi.mock('@tanstack/vue-query', () => mockTanStackQuery)
-vi.mock('axios', () => ({ default: mockAxios }))
+// Export for use in tests if needed
+export const mockAxios = mockAxiosInstance
