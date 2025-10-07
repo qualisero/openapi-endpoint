@@ -23,20 +23,22 @@ This directory contains comprehensive unit tests for the `@qualisero/openapi-end
 ## Test Coverage
 
 Current test coverage (as of latest run):
+
 - **Overall**: 72.44% statement coverage
 - **Branches**: 89.06% branch coverage
 - **Functions**: 76% function coverage
 
 ### Coverage by File
-| File | Statements | Branches | Functions | Notes |
-|------|------------|----------|-----------|-------|
-| `index.ts` | 100% | 100% | 100% | Main entry point fully covered |
-| `openapi-utils.ts` | 100% | 94.44% | 100% | Utility functions fully covered |
-| `openapi-helpers.ts` | 97.18% | 76.47% | 100% | Helper functions well covered |
-| `openapi-endpoint.ts` | 90.47% | 80% | 100% | Generic endpoint handler mostly covered |
-| `openapi-query.ts` | 69.73% | 91.66% | 40% | Query composables partially covered |
-| `openapi-mutation.ts` | 37.6% | 100% | 25% | Mutation composables need more coverage |
-| `types.ts` | 100% | 100% | 100% | Type definitions fully covered |
+
+| File                  | Statements | Branches | Functions | Notes                                   |
+| --------------------- | ---------- | -------- | --------- | --------------------------------------- |
+| `index.ts`            | 100%       | 100%     | 100%      | Main entry point fully covered          |
+| `openapi-utils.ts`    | 100%       | 94.44%   | 100%      | Utility functions fully covered         |
+| `openapi-helpers.ts`  | 97.18%     | 76.47%   | 100%      | Helper functions well covered           |
+| `openapi-endpoint.ts` | 90.47%     | 80%      | 100%      | Generic endpoint handler mostly covered |
+| `openapi-query.ts`    | 69.73%     | 91.66%   | 40%       | Query composables partially covered     |
+| `openapi-mutation.ts` | 37.6%      | 100%     | 25%       | Mutation composables need more coverage |
+| `types.ts`            | 100%       | 100%     | 100%      | Type definitions fully covered          |
 
 ## Running Tests
 
@@ -59,6 +61,7 @@ npm run test:ui
 ### Test Configuration
 
 Tests are configured using Vitest with:
+
 - **Environment**: jsdom (for Vue reactivity simulation)
 - **Mocking**: Vue, TanStack Query, and Axios are mocked via `tests/setup.ts`
 - **Global**: `describe`, `it`, `expect`, `vi` are available globally
@@ -68,6 +71,7 @@ Tests are configured using Vitest with:
 ### Mocking Strategy
 
 Since this is a library with peer dependencies (Vue, TanStack Query, Axios), we mock these dependencies to:
+
 - Isolate the library's logic
 - Avoid version conflicts during testing
 - Focus on testing the library's own functionality
@@ -83,6 +87,7 @@ Since this is a library with peer dependencies (Vue, TanStack Query, Axios), we 
 ### Test Data
 
 The toy OpenAPI specification (`fixtures/toy-openapi.json`) includes:
+
 - **6 operations**: `listPets`, `createPet`, `getPet`, `updatePet`, `deletePet`, `listUserPets`
 - **Multiple HTTP methods**: GET, POST, PUT, DELETE
 - **Path parameters**: `{petId}`, `{userId}`
@@ -92,18 +97,21 @@ The toy OpenAPI specification (`fixtures/toy-openapi.json`) includes:
 ## Test Categories
 
 ### Unit Tests
+
 - Individual function testing
 - Isolated component behavior
 - Error condition handling
 - Type safety validation
 
 ### Integration Tests
+
 - Multi-component interactions
 - OpenAPI specification validation
 - Code generation logic testing
 - End-to-end scenarios
 
 ### CLI Tests
+
 - Command-line interface validation
 - Code generation patterns
 - File structure validation
@@ -121,11 +129,13 @@ When adding new functionality:
 6. **Update this README** if adding new test categories
 
 ### Test File Naming
+
 - `*.test.ts` for unit tests
 - `*-integration.test.ts` for integration tests
 - Place in `tests/unit/` directory
 
 ### Common Test Utilities
+
 - Use `vi.fn()` for mocking functions
 - Use `expect().toThrow()` for error testing
 - Use type assertions for TypeScript validation
@@ -134,6 +144,7 @@ When adding new functionality:
 ## Continuous Integration
 
 Tests are designed to run in CI environments with:
+
 - No external dependencies
 - Deterministic results
 - Fast execution (< 3 seconds total)

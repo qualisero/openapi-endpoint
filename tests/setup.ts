@@ -33,17 +33,16 @@ export const mockTanStackQuery = {
 }
 
 // Mock Axios
-export const mockAxios = {
-  create: vi.fn(() => mockAxios),
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  patch: vi.fn(),
-  delete: vi.fn(),
-  head: vi.fn(),
-  options: vi.fn(),
-  request: vi.fn(),
-}
+export const mockAxios = vi.fn(() => Promise.resolve({ data: { id: '123', name: 'Test' } }))
+mockAxios.create = vi.fn(() => mockAxios)
+mockAxios.get = vi.fn()
+mockAxios.post = vi.fn()
+mockAxios.put = vi.fn()
+mockAxios.patch = vi.fn()
+mockAxios.delete = vi.fn()
+mockAxios.head = vi.fn()
+mockAxios.options = vi.fn()
+mockAxios.request = vi.fn()
 
 // Set up global mocks
 vi.mock('vue', () => mockVue)
