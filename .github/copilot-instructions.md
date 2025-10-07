@@ -251,11 +251,34 @@ When adding tests (if requested):
 When making changes:
 
 - Update README.md if public API changes
+- **Update README badges** when relevant information changes:
+  - Version badge automatically updates with npm releases
+  - CI badge reflects latest workflow status
+  - Coverage badge updates with codecov integration
+  - License badge should be updated if license changes
+  - Bundle size badge reflects published package size
 - Update TypeScript comments for public functions
 - Ensure code examples in docs remain accurate
 - Update CLI usage examples if command interface changes
 - Increment version in package.json (either minor or patch, based on the amount of change)
 - Update changelog for new features or breaking changes
+
+#### README Badge Maintenance
+
+The README includes several status badges that should be maintained:
+
+1. **NPM Version Badge**: `[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)` - Updates automatically with npm releases
+2. **CI Status Badge**: `[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)` - Shows current build status
+3. **Coverage Badge**: `[![codecov](https://codecov.io/gh/qualisero/openapi-endpoint/branch/main/graph/badge.svg)](https://codecov.io/gh/qualisero/openapi-endpoint)` - Shows test coverage percentage
+4. **License Badge**: `[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)` - Update if license changes
+5. **Bundle Size Badge**: `[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero/openapi-endpoint)](https://bundlephobia.com/package/@qualisero/openapi-endpoint)` - Shows minified+gzipped package size
+
+When drafting PRs, verify that:
+
+- All badges are displaying correctly and are not broken
+- Coverage badge reflects accurate test coverage improvements
+- CI badge shows passing status
+- Version badge matches the current published version
 
 ## Notes for AI Assistants
 

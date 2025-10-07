@@ -1,5 +1,11 @@
 # Vue OpenAPI Query
 
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/qualisero/openapi-endpoint/branch/main/graph/badge.svg)](https://codecov.io/gh/qualisero/openapi-endpoint)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero/openapi-endpoint)](https://bundlephobia.com/package/@qualisero/openapi-endpoint)
+
 Type-safe OpenAPI integration for Vue Query (TanStack Query).
 
 ## Installation
