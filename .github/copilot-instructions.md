@@ -274,6 +274,7 @@ The README includes several status badges that should be maintained:
 5. **Bundle Size Badge**: `[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero/openapi-endpoint)](https://bundlephobia.com/package/@qualisero/openapi-endpoint)` - Shows minified+gzipped package size
 
 When drafting PRs, verify that:
+
 - All badges are displaying correctly and are not broken
 - Coverage badge reflects accurate test coverage improvements
 - CI badge shows passing status
