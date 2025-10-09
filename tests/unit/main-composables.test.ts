@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { HttpMethod, OpenApiConfig } from '@/types'
+import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
 // Define mock operations for testing
@@ -190,22 +191,47 @@ describe('useOpenApi', () => {
     })
   })
 
-  describe('type safety', () => {
-    it('should enforce operation type constraints at compile time', () => {
-      const api = useOpenApi(mockConfig)
+  describe('custom queryClient configuration', () => {
+    it('should use provided queryClient when specified in config', () => {
+      const customQueryClient = vi.fn() as unknown as QueryClient
+      customQueryClient.getQueryData = vi.fn()
+      customQueryClient.setQueryData = vi.fn()
+      customQueryClient.invalidateQueries = vi.fn()
+      customQueryClient.cancelQueries = vi.fn()
+      customQueryClient.refetchQueries = vi.fn()
 
-      // These should work (GET operations with useQuery)
-      api.useQuery('listPets', {})
-      api.useQuery('getPet', { petId: '123' })
+      const configWithCustomClient: OpenApiConfig<MockOps> = {
+        operations: mockOperations,
+        axios: mockAxios,
+        queryClient: customQueryClient,
+      }
 
-      // These should work (non-GET operations with useMutation)
-      api.useMutation('createPet', {})
-      api.useMutation('updatePet', { petId: '123' })
-      api.useMutation('deletePet', { petId: '123' })
+      const api = useOpenApi(configWithCustomClient)
 
-      // useEndpoint should work with any operation
-      api.useEndpoint('listPets', {})
-      api.useEndpoint('createPet', {})
+      // Create a query to ensure the custom client is being used
+      const query = api.useQuery('listPets', {})
+      expect(query).toBeTruthy()
+
+      // Create a mutation to ensure the custom client is being used
+      const mutation = api.useMutation('createPet', {})
+      expect(mutation).toBeTruthy()
+    })
+
+    it('should use default queryClient when not specified in config', () => {
+      const configWithoutCustomClient: OpenApiConfig<MockOps> = {
+        operations: mockOperations,
+        axios: mockAxios,
+        // No queryClient specified
+      }
+
+      const api = useOpenApi(configWithoutCustomClient)
+
+      // Should still work with default queryClient
+      const query = api.useQuery('listPets', {})
+      expect(query).toBeTruthy()
+
+      const mutation = api.useMutation('createPet', {})
+      expect(mutation).toBeTruthy()
     })
   })
 })

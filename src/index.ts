@@ -6,7 +6,7 @@ import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 import { useEndpointMutation } from './openapi-mutation'
 import { Operations, GetPathParameters, OpenApiConfig, QueryOptions, MutationOptions, IsQueryOperation } from './types'
 import { getHelpers } from './openapi-helpers'
-export type { OperationInfo, QueryOptions } from './types'
+export type { OperationInfo, QueryOptions, OpenApiConfig } from './types'
 export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 

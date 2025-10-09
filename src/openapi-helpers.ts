@@ -1,4 +1,5 @@
 import { HttpMethod, type OperationInfo, OpenApiConfig, Operations } from './types'
+import { queryClient as defaultQueryClient } from './index'
 
 // helper returning the operationId prefix given an http method
 function _getMethodPrefix(method: HttpMethod): string | null {
@@ -92,5 +93,6 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
     isQueryOperation,
     isMutationOperation,
     axios: config.axios,
+    queryClient: config.queryClient || defaultQueryClient,
   }
 }

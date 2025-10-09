@@ -1,5 +1,5 @@
 import { type AxiosInstance } from 'axios'
-import { UseMutationOptions, type UseQueryOptions } from '@tanstack/vue-query'
+import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
 // import { type UseQueryOptions, type UseMutationOptions } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
 import { type AxiosRequestConfig } from 'axios'
@@ -17,6 +17,7 @@ export interface OpenApiConfig<
   // operationIds: Ids
   operations: Ops
   axios: AxiosInstance
+  queryClient?: QueryClient
 }
 
 export enum HttpMethod {

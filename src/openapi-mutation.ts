@@ -10,7 +10,6 @@ import {
   Operations,
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
-import { queryClient } from './index'
 import { getHelpers } from './openapi-helpers'
 
 export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
@@ -94,7 +93,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         )
       }
       // Cancel any ongoing queries for this path (prevent race conditions with refresh)
-      await queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
+      await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
 
       const response = await h.axios({
         method: method.toLowerCase(),
@@ -119,20 +118,20 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         data &&
         [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
       ) {
-        await queryClient.setQueryData(queryKey.value, data)
+        await h.queryClient.setQueryData(queryKey.value, data)
       }
 
       // Invalidate queries for this path, and any additional specified operations
       if (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) {
         // Invalidate all queries for this path (exact for POST, prefix for others):
-        await queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
+        await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
 
         const listPath = h.getListOperationPath(operationId)
         if (listPath) {
           const listResolvedPath = resolvePath(listPath, pathParams)
           if (isPathResolved(listResolvedPath)) {
             const listQueryKey = generateQueryKey(listResolvedPath)
-            await queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
+            await h.queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
           }
         }
       }
@@ -155,7 +154,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           })
           if (isPathResolved(opPath)) {
             const opQueryKey = generateQueryKey(opPath)
-            return queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
+            return h.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
           } else {
             console.warn(
               `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,

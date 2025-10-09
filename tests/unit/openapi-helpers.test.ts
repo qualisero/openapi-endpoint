@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { getHelpers } from '@/openapi-helpers'
 import { HttpMethod, OpenApiConfig } from '@/types'
+import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
 // Define mock operations for testing
@@ -48,7 +49,35 @@ describe('openapi-helpers', () => {
       expect(helpers).toHaveProperty('isQueryOperation')
       expect(helpers).toHaveProperty('isMutationOperation')
       expect(helpers).toHaveProperty('axios')
+      expect(helpers).toHaveProperty('queryClient')
       expect(helpers.axios).toBe(mockAxios)
+    })
+
+    it('should use custom queryClient when provided in config', () => {
+      const customQueryClient = {
+        getQueryData: vi.fn(),
+        setQueryData: vi.fn(),
+        invalidateQueries: vi.fn(),
+        cancelQueries: vi.fn(),
+        refetchQueries: vi.fn(),
+      } as unknown as QueryClient
+
+      const configWithCustomClient: MockConfig = {
+        operations: mockOperations,
+        axios: mockAxios,
+        queryClient: customQueryClient,
+      }
+
+      const helpers = getHelpers(configWithCustomClient)
+      expect(helpers.queryClient).toBe(customQueryClient)
+    })
+
+    it('should use default queryClient when not provided in config', () => {
+      const helpers = getHelpers(mockConfig)
+      expect(helpers.queryClient).toBeDefined()
+      expect(helpers.queryClient).toHaveProperty('getQueryData')
+      expect(helpers.queryClient).toHaveProperty('setQueryData')
+      expect(helpers.queryClient).toHaveProperty('invalidateQueries')
     })
 
     describe('getOperationInfo', () => {
