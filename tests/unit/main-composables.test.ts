@@ -237,13 +237,13 @@ describe('useOpenApi', () => {
     it('should allow OpenApiInstance type to be used for typing API instances', () => {
       // Create an API instance and verify it matches the OpenApiInstance type
       const api = useOpenApi(mockConfig)
-      
+
       // Type test: this should compile without errors
       const typedApi: OpenApiInstance<MockOps> = api
-      
+
       // Verify the api instance has the expected methods
       expect(typedApi).toHaveProperty('useQuery')
-      expect(typedApi).toHaveProperty('useMutation') 
+      expect(typedApi).toHaveProperty('useMutation')
       expect(typedApi).toHaveProperty('useEndpoint')
       expect(typeof typedApi.useQuery).toBe('function')
       expect(typeof typedApi.useMutation).toBe('function')
