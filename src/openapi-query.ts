@@ -11,7 +11,6 @@ import {
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import type { AxiosError } from 'axios'
 import { getHelpers } from './openapi-helpers'
-import { queryClient } from './index'
 
 // DEBUG:
 // import axios from 'axios'
@@ -97,7 +96,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
 
       ...useQueryOptions,
     },
-    queryClient,
+    h.queryClient,
   )
 
   // onLoad callback is called once, as soon as data is available (immediately or when loading finishes)
