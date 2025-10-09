@@ -151,14 +151,14 @@ describe('CLI Integration Tests', () => {
       const specContent = fs.readFileSync(toySpecPath, 'utf8')
       const spec = JSON.parse(specContent)
 
-      const operations = []
+      const operations: { id: string; method: string; path: string }[] = []
 
       for (const [pathUrl, pathItem] of Object.entries(spec.paths)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push({
-              id: operation.operationId,
+              id: operation.operationId as string,
               method: method.toUpperCase(),
               path: pathUrl,
             })
