@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
-import { HttpMethod, OpenApiConfig } from '@/types'
+import { HttpMethod, OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
 
 // Define mock operations for testing
@@ -206,6 +206,22 @@ describe('useOpenApi', () => {
       // useEndpoint should work with any operation
       api.useEndpoint('listPets', {})
       api.useEndpoint('createPet', {})
+    })
+
+    it('should allow OpenApiInstance type to be used for typing API instances', () => {
+      // Create an API instance and verify it matches the OpenApiInstance type
+      const api = useOpenApi(mockConfig)
+      
+      // Type test: this should compile without errors
+      const typedApi: OpenApiInstance<MockOps> = api
+      
+      // Verify the api instance has the expected methods
+      expect(typedApi).toHaveProperty('useQuery')
+      expect(typedApi).toHaveProperty('useMutation') 
+      expect(typedApi).toHaveProperty('useEndpoint')
+      expect(typeof typedApi.useQuery).toBe('function')
+      expect(typeof typedApi.useMutation).toBe('function')
+      expect(typeof typedApi.useEndpoint).toBe('function')
     })
   })
 })
