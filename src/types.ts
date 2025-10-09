@@ -3,8 +3,10 @@ import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack
 // import { type UseQueryOptions, type UseMutationOptions } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
 import { type AxiosRequestConfig } from 'axios'
-import { EndpointQueryReturn } from '.'
+import type { EndpointQueryReturn } from './openapi-query'
+import type { EndpointMutationReturn } from './openapi-mutation'
 export type { EndpointQueryReturn } from './openapi-query'
+export type { EndpointMutationReturn } from './openapi-mutation'
 
 export type OperationId = string
 
@@ -121,3 +123,26 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
 //   : never
 
 // export type IsMutationOperation<Op extends string> = IsQueryOperation<Op> extends true ? false : true
+
+// Type representing an instance of the OpenAPI client returned by useOpenApi
+export type OpenApiInstance<Ops extends Operations<Ops>> = {
+  useQuery: <Op extends keyof Ops>(
+    operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
+    pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
+    optionsOrNull?: QueryOptions<Ops, Op>,
+  ) => EndpointQueryReturn<Ops, Op>
+
+  useMutation: <Op extends keyof Ops>(
+    operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
+    pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
+    optionsOrNull?: MutationOptions<Ops, Op>,
+  ) => EndpointMutationReturn<Ops, Op>
+
+  useEndpoint: <Op extends keyof Ops>(
+    operationId: Op,
+    pathParamsOrOptions?:
+      | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+      | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
+    optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
+  ) => EndpointQueryReturn<Ops, Op> | EndpointMutationReturn<Ops, Op>
+}
