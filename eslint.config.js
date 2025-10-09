@@ -52,7 +52,7 @@ export default [
       'no-empty': 'warn',
       'no-unreachable': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-shadow': 'off',
       '@typescript-eslint/no-shadow': ['error', { ignoreTypeValueShadow: true }],
     },
