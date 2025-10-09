@@ -48,6 +48,11 @@
     "access": "public",
     "provenance": true
   },
+  "peerDependencies": {
+    "@tanstack/vue-query": "^5.90.2",
+    "axios": "^1.12.2",
+    "vue": "^3.5.22"
+  },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
     "@types/node": "^24.7.0",
