@@ -53,6 +53,8 @@ jobs:
 
             A pull request has been merged to main. Please update the package version and changelog according to the following guidelines:
 
+            Agent: ${copilotAgent}
+
             ### Version Management Guidelines
 
             **ALWAYS** bump the package version for every code change:
