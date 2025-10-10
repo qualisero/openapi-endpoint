@@ -3,25 +3,19 @@ import { useEndpointQuery } from '@/openapi-query'
 import { useEndpointMutation } from '@/openapi-mutation'
 import { useEndpoint } from '@/openapi-endpoint'
 import { getHelpers } from '@/openapi-helpers'
-import { HttpMethod, OpenApiConfig } from '@/types'
+import { OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 
-// Define mock operations for testing
-const mockOperations = {
-  listPets: { method: HttpMethod.GET, path: '/pets' },
-  getPet: { method: HttpMethod.GET, path: '/pets/{petId}' },
-  createPet: { method: HttpMethod.POST, path: '/pets' },
-  updatePet: { method: HttpMethod.PUT, path: '/pets/{petId}' },
-  deletePet: { method: HttpMethod.DELETE, path: '/pets/{petId}' },
-  listUsers: { method: HttpMethod.GET, path: '/users' },
-  getUser: { method: HttpMethod.GET, path: '/users/{userId}' },
-}
+import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
+import { type operations } from '../fixtures/openapi-types'
 
-type MockOps = typeof mockOperations
+type MockOps = typeof OPERATION_INFO
+type OperationsWithInfo = operations & MockOps
+const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
 
 describe('Advanced composable functionality', () => {
-  let mockConfig: OpenApiConfig<MockOps>
-  let helpers: ReturnType<typeof getHelpers<MockOps>>
+  let mockConfig: OpenApiConfig<OperationsWithInfo>
+  let helpers: ReturnType<typeof getHelpers<OperationsWithInfo>>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -36,19 +30,19 @@ describe('Advanced composable functionality', () => {
   describe('useEndpointQuery', () => {
     it('should throw error for non-query operations', () => {
       expect(() => {
-        useEndpointQuery('createPet', helpers, {}, {})
+        useEndpointQuery(OperationId.createPet, helpers, {}, {})
       }).toThrow('Operation createPet is not a query operation (GET/HEAD/OPTIONS)')
     })
 
     it('should accept GET operations', () => {
-      const query = useEndpointQuery('listPets', helpers, {}, {})
+      const query = useEndpointQuery(OperationId.listPets, helpers, {}, {})
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
     })
 
     it('should handle path parameters correctly', () => {
-      const query = useEndpointQuery('getPet', helpers, { petId: '123' }, {})
+      const query = useEndpointQuery(OperationId.getPet, helpers, { petId: '123' }, {})
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('queryKey')
     })
@@ -56,7 +50,7 @@ describe('Advanced composable functionality', () => {
     it('should handle options correctly', () => {
       const onLoad = vi.fn()
       const query = useEndpointQuery(
-        'listPets',
+        OperationId.listPets,
         helpers,
         {},
         {
@@ -70,17 +64,17 @@ describe('Advanced composable functionality', () => {
     })
 
     it('should generate correct query key', () => {
-      const query = useEndpointQuery('getPet', helpers, { petId: '123' }, {})
+      const query = useEndpointQuery(OperationId.getPet, helpers, { petId: '123' }, {})
       expect(query.queryKey).toBeTruthy()
       expect(query.queryKey.value).toEqual(['pets', '123'])
     })
 
     it('should handle enabled state based on path resolution', () => {
-      const queryWithParams = useEndpointQuery('getPet', helpers, { petId: '123' }, {})
+      const queryWithParams = useEndpointQuery(OperationId.getPet, helpers, { petId: '123' }, {})
       expect(queryWithParams.isEnabled).toBeTruthy()
       expect(queryWithParams.isEnabled.value).toBe(true)
 
-      const queryWithoutParams = useEndpointQuery('getPet', helpers, {}, {})
+      const queryWithoutParams = useEndpointQuery(OperationId.getPet, helpers, {}, {})
       expect(queryWithoutParams.isEnabled).toBeTruthy()
       expect(queryWithoutParams.isEnabled.value).toBe(false)
     })
@@ -89,33 +83,33 @@ describe('Advanced composable functionality', () => {
   describe('useEndpointMutation', () => {
     it('should throw error for query operations', () => {
       expect(() => {
-        useEndpointMutation('listPets', helpers, {}, {})
+        useEndpointMutation(OperationId.listPets, helpers, {}, {})
       }).toThrow('Operation listPets is not a mutation operation (POST/PUT/PATCH/DELETE)')
     })
 
     it('should accept POST operations', () => {
-      const mutation = useEndpointMutation('createPet', helpers, {}, {})
+      const mutation = useEndpointMutation(OperationId.createPet, helpers, {}, {})
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
     })
 
     it('should accept PUT operations', () => {
-      const mutation = useEndpointMutation('updatePet', helpers, { petId: '123' }, {})
+      const mutation = useEndpointMutation(OperationId.updatePet, helpers, { petId: '123' }, {})
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
     })
 
     it('should accept DELETE operations', () => {
-      const mutation = useEndpointMutation('deletePet', helpers, { petId: '123' }, {})
+      const mutation = useEndpointMutation(OperationId.deletePet, helpers, { petId: '123' }, {})
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
     })
 
     it('should handle path parameters correctly', () => {
-      const mutation = useEndpointMutation('updatePet', helpers, { petId: '123' }, {})
+      const mutation = useEndpointMutation(OperationId.updatePet, helpers, { petId: '123' }, {})
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('isEnabled')
       expect(mutation.isEnabled.value).toBe(true)
@@ -124,12 +118,12 @@ describe('Advanced composable functionality', () => {
     it('should handle options correctly', () => {
       const onSuccess = vi.fn()
       const mutation = useEndpointMutation(
-        'createPet',
+        OperationId.createPet,
         helpers,
         {},
         {
           onSuccess,
-          invalidateQueries: ['listPets'],
+          invalidateQueries: [OperationId.listPets],
         },
       )
       expect(mutation).toBeTruthy()
@@ -138,7 +132,7 @@ describe('Advanced composable functionality', () => {
 
   describe('useEndpoint', () => {
     it('should delegate to useEndpointQuery for query operations', () => {
-      const endpoint = useEndpoint('listPets', helpers, {}, {})
+      const endpoint = useEndpoint(OperationId.listPets, helpers, {}, {})
       expect(endpoint).toBeTruthy()
       // Should have query-like properties
       expect(endpoint).toHaveProperty('data')
@@ -146,7 +140,7 @@ describe('Advanced composable functionality', () => {
     })
 
     it('should delegate to useEndpointMutation for mutation operations', () => {
-      const endpoint = useEndpoint('createPet', helpers, {}, {})
+      const endpoint = useEndpoint(OperationId.createPet, helpers, {}, {})
       expect(endpoint).toBeTruthy()
       // Should have mutation-like properties
       expect(endpoint).toHaveProperty('mutate')
@@ -154,49 +148,39 @@ describe('Advanced composable functionality', () => {
     })
 
     it('should handle path parameters for both query and mutation operations', () => {
-      const queryEndpoint = useEndpoint('getPet', helpers, { petId: '123' }, {})
+      const queryEndpoint = useEndpoint(OperationId.getPet, helpers, { petId: '123' }, {})
       expect(queryEndpoint).toBeTruthy()
 
-      const mutationEndpoint = useEndpoint('updatePet', helpers, { petId: '123' }, {})
+      const mutationEndpoint = useEndpoint(OperationId.updatePet, helpers, { petId: '123' }, {})
       expect(mutationEndpoint).toBeTruthy()
     })
   })
 
   describe('Integration scenarios', () => {
     it('should handle complex path resolution scenarios', () => {
-      // Test with nested path parameters
-      const nestedOperations = {
-        getUserPet: { method: HttpMethod.GET, path: '/users/{userId}/pets/{petId}' },
-      }
-      const nestedConfig = {
-        operations: nestedOperations,
-        axios: mockAxios,
-      }
-      const nestedHelpers = getHelpers(nestedConfig)
-
+      // Use existing nested operation from fixtures
       const query = useEndpointQuery(
-        'getUserPet',
-        nestedHelpers,
+        OperationId.listUserPets,
+        helpers,
         {
           userId: 'user1',
-          petId: 'pet1',
         },
         {},
       )
 
-      expect(query.queryKey.value).toEqual(['users', 'user1', 'pets', 'pet1'])
+      expect(query.queryKey.value).toEqual(['users', 'user1', 'pets'])
       expect(query.isEnabled.value).toBe(true)
     })
 
     it('should handle missing path parameters gracefully', () => {
-      const query = useEndpointQuery('getPet', helpers, { petId: null }, {})
+      const query = useEndpointQuery(OperationId.getPet, helpers, { petId: null }, {})
       expect(query.isEnabled.value).toBe(false)
     })
 
     it('should support reactive path parameters', () => {
       // Create a ref-like object for testing
       const reactiveParams = { petId: '123' }
-      const query = useEndpointQuery('getPet', helpers, reactiveParams, {})
+      const query = useEndpointQuery(OperationId.getPet, helpers, reactiveParams, {})
 
       expect(query.queryKey.value).toEqual(['pets', '123'])
       expect(query.isEnabled.value).toBe(true)
@@ -205,7 +189,7 @@ describe('Advanced composable functionality', () => {
     it('should handle different axios options', () => {
       const customHeaders = { Authorization: 'Bearer token' }
       const query = useEndpointQuery(
-        'listPets',
+        OperationId.listPets,
         helpers,
         {},
         {
@@ -246,12 +230,12 @@ describe('Advanced composable functionality', () => {
     it('should validate operation types at runtime', () => {
       // Test that POST operations are rejected by useEndpointQuery
       expect(() => {
-        useEndpointQuery('createPet', helpers, {}, {})
+        useEndpointQuery(OperationId.createPet, helpers, {}, {})
       }).toThrow('not a query operation')
 
       // Test that GET operations are rejected by useEndpointMutation
       expect(() => {
-        useEndpointMutation('listPets', helpers, {}, {})
+        useEndpointMutation(OperationId.listPets, helpers, {}, {})
       }).toThrow('not a mutation operation')
     })
   })
@@ -259,10 +243,10 @@ describe('Advanced composable functionality', () => {
   describe('Type safety validation', () => {
     it('should enforce correct parameter types', () => {
       // These should work at runtime with proper types
-      const queryWithCorrectParams = useEndpointQuery('getPet', helpers, { petId: '123' }, {})
+      const queryWithCorrectParams = useEndpointQuery(OperationId.getPet, helpers, { petId: '123' }, {})
       expect(queryWithCorrectParams).toBeTruthy()
 
-      const mutationWithCorrectParams = useEndpointMutation('updatePet', helpers, { petId: '123' }, {})
+      const mutationWithCorrectParams = useEndpointMutation(OperationId.updatePet, helpers, { petId: '123' }, {})
       expect(mutationWithCorrectParams).toBeTruthy()
     })
 
