@@ -25,6 +25,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "types": "tsc --noEmit",
+    "types:test": "npx tsc --noEmit --project tests/tsconfig.json",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
