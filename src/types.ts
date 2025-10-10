@@ -71,15 +71,15 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
   pathParams?: GetPathParameters<Ops, Op>
 }
 
-// Type-safe options for mutations - carefully omit only conflicting properties
-export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
-  'mutationFn' | 'mutationKey'
-> &
-  MutationOnSuccessOptions<Ops> & {
-    axiosOptions?: AxiosRequestConfig
-    errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
-  }
+// Type-safe options for mutations - use Partial to be more permissive
+export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  // Use Partial to make all UseMutationOptions optional and avoid conflicts
+  Partial<UseMutationOptions<GetResponseData<Ops, Op>, Error, any>> &
+    // Include our custom mutation success options
+    MutationOnSuccessOptions<Ops> & {
+      axiosOptions?: AxiosRequestConfig
+      errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+    }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
