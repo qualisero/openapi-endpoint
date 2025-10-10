@@ -16,9 +16,4 @@ export default defineConfig({
     mockReset: true,
     restoreMocks: true,
   },
-  resolve: {
-    alias: {
-      '@': new URL('./src', import.meta.url).pathname,
-    },
-  },
 })

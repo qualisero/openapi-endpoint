@@ -68,6 +68,11 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
 
     await execAsync(command)
     console.log(`✅ Generated types file: ${typesOutputPath}`)
+    // Format the generated file using eslint --fix
+    console.log('🎨 Formatting generated types file with ESLint...')
+    const eslintCommand = `npx eslint --fix "${typesOutputPath}"`
+    await execAsync(eslintCommand)
+    console.log(`✅ Formatted types file: ${typesOutputPath}`)
   } finally {
     // Clean up temp file
     if (fs.existsSync(tempSpecPath)) {

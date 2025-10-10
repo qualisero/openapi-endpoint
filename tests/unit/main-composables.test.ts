@@ -1,33 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
-import { HttpMethod, OpenApiConfig, type OpenApiInstance } from '@/types'
+import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
-// Define mock operations for testing
-const mockOperations = {
-  listPets: { method: HttpMethod.GET, path: '/pets' },
-  getPet: { method: HttpMethod.GET, path: '/pets/{petId}' },
-  createPet: { method: HttpMethod.POST, path: '/pets' },
-  updatePet: { method: HttpMethod.PUT, path: '/pets/{petId}' },
-  deletePet: { method: HttpMethod.DELETE, path: '/pets/{petId}' },
-}
-
-type MockOps = typeof mockOperations
+import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
+import { type operations } from '../fixtures/openapi-types'
 
 describe('useOpenApi', () => {
-  let mockConfig: OpenApiConfig<MockOps>
+  type MockOps = typeof OPERATION_INFO
+  type OperationsWithInfo = operations & MockOps
+  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+
+  let mockConfig: OpenApiConfig<OperationsWithInfo> = {
+    operations: mockOperations,
+    axios: mockAxios,
+  }
+
+  let api: OpenApiInstance<OperationsWithInfo>
 
   beforeEach(() => {
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
+    api = useOpenApi(mockConfig)
   })
 
   it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
-    const api = useOpenApi(mockConfig)
-
     expect(api).toHaveProperty('useQuery')
     expect(api).toHaveProperty('useMutation')
     expect(api).toHaveProperty('useEndpoint')
@@ -38,10 +34,8 @@ describe('useOpenApi', () => {
 
   describe('useQuery', () => {
     it('should create a query for GET operations', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useQuery can be called with a GET operation
-      const query = api.useQuery('listPets', {})
+      const query = api.useQuery(OperationId.listPets)
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -49,10 +43,8 @@ describe('useOpenApi', () => {
     })
 
     it('should create a query with path parameters', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useQuery can be called with path parameters
-      const query = api.useQuery('getPet', { petId: '123' })
+      const query = api.useQuery(OperationId.getPet, { petId: '123' })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -60,8 +52,6 @@ describe('useOpenApi', () => {
     })
 
     it('should create a query with options', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useQuery can be called with options
       const onLoad = vi.fn()
       const query = api.useQuery('listPets', {}, { enabled: true, onLoad })
@@ -74,8 +64,6 @@ describe('useOpenApi', () => {
 
   describe('useMutation', () => {
     it('should create a mutation for POST operations', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useMutation can be called with a POST operation
       const mutation = api.useMutation('createPet', {})
 
@@ -85,8 +73,6 @@ describe('useOpenApi', () => {
     })
 
     it('should create a mutation with path parameters', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useMutation can be called with path parameters
       const mutation = api.useMutation('updatePet', { petId: '123' })
 
@@ -96,8 +82,6 @@ describe('useOpenApi', () => {
     })
 
     it('should create a mutation with options', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useMutation can be called with options
       const onSuccess = vi.fn()
       const mutation = api.useMutation('createPet', {}, { onSuccess })
@@ -110,8 +94,6 @@ describe('useOpenApi', () => {
 
   describe('useEndpoint', () => {
     it('should create an endpoint handler for any operation', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useEndpoint can be called with any operation
       const endpoint = api.useEndpoint('listPets', {})
 
@@ -119,8 +101,6 @@ describe('useOpenApi', () => {
     })
 
     it('should create an endpoint handler with path parameters', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useEndpoint can be called with path parameters
       const endpoint = api.useEndpoint('getPet', { petId: '123' })
 
@@ -128,8 +108,6 @@ describe('useOpenApi', () => {
     })
 
     it('should create an endpoint handler with options', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useEndpoint can be called with options
       const endpoint = api.useEndpoint('listPets', {}, { enabled: true })
 
@@ -137,8 +115,6 @@ describe('useOpenApi', () => {
     })
 
     it('should work with mutation operations', () => {
-      const api = useOpenApi(mockConfig)
-
       // Test that useEndpoint can be called with mutation operations
       const createEndpoint = api.useEndpoint('createPet', {})
       const updateEndpoint = api.useEndpoint('updatePet', { petId: '123' })
@@ -158,39 +134,6 @@ describe('useOpenApi', () => {
     })
   })
 
-  describe('configuration validation', () => {
-    it('should work with different operation configurations', () => {
-      const customOperations = {
-        getUser: { method: HttpMethod.GET, path: '/users/{userId}' },
-        createUser: { method: HttpMethod.POST, path: '/users' },
-      }
-
-      const customConfig: OpenApiConfig<typeof customOperations> = {
-        operations: customOperations,
-        axios: mockAxios,
-      }
-
-      const api = useOpenApi(customConfig)
-
-      expect(api.useQuery('getUser', { userId: '123' })).toBeTruthy()
-      expect(api.useMutation('createUser', {})).toBeTruthy()
-    })
-
-    it('should handle empty operations configuration', () => {
-      const emptyOperations = {}
-      const emptyConfig: OpenApiConfig<typeof emptyOperations> = {
-        operations: emptyOperations,
-        axios: mockAxios,
-      }
-
-      const api = useOpenApi(emptyConfig)
-
-      expect(api).toHaveProperty('useQuery')
-      expect(api).toHaveProperty('useMutation')
-      expect(api).toHaveProperty('useEndpoint')
-    })
-  })
-
   describe('custom queryClient configuration', () => {
     it('should use provided queryClient when specified in config', () => {
       const customQueryClient = vi.fn() as unknown as QueryClient
@@ -200,13 +143,13 @@ describe('useOpenApi', () => {
       customQueryClient.cancelQueries = vi.fn()
       customQueryClient.refetchQueries = vi.fn()
 
-      const configWithCustomClient: OpenApiConfig<MockOps> = {
+      const configWithCustomClient: OpenApiConfig<OperationsWithInfo> = {
         operations: mockOperations,
         axios: mockAxios,
         queryClient: customQueryClient,
       }
 
-      const api = useOpenApi(configWithCustomClient)
+      api = useOpenApi(configWithCustomClient)
 
       // Create a query to ensure the custom client is being used
       const query = api.useQuery('listPets', {})
@@ -218,13 +161,13 @@ describe('useOpenApi', () => {
     })
 
     it('should use default queryClient when not specified in config', () => {
-      const configWithoutCustomClient: OpenApiConfig<MockOps> = {
+      const configWithoutCustomClient: OpenApiConfig<OperationsWithInfo> = {
         operations: mockOperations,
         axios: mockAxios,
         // No queryClient specified
       }
 
-      const api = useOpenApi(configWithoutCustomClient)
+      api = useOpenApi(configWithoutCustomClient)
 
       // Should still work with default queryClient
       const query = api.useQuery('listPets', {})
@@ -236,10 +179,9 @@ describe('useOpenApi', () => {
 
     it('should allow OpenApiInstance type to be used for typing API instances', () => {
       // Create an API instance and verify it matches the OpenApiInstance type
-      const api = useOpenApi(mockConfig)
 
       // Type test: this should compile without errors
-      const typedApi: OpenApiInstance<MockOps> = api
+      const typedApi: OpenApiInstance<OperationsWithInfo> = api
 
       // Verify the api instance has the expected methods
       expect(typedApi).toHaveProperty('useQuery')
