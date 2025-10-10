@@ -121,7 +121,6 @@ describe('Vue Query Options Support', () => {
       // This should work but was failing before the fix
       const currentUser = api.useQuery(OperationId.listPets, {
         onLoad: () => console.log('loaded'),
-        axiosOptions: { manualErrorHandling: true },
         staleTime: 1000, // ← This was causing a typing error in the original issue
         retry: 2,
         refetchOnWindowFocus: false,
