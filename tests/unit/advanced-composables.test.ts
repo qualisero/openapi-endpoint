@@ -54,7 +54,6 @@ describe('Advanced composable functionality', () => {
         helpers,
         {},
         {
-          enabled: true,
           onLoad,
           axiosOptions: { headers: { 'X-Test': 'value' } },
         },
@@ -203,7 +202,7 @@ describe('Advanced composable functionality', () => {
 
     it('should support onLoad callbacks', () => {
       const onLoad = vi.fn()
-      const query = useEndpointQuery('listPets', helpers, {}, { onLoad })
+      const query = useEndpointQuery(OperationId.listPets, helpers, {}, { onLoad })
 
       expect(query).toHaveProperty('onLoad')
       expect(typeof query.onLoad).toBe('function')
@@ -252,10 +251,10 @@ describe('Advanced composable functionality', () => {
 
     it('should handle optional parameters correctly', () => {
       // Test with operations that don't require path parameters
-      const query = useEndpointQuery('listPets', helpers, {}, {})
+      const query = useEndpointQuery(OperationId.listPets, helpers, {}, {})
       expect(query.isEnabled.value).toBe(true)
 
-      const mutation = useEndpointMutation('createPet', helpers, {}, {})
+      const mutation = useEndpointMutation(OperationId.createPet, helpers, {}, {})
       expect(mutation).toBeTruthy()
     })
   })
