@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 // IMPORTANT: Unmock axios before importing it to get the real implementation
 vi.unmock('axios')
 
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance, AxiosError } from 'axios'
 import { QueryClient } from '@tanstack/vue-query'
 import { useOpenApi } from '../../src/index.js'
 import type { OpenApiConfig } from '../../src/types.js'
@@ -89,7 +89,16 @@ describe('Error Handler', () => {
   describe('Query errorHandler', () => {
     it('should call custom errorHandler when query fails and not throw when handled', async () => {
       const errorHandlerMock = vi.fn()
-      const testError = new Error('Network error')
+      const testError = new AxiosError(
+        'Network error',
+        'NETWORK_ERROR',
+        {
+          method: 'get',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -121,7 +130,16 @@ describe('Error Handler', () => {
 
     it('should not throw error when errorHandler is present and handles the error', async () => {
       const errorHandlerMock = vi.fn()
-      const testError = new Error('Network error')
+      const testError = new AxiosError(
+        'Network error',
+        'NETWORK_ERROR',
+        {
+          method: 'get',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -156,7 +174,16 @@ describe('Error Handler', () => {
         // ErrorHandler can choose to rethrow
         throw error
       })
-      const testError = new Error('Network error')
+      const testError = new AxiosError(
+        'Network error',
+        'NETWORK_ERROR',
+        {
+          method: 'get',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -212,8 +239,48 @@ describe('Error Handler', () => {
       expect(errorHandlerMock).not.toHaveBeenCalled()
     })
 
+    it('should not call errorHandler for non-axios errors', async () => {
+      const errorHandlerMock = vi.fn()
+      const testError = new Error('Non-axios error') // Regular Error, not AxiosError
+
+      axiosMock.mockRejectedValue(testError)
+
+      let capturedQueryFn: (() => Promise<any>) | undefined
+
+      useQueryMock.mockImplementation((options) => {
+        capturedQueryFn = options.queryFn as () => Promise<any>
+        return {
+          data: { value: null },
+          isLoading: { value: false },
+          error: { value: null },
+          refetch: vi.fn(),
+        } as any
+      })
+
+      api.useQuery(OperationId.listPets, {
+        enabled: true,
+        errorHandler: errorHandlerMock,
+      })
+
+      // Call the captured queryFn - should throw non-axios error without calling errorHandler
+      expect(capturedQueryFn).toBeDefined()
+      await expect(capturedQueryFn!()).rejects.toThrow('Non-axios error')
+
+      // Verify errorHandler was NOT called for non-axios error
+      expect(errorHandlerMock).not.toHaveBeenCalled()
+    })
+
     it('should work without errorHandler (no change in behavior)', async () => {
-      const testError = new Error('Network error')
+      const testError = new AxiosError(
+        'Network error',
+        'NETWORK_ERROR',
+        {
+          method: 'get',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -240,7 +307,16 @@ describe('Error Handler', () => {
 
     it('should support async errorHandler and not throw when handled', async () => {
       const errorHandlerMock = vi.fn().mockResolvedValue(undefined)
-      const testError = new Error('Network error')
+      const testError = new AxiosError(
+        'Network error',
+        'NETWORK_ERROR',
+        {
+          method: 'get',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -273,7 +349,16 @@ describe('Error Handler', () => {
   describe('Mutation errorHandler', () => {
     it('should call custom errorHandler when mutation fails and not throw when handled', async () => {
       const errorHandlerMock = vi.fn()
-      const testError = new Error('Mutation failed')
+      const testError = new AxiosError(
+        'Mutation failed',
+        'REQUEST_ERROR',
+        {
+          method: 'post',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -307,7 +392,16 @@ describe('Error Handler', () => {
 
     it('should not throw error when errorHandler is present and handles the error', async () => {
       const errorHandlerMock = vi.fn()
-      const testError = new Error('Mutation failed')
+      const testError = new AxiosError(
+        'Mutation failed',
+        'REQUEST_ERROR',
+        {
+          method: 'post',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -344,7 +438,16 @@ describe('Error Handler', () => {
         // ErrorHandler can choose to rethrow
         throw error
       })
-      const testError = new Error('Mutation failed')
+      const testError = new AxiosError(
+        'Mutation failed',
+        'REQUEST_ERROR',
+        {
+          method: 'post',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -405,8 +508,51 @@ describe('Error Handler', () => {
       expect(errorHandlerMock).not.toHaveBeenCalled()
     })
 
+    it('should not call errorHandler for non-axios errors', async () => {
+      const errorHandlerMock = vi.fn()
+      const testError = new Error('Non-axios error') // Regular Error, not AxiosError
+
+      axiosMock.mockRejectedValue(testError)
+
+      let capturedMutationFn: ((vars: any) => Promise<any>) | undefined
+
+      useMutationMock.mockImplementation((options) => {
+        capturedMutationFn = options.mutationFn as (vars: any) => Promise<any>
+        return {
+          data: { value: null },
+          isLoading: { value: false },
+          error: { value: null },
+          mutateAsync: vi.fn(),
+        } as any
+      })
+
+      api.useMutation(OperationId.createPet, {
+        errorHandler: errorHandlerMock,
+      })
+
+      // Call the captured mutationFn - should throw non-axios error without calling errorHandler
+      expect(capturedMutationFn).toBeDefined()
+      await expect(
+        capturedMutationFn!({
+          data: { name: 'Test Pet', status: 'available' },
+        }),
+      ).rejects.toThrow('Non-axios error')
+
+      // Verify errorHandler was NOT called for non-axios error
+      expect(errorHandlerMock).not.toHaveBeenCalled()
+    })
+
     it('should work without errorHandler (no change in behavior)', async () => {
-      const testError = new Error('Mutation failed')
+      const testError = new AxiosError(
+        'Mutation failed',
+        'REQUEST_ERROR',
+        {
+          method: 'post',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
@@ -436,7 +582,16 @@ describe('Error Handler', () => {
 
     it('should support async errorHandler and not throw when handled', async () => {
       const errorHandlerMock = vi.fn().mockResolvedValue(undefined)
-      const testError = new Error('Mutation failed')
+      const testError = new AxiosError(
+        'Mutation failed',
+        'REQUEST_ERROR',
+        {
+          method: 'post',
+          url: 'http://example.com',
+          headers: {},
+        },
+        {},
+      )
 
       axiosMock.mockRejectedValue(testError)
 
