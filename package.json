@@ -1,6 +1,6 @@
 {
   "name": "@qualisero/openapi-endpoint",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/qualisero/openapi-endpoint.git"
@@ -49,9 +49,9 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@tanstack/vue-query": ">=5.90.0",
-    "axios": ">=1.12.0",
-    "vue": ">=3.2.0"
+    "@tanstack/vue-query": "^5.90.2",
+    "axios": "^1.12.2",
+    "vue": "^3.5.22"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",

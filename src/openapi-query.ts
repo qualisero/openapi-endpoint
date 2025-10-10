@@ -60,7 +60,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     pathParamsOrOptions,
     optionsOrNull,
   )
-  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, ...useQueryOptions } = options
+  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
 
   const resolvedPath = computed(() => resolvePath(path, pathParams))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
@@ -76,12 +76,27 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     {
       queryKey: queryKey,
       queryFn: async (): Promise<GetResponseData<Ops, Op>> => {
-        const response = await h.axios({
-          method: method.toLowerCase(),
-          url: resolvedPath.value,
-          ...(axiosOptions || {}),
-        })
-        return response.data
+        try {
+          const response = await h.axios({
+            method: method.toLowerCase(),
+            url: resolvedPath.value,
+            ...(axiosOptions || {}),
+          })
+          return response.data
+        } catch (error) {
+          if (errorHandler) {
+            const result = await errorHandler(error as Error)
+            if (result !== undefined) {
+              return result
+            }
+            // If errorHandler returns undefined and doesn't throw,
+            // we consider this a "recovered" state and return undefined
+            // TanStack Query will handle this as a successful query with no data
+            return undefined as GetResponseData<Ops, Op>
+          } else {
+            throw error
+          }
+        }
       },
       enabled: isEnabled,
       staleTime: 1000 * 60,
