@@ -50,7 +50,7 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
 // Type-safe options for queries
 export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
   UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
-  'queryKey' | 'queryFn' | 'enabled'
+  'queryKey' | 'queryFn'
 > & {
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void

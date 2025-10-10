@@ -120,14 +120,16 @@ describe('Advanced composable functionality', () => {
     })
 
     it('should handle options correctly', () => {
-      const onSuccess = vi.fn()
+      const onSuccess = vi.fn((data, vars, context) => {
+        console.log('Mutation succeeded', data, vars, context)
+      })
       const mutation = useEndpointMutation<MockOps, 'createPet'>(
         OperationId.createPet,
         helpers,
         {},
         {
           onSuccess,
-          invalidateQueries: [OperationId.listPets],
+          invalidateOperations: [OperationId.listPets],
         },
       )
       expect(mutation).toBeTruthy()
@@ -177,7 +179,7 @@ describe('Advanced composable functionality', () => {
     })
 
     it('should handle missing path parameters gracefully', () => {
-      const query = useEndpointQuery<MockOps, 'getPet'>(OperationId.getPet, helpers, { petId: null }, {})
+      const query = useEndpointQuery<MockOps, 'getPet'>(OperationId.getPet, helpers, { petId: undefined }, {})
       expect(query.isEnabled.value).toBe(false)
     })
 
@@ -239,7 +241,7 @@ describe('Advanced composable functionality', () => {
 
       // Test that GET operations are rejected by useEndpointMutation
       expect(() => {
-        useEndpointMutation(OperationId.listPets, helpers, {}, {})
+        useEndpointMutation<MockOps, 'listPets'>(OperationId.listPets, helpers, {}, {})
       }).toThrow('not a mutation operation')
     })
   })
@@ -247,10 +249,20 @@ describe('Advanced composable functionality', () => {
   describe('Type safety validation', () => {
     it('should enforce correct parameter types', () => {
       // These should work at runtime with proper types
-      const queryWithCorrectParams = useEndpointQuery<MockOps, 'getPet'>(OperationId.getPet, helpers, { petId: '123' }, {})
+      const queryWithCorrectParams = useEndpointQuery<MockOps, 'getPet'>(
+        OperationId.getPet,
+        helpers,
+        { petId: '123' },
+        {},
+      )
       expect(queryWithCorrectParams).toBeTruthy()
 
-      const mutationWithCorrectParams = useEndpointMutation(OperationId.updatePet, helpers, { petId: '123' }, {})
+      const mutationWithCorrectParams = useEndpointMutation<MockOps, 'updatePet'>(
+        OperationId.updatePet,
+        helpers,
+        { petId: '123' },
+        {},
+      )
       expect(mutationWithCorrectParams).toBeTruthy()
     })
 
@@ -259,7 +271,7 @@ describe('Advanced composable functionality', () => {
       const query = useEndpointQuery<MockOps, 'listPets'>(OperationId.listPets, helpers, {}, {})
       expect(query.isEnabled.value).toBe(true)
 
-      const mutation = useEndpointMutation(OperationId.createPet, helpers, {}, {})
+      const mutation = useEndpointMutation<MockOps, 'createPet'>(OperationId.createPet, helpers, {}, {})
       expect(mutation).toBeTruthy()
     })
   })
