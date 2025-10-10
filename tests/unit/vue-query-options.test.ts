@@ -4,6 +4,7 @@ import { useEndpointMutation } from '@/openapi-mutation'
 import { getHelpers } from '@/openapi-helpers'
 import { OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
+import { useOpenApi } from '@/index'
 
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
@@ -106,6 +107,66 @@ describe('Vue Query Options Support', () => {
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
+    })
+  })
+
+  describe('Real API Integration', () => {
+    it('should accept Vue Query options through the main API - reproduces exact issue from problem statement', () => {
+      // This reproduces the exact scenario from the problem statement
+      const api = useOpenApi({
+        operations: mockOperations,
+        axios: mockAxios,
+      })
+
+      // This should work but was failing before the fix
+      const currentUser = api.useQuery(OperationId.listPets, {
+        onLoad: () => console.log('loaded'),
+        axiosOptions: { manualErrorHandling: true },
+        staleTime: 1000, // ← This was causing a typing error in the original issue
+        retry: 2,
+        refetchOnWindowFocus: false,
+      })
+
+      expect(currentUser).toBeTruthy()
+      expect(currentUser).toHaveProperty('data')
+    })
+
+    it('should work with path parameters and Vue Query options through main API', () => {
+      const api = useOpenApi({
+        operations: mockOperations,
+        axios: mockAxios,
+      })
+
+      const pet = api.useQuery(
+        OperationId.getPet,
+        { petId: '123' },
+        {
+          staleTime: 2000,
+          enabled: true,
+          refetchInterval: 5000,
+          onLoad: (data) => console.log('Pet loaded:', data),
+        },
+      )
+
+      expect(pet).toBeTruthy()
+      expect(pet).toHaveProperty('queryKey')
+    })
+
+    it('should work with mutations and Vue Query options through main API', () => {
+      const api = useOpenApi({
+        operations: mockOperations,
+        axios: mockAxios,
+      })
+
+      const createPet = api.useMutation(OperationId.createPet, {
+        retry: 1,
+        onSuccess: (data) => console.log('Created pet:', data),
+        onError: (error) => console.error('Error creating pet:', error),
+        retryDelay: 1000,
+      })
+
+      expect(createPet).toBeTruthy()
+      expect(createPet).toHaveProperty('mutate')
     })
   })
 })
