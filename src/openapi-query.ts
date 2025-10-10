@@ -10,6 +10,7 @@ import {
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import type { AxiosError } from 'axios'
+import { isAxiosError } from 'axios'
 import { getHelpers } from './openapi-helpers'
 
 // DEBUG:
@@ -84,8 +85,8 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
           })
           return response.data
         } catch (error) {
-          if (errorHandler) {
-            const result = await errorHandler(error as Error)
+          if (errorHandler && isAxiosError(error)) {
+            const result = await errorHandler(error)
             if (result !== undefined) {
               return result
             }

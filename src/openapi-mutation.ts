@@ -11,6 +11,7 @@ import {
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import { getHelpers } from './openapi-helpers'
+import { isAxiosError } from 'axios'
 
 export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
   typeof useEndpointMutation<Ops, Op>
@@ -105,8 +106,8 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         })
         return response.data
       } catch (error) {
-        if (errorHandler) {
-          const result = await errorHandler(error as Error)
+        if (errorHandler && isAxiosError(error)) {
+          const result = await errorHandler(error)
           if (result !== undefined) {
             return result
           }
