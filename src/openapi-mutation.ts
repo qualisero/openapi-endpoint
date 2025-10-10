@@ -105,7 +105,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           ...(axiosOptions || {}),
         })
         return response.data
-      } catch (error) {
+      } catch (error: unknown) {
         if (errorHandler && isAxiosError(error)) {
           const result = await errorHandler(error)
           if (result !== undefined) {

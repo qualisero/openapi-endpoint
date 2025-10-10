@@ -55,7 +55,7 @@ export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Om
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
   axiosOptions?: AxiosRequestConfig
-  errorHandler?: (error: Error) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+  errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
 type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {

@@ -84,7 +84,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
             ...(axiosOptions || {}),
           })
           return response.data
-        } catch (error) {
+        } catch (error: unknown) {
           if (errorHandler && isAxiosError(error)) {
             const result = await errorHandler(error)
             if (result !== undefined) {
