@@ -132,6 +132,38 @@ describe('useOpenApi', () => {
       expect(deleteEndpoint).toHaveProperty('mutate')
       expect(deleteEndpoint).toHaveProperty('mutateAsync')
     })
+
+    it('should correctly infer types for mutation operations', () => {
+      // This test specifically addresses the issue mentioned in the problem statement
+      const createEndpoint = api.useEndpoint(OperationId.createPet)
+
+      // These should now work without TypeScript errors
+      expect(createEndpoint).toHaveProperty('mutate')
+      expect(createEndpoint).toHaveProperty('mutateAsync')
+
+      // Test that the methods exist and are callable (runtime verification)
+      expect(typeof createEndpoint.mutate).toBe('function')
+      expect(typeof createEndpoint.mutateAsync).toBe('function')
+
+      // Test with typing - this should not cause TypeScript compilation errors
+      const mutateFunction = createEndpoint.mutateAsync
+      expect(mutateFunction).toBeDefined()
+    })
+
+    it('should correctly infer types for query operations', () => {
+      // Test that query operations still work correctly
+      const listEndpoint = api.useEndpoint(OperationId.listPets)
+
+      // These should work for query operations
+      expect(listEndpoint).toHaveProperty('data')
+      expect(listEndpoint).toHaveProperty('isLoading')
+      expect(listEndpoint).toHaveProperty('refetch')
+
+      // Test that the properties exist (runtime verification)
+      expect(listEndpoint.data).toBeDefined()
+      expect(listEndpoint.isLoading).toBeDefined() // isLoading is a reactive ref
+      expect(typeof listEndpoint.refetch).toBe('function')
+    })
   })
 
   describe('custom queryClient configuration', () => {

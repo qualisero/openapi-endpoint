@@ -46,16 +46,21 @@ export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
     | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
     | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
   optionsOrNull: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op> = {},
-): EndpointQueryReturn<Ops, Op> | EndpointMutationReturn<Ops, Op> {
+): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
   if (helpers.isMutationOperation(operationId)) {
     return useEndpointMutation<Ops, Op>(
       operationId,
       helpers,
       pathParamsOrOptions,
       optionsOrNull as MutationOptions<Ops, Op>,
-    )
+    ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else if (helpers.isQueryOperation(operationId)) {
-    return useEndpointQuery<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull as QueryOptions<Ops, Op>)
+    return useEndpointQuery<Ops, Op>(
+      operationId,
+      helpers,
+      pathParamsOrOptions,
+      optionsOrNull as QueryOptions<Ops, Op>,
+    ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else {
     throw new Error(`Operation ${String(operationId)} is neither a query nor a mutation operation`)
   }
