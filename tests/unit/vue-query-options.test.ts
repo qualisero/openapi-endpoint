@@ -15,7 +15,7 @@ const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
 
 describe('Vue Query Options Support', () => {
   let mockConfig: OpenApiConfig<OperationsWithInfo>
-  let helpers: ReturnType<typeof getHelpers<OperationsWithInfo>>
+  let helpers: ReturnType<typeof getHelpers>
 
   beforeEach(() => {
     vi.clearAllMocks()
