@@ -3,7 +3,10 @@
   "compilerOptions": {
     "emitDeclarationOnly": false,
     "noEmit": true,
-    "rootDir": ".."
+    "rootDir": "..",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["../tests/**/*"]
 }
