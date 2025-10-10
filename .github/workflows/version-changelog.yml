@@ -18,6 +18,37 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // Query for suggested actors to find the Copilot agent
+            const suggestedActorsQuery = `
+              query($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                  suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                    nodes {
+                      login
+                      __typename
+                      ... on Bot {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const suggestedActorsResult = await github.graphql(suggestedActorsQuery, {
+              owner: context.repo.owner,
+              name: context.repo.repo,
+            });
+
+            // Find the Copilot agent in the suggested actors
+            const copilotAgent = suggestedActorsResult.repository.suggestedActors.nodes.find(
+              actor => actor.login === 'copilot-swe-agent' && actor.__typename === 'Bot'
+            );
+
+            if (!copilotAgent) {
+              console.log('Warning: Copilot agent not found in suggested actors, creating issue without assignee');
+            }
+
             const issueBody = `## Version and Changelog Update Required
 
             A pull request has been merged to main. Please update the package version and changelog according to the following guidelines:
@@ -58,11 +89,17 @@ jobs:
             - Author: @${context.payload.pull_request.user.login}
             `;
 
-            await github.rest.issues.create({
+            const issueData = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Update version and changelog after PR #${context.payload.pull_request.number}`,
               body: issueBody,
-              assignees: ['copilot-swe-agent'],
               labels: ['version-update', 'changelog', 'automated']
-            });
+            };
+
+            // Only add assignees if we found the Copilot agent
+            if (copilotAgent) {
+              issueData.assignees = [copilotAgent.login];
+            }
+
+            await github.rest.issues.create(issueData);
