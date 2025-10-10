@@ -28,7 +28,7 @@ vi.mock('@tanstack/vue-query', () => ({
 }))
 
 import { useOpenApi } from '@/index'
-import { OpenApiConfig } from '@/types'
+import { OpenApiConfig, ExtendedAxiosRequestConfig } from '@/types'
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
@@ -44,7 +44,7 @@ describe('axiosOptions integration', () => {
 
   let api: ReturnType<typeof useOpenApi<OperationsWithInfo>>
   let queryClient: QueryClient
-  let capturedConfig: AxiosRequestConfig | null = null
+  let capturedConfig: ExtendedAxiosRequestConfig | null = null
 
   beforeEach(() => {
     // Create a real axios instance with interceptors
@@ -310,7 +310,7 @@ describe('axiosOptions integration', () => {
   describe('interceptor error handling scenarios', () => {
     it('should allow interceptors to access skipErrorHandling flag', async () => {
       let errorInterceptorCalled = false
-      let errorConfig: AxiosRequestConfig | undefined
+      let errorConfig: ExtendedAxiosRequestConfig | undefined
 
       // Add error interceptor
       realAxiosInstance.interceptors.response.use(
