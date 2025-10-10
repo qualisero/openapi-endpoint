@@ -110,7 +110,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           if (result !== undefined) {
             return result
           }
-          // If errorHandler returns undefined and doesn't throw, 
+          // If errorHandler returns undefined and doesn't throw,
           // we consider this a "recovered" state and return undefined
           // TanStack Query will handle this as a successful mutation with no data
           return undefined as GetResponseData<Ops, Op>
