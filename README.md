@@ -74,12 +74,12 @@ import { OperationId } from './generated/api-operations'
 const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {})
 const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
 
-// Use mutations for POST/PUT/PATCH/DELETE operations  
+// Use mutations for POST/PUT/PATCH/DELETE operations
 const createPetMutation = api.useMutation(OperationId.createPet, {})
 const updatePetMutation = api.useMutation(OperationId.updatePet, { petId: '123' })
 
 // Execute mutations
-await createPetMutation.mutateAsync({ 
-  data: { name: 'Fluffy', species: 'cat' } 
+await createPetMutation.mutateAsync({
+  data: { name: 'Fluffy', species: 'cat' },
 })
 ```
