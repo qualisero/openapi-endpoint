@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2024-10-10
+
+### Changed
+
+- **ENFORCED**: Mandatory format and lint fixing after every code change
+- Enhanced copilot instructions with explicit zero-tolerance formatting policy
+- Updated workflow to require `npm run lint:fix` and `npm run format` after every code modification
+- Standardized format commands to use npm scripts instead of direct tool calls
+- Added critical section emphasizing that no code changes are acceptable without proper formatting
+- Updated project state information to reflect current versions and tooling
+
+### Developer Experience
+
+- Clear workflow documentation for mandatory formatting steps
+- Enhanced AI assistant guidelines with non-negotiable formatting requirements
+- Strengthened enforcement language to eliminate formatting compliance issues
+
 ## [0.3.2] - 2024-10-10
 
 ### Added

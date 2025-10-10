@@ -52,12 +52,13 @@ bin/
    - Use `*Options` suffix for configuration types
    - Use descriptive variable names that indicate their reactive nature
 
-5. **Code Quality**: **ALWAYS** ensure linting and formatting pass before committing
-   - Run `npm run lint:fix` to fix ESLint issues automatically
-   - Run `npx prettier --write .` to fix formatting issues automatically
-   - Verify with `npm run lint` (should pass with no errors)
-   - Verify with `npx prettier --check .` (should pass with no warnings)
-   - These checks are required for all code changes and PRs
+5. **Code Quality**: **MANDATORY** - Format and lint fixing after EVERY code change
+   - **ALWAYS** run `npm run lint:fix` after EVERY code change to automatically fix ESLint issues
+   - **ALWAYS** run `npm run format` after EVERY code change to automatically format all files with Prettier
+   - **ALWAYS** verify with `npm run lint` (must pass with no errors)
+   - **ALWAYS** verify with `npm run format:check` (must pass with no warnings)
+   - These steps are REQUIRED after every single code modification, no exceptions
+   - Format and lint fixing is non-negotiable for all code changes and PRs
 
 6. **Version Management**: **ALWAYS** bump the package version for every code change
    - For bug fixes and patches: increment patch version (e.g., 0.3.0 → 0.3.1)
@@ -86,7 +87,44 @@ bin/
 - `openapi-typescript`: ^7.9.1 - OpenAPI type generation
 - `@types/node`: ^24.7.0 - Node.js type definitions
 
-### Building and Testing
+### Code Change Workflow - MANDATORY STEPS
+
+For EVERY code change, follow this exact sequence:
+
+1. **Make your code changes**
+2. **IMMEDIATELY after any code modification, run:**
+   ```bash
+   npm run lint:fix    # Auto-fix linting issues
+   npm run format      # Auto-format all files
+   ```
+3. **Verify the fixes worked:**
+   ```bash
+   npm run lint        # Must pass with 0 errors
+   npm run format:check # Must pass with 0 warnings
+   ```
+4. **Update version in package.json** (required for every code change)
+5. **Update CHANGELOG.md** (required for every code change)
+6. **Commit your changes**
+
+**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the format and lint fix commands.
+
+### Current Project State (Updated 2024-10-10)
+
+- **Current Version**: 0.3.2
+- **Node.js**: Compatible with modern Node.js versions
+- **TypeScript**: 5.9.2 with strict mode enabled
+- **Linting**: ESLint 9.37.0 with TypeScript integration
+- **Formatting**: Prettier 3.6.2 with consistent configuration
+- **Testing**: Vitest 3.2.4 with jsdom environment
+
+### Current Project State (Updated 2024-10-10)
+
+- **Current Version**: 0.3.2
+- **Node.js**: Compatible with modern Node.js versions
+- **TypeScript**: 5.9.2 with strict mode enabled
+- **Linting**: ESLint 9.37.0 with TypeScript integration
+- **Formatting**: Prettier 3.6.2 with consistent configuration
+- **Testing**: Vitest 3.2.4 with jsdom environment
 
 ```bash
 # Build the library
@@ -307,11 +345,12 @@ When drafting PRs, verify that:
 - Pay attention to Vue reactivity patterns and TanStack Query integration
 - The CLI tool is a crucial part of the developer workflow
 - Maintain backward compatibility unless explicitly requested to break it
-- **REQUIRED**: Always run linting and formatting checks before committing any changes:
-  - `npm run lint:fix` to fix ESLint issues
-  - `npx prettier --write .` to fix formatting issues
-  - `npm run lint` to verify linting passes
-  - `npx prettier --check .` to verify formatting passes
+- **MANDATORY**: Always run linting and formatting fixes after EVERY code change:
+  - `npm run lint:fix` to automatically fix ESLint issues
+  - `npm run format` to automatically format all files with Prettier
+  - `npm run lint` to verify linting passes (must have zero errors)
+  - `npm run format:check` to verify formatting passes (must have zero warnings)
+  - These commands MUST be run after every code modification without exception
 - **REQUIRED**: Always bump the package version in `package.json` for every code change:
   - Bug fixes and patches: increment patch version (0.3.0 → 0.3.1)
   - New features: increment minor version (0.3.1 → 0.4.0)
@@ -322,6 +361,28 @@ When drafting PRs, verify that:
   - Use appropriate sections: Added, Changed, Fixed, etc.
   - Include clear descriptions of changes
 - Check linting and unit tests to ensure all CI tests will pass any new PR
+
+### CRITICAL: Zero-Tolerance Format Policy
+
+**NO CODE CHANGES ARE ACCEPTABLE WITHOUT PROPER FORMATTING AND LINTING:**
+
+1. **After EVERY single code modification** (even a single line change):
+   - Run `npm run lint:fix`
+   - Run `npm run format`
+   - Verify with `npm run lint` (zero errors required)
+   - Verify with `npm run format:check` (zero warnings required)
+
+2. **No exceptions, no shortcuts, no "I'll do it later"** - format fixes are immediate and mandatory
+
+3. **This applies to:**
+   - New features
+   - Bug fixes
+   - Documentation updates
+   - Configuration changes
+   - Test file modifications
+   - Any file modification whatsoever
+
+4. **If you skip formatting/linting, the changes are invalid and must be redone**
 
 ### Package Configuration
 
