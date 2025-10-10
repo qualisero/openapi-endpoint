@@ -1,6 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { QueryClient } from '@tanstack/vue-query'
 
+import { useEndpoint } from './openapi-endpoint'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 import { Operations, GetPathParameters, OpenApiConfig, QueryOptions, MutationOptions, IsQueryOperation } from './types'
@@ -17,7 +18,7 @@ export const queryClient = new QueryClient({
 
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   return {
-    useQuery: function useQuery<Op extends keyof Ops>(
+    useQuery: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
         ? QueryOptions<Ops, Op>
@@ -29,7 +30,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
       return useEndpointQuery<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useMutation: function useMutation<Op extends keyof Ops>(
+    useMutation: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
         ? MutationOptions<Ops, Op>
@@ -41,7 +42,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
       return useEndpointMutation<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useEndpoint: function useEndpoint<Op extends keyof Ops>(
+    useEndpoint: function <Op extends keyof Ops>(
       operationId: Op,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
         ? IsQueryOperation<Ops, Op> extends true
@@ -54,21 +55,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
     ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
       const helpers = getHelpers<Ops, Op>(config)
 
-      if (helpers.isMutationOperation(operationId)) {
-        return useEndpointMutation<Ops, Op>(
-          operationId,
-          helpers,
-          pathParamsOrOptions,
-          optionsOrNull as MutationOptions<Ops, Op>,
-        ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
-      } else {
-        return useEndpointQuery<Ops, Op>(
-          operationId,
-          helpers,
-          pathParamsOrOptions,
-          optionsOrNull as QueryOptions<Ops, Op>,
-        ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
-      }
+      return useEndpoint<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
   }
 }
