@@ -59,6 +59,13 @@ bin/
    - Verify with `npx prettier --check .` (should pass with no warnings)
    - These checks are required for all code changes and PRs
 
+6. **Version Management**: **ALWAYS** bump the package version for every code change
+   - For bug fixes and patches: increment patch version (e.g., 0.3.0 → 0.3.1)
+   - For new features: increment minor version (e.g., 0.3.1 → 0.4.0)
+   - For breaking changes: increment major version (e.g., 0.4.0 → 1.0.0)
+   - Update the version in `package.json` before committing any code changes
+   - This ensures proper release tracking and dependency management
+
 ### Key Dependencies
 
 **Peer Dependencies** (required by consumers):
@@ -299,6 +306,10 @@ When drafting PRs, verify that:
   - `npx prettier --write .` to fix formatting issues
   - `npm run lint` to verify linting passes
   - `npx prettier --check .` to verify formatting passes
+- **REQUIRED**: Always bump the package version in `package.json` for every code change:
+  - Bug fixes and patches: increment patch version (0.3.0 → 0.3.1)
+  - New features: increment minor version (0.3.1 → 0.4.0) 
+  - Breaking changes: increment major version (0.4.0 → 1.0.0)
 - Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### Package Configuration
