@@ -60,22 +60,6 @@ bin/
    - These steps are REQUIRED after every single code modification, no exceptions
    - Format and lint fixing is non-negotiable for all code changes and PRs
 
-6. **Version Management**: **ALWAYS** bump the package version for every code change
-   - For new features or API signature changes: increment minor version (e.g., 0.3.1 → 0.4.0)
-   - For bug fixes, patches, and small code changes: increment patch version (e.g., 0.3.0 → 0.3.1)
-   - For breaking changes: increment major version (e.g., 0.4.0 → 1.0.0)
-   - Update the version in `package.json` before committing any code changes
-   - This ensures proper release tracking and dependency management
-
-7. **Changelog Management**: **ALWAYS** update the CHANGELOG.md for every code change
-   - Add a new section at the top for the new version following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
-   - Use sections: Added, Changed, Deprecated, Removed, Fixed, Security
-   - Keep entries concise and focused on user-facing changes
-   - For patch versions: use brief, single-line descriptions focusing on what was fixed or improved
-   - For minor versions: include more detail about new features and their benefits
-   - Skip implementation details unless they directly impact the user experience
-   - This ensures proper release documentation and user awareness of changes
-
 ### Key Dependencies
 
 **Peer Dependencies** (required by consumers):
@@ -105,9 +89,7 @@ For EVERY code change, follow this exact sequence:
    npm run lint        # Must pass with 0 errors
    npm run format:check # Must pass with 0 warnings
    ```
-4. **Update version in package.json** (required for every code change)
-5. **Update CHANGELOG.md** (required for every code change)
-6. **Commit your changes**
+4. **Commit your changes**
 
 **This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the format and lint fix commands.
 
@@ -304,7 +286,6 @@ When adding tests (if requested):
 
 When making changes:
 
-- Increment version in package.json (either minor or patch, based on the amount of change)
 - Update README.md if public API changes
 - **Update README badges** when relevant information changes:
   - Version badge automatically updates with npm releases
@@ -315,7 +296,6 @@ When making changes:
 - Update TypeScript comments for public functions
 - Ensure code examples in docs remain accurate
 - Update CLI usage examples if command interface changes
-- Update changelog for new features or breaking changes
 
 #### README Badge Maintenance
 
@@ -347,16 +327,6 @@ When drafting PRs, verify that:
   - `npm run lint` to verify linting passes (must have zero errors)
   - `npm run format:check` to verify formatting passes (must have zero warnings)
   - These commands MUST be run after every code modification without exception
-- **REQUIRED**: Always bump the package version in `package.json` for every code change:
-  - New features or API signature changes: increment minor version (0.3.1 → 0.4.0)
-  - Bug fixes, patches, small code changes: increment patch version (0.3.0 → 0.3.1)
-  - Breaking changes: increment major version (0.4.0 → 1.0.0)
-- **REQUIRED**: Always update the CHANGELOG.md for every code change:
-  - Add a new section for the new version at the top
-  - Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
-  - Use appropriate sections: Added, Changed, Fixed, etc.
-  - Keep entries concise and user-focused, especially for patch versions
-  - Skip implementation details unless they directly impact users
 - Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### CRITICAL: Zero-Tolerance Format Policy
