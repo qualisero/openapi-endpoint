@@ -61,8 +61,8 @@ bin/
    - Format and lint fixing is non-negotiable for all code changes and PRs
 
 6. **Version Management**: **ALWAYS** bump the package version for every code change
-   - For bug fixes and patches: increment patch version (e.g., 0.3.0 → 0.3.1)
-   - For new features: increment minor version (e.g., 0.3.1 → 0.4.0)
+   - For new features or API signature changes: increment minor version (e.g., 0.3.1 → 0.4.0)
+   - For bug fixes, patches, and small code changes: increment patch version (e.g., 0.3.0 → 0.3.1)
    - For breaking changes: increment major version (e.g., 0.4.0 → 1.0.0)
    - Update the version in `package.json` before committing any code changes
    - This ensures proper release tracking and dependency management
@@ -70,7 +70,10 @@ bin/
 7. **Changelog Management**: **ALWAYS** update the CHANGELOG.md for every code change
    - Add a new section at the top for the new version following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
    - Use sections: Added, Changed, Deprecated, Removed, Fixed, Security
-   - Include clear descriptions of what changed and why
+   - Keep entries concise and focused on user-facing changes
+   - For patch versions: use brief, single-line descriptions focusing on what was fixed or improved
+   - For minor versions: include more detail about new features and their benefits
+   - Skip implementation details unless they directly impact the user experience
    - This ensures proper release documentation and user awareness of changes
 
 ### Key Dependencies
@@ -345,14 +348,15 @@ When drafting PRs, verify that:
   - `npm run format:check` to verify formatting passes (must have zero warnings)
   - These commands MUST be run after every code modification without exception
 - **REQUIRED**: Always bump the package version in `package.json` for every code change:
-  - Bug fixes and patches: increment patch version (0.3.0 → 0.3.1)
-  - New features: increment minor version (0.3.1 → 0.4.0)
+  - New features or API signature changes: increment minor version (0.3.1 → 0.4.0)
+  - Bug fixes, patches, small code changes: increment patch version (0.3.0 → 0.3.1)
   - Breaking changes: increment major version (0.4.0 → 1.0.0)
 - **REQUIRED**: Always update the CHANGELOG.md for every code change:
   - Add a new section for the new version at the top
   - Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
   - Use appropriate sections: Added, Changed, Fixed, etc.
-  - Include clear descriptions of changes
+  - Keep entries concise and user-focused, especially for patch versions
+  - Skip implementation details unless they directly impact users
 - Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### CRITICAL: Zero-Tolerance Format Policy
