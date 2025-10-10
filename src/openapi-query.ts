@@ -48,7 +48,7 @@ export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Op
  */
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  h: ReturnType<typeof getHelpers<Ops, Op>>,
+  h: ReturnType<typeof getHelpers<Ops>>,
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
   optionsOrNull?: QueryOptions<Ops, Op>,
 ) {

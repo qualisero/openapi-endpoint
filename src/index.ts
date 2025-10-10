@@ -25,7 +25,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
         : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
       optionsOrNull?: QueryOptions<Ops, Op>,
     ): EndpointQueryReturn<Ops, Op> {
-      const helpers = getHelpers<Ops, Op>(config)
+      const helpers = getHelpers<Ops>(config)
 
       return useEndpointQuery<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
@@ -37,7 +37,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
         : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
       optionsOrNull?: MutationOptions<Ops, Op>,
     ) {
-      const helpers = getHelpers<Ops, Op>(config)
+      const helpers = getHelpers<Ops>(config)
 
       return useEndpointMutation<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
@@ -53,7 +53,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
             | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
       optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
     ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
-      const helpers = getHelpers<Ops, Op>(config)
+      const helpers = getHelpers<Ops>(config)
 
       return useEndpoint<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },

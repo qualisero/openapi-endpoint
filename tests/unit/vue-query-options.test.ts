@@ -10,12 +10,11 @@ import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
 type MockOps = typeof OPERATION_INFO
-type OperationsWithInfo = operations & MockOps
-const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+const mockOperations: MockOps = OPERATION_INFO
 
 describe('Vue Query Options Support', () => {
-  let mockConfig: OpenApiConfig<OperationsWithInfo>
-  let helpers: ReturnType<typeof getHelpers<OperationsWithInfo>>
+  let mockConfig: OpenApiConfig<MockOps>
+  let helpers: ReturnType<typeof getHelpers<MockOps>>
 
   beforeEach(() => {
     vi.clearAllMocks()

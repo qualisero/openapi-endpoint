@@ -48,7 +48,7 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  */
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  h: ReturnType<typeof getHelpers<Ops, Op>>, // helpers
+  h: ReturnType<typeof getHelpers<Ops>>, // helpers
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
   optionsOrNull?: MutationOptions<Ops, Op>,
 ) {

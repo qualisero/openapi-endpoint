@@ -70,7 +70,7 @@ describe('Error Handler', () => {
     useQueryMock = vi.mocked(useQuery)
     useMutationMock = vi.mocked(useMutation)
 
-    const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+    const mockOperations: OperationsWithInfo = OPERATION_INFO
     const config: OpenApiConfig<OperationsWithInfo> = {
       operations: mockOperations,
       axios: axiosMock as any,

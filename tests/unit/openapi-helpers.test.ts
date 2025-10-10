@@ -8,10 +8,9 @@ import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
 type MockOps = typeof OPERATION_INFO
-type OperationsWithInfo = operations & MockOps
-const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+const mockOperations: MockOps = OPERATION_INFO
 
-type MockConfig = OpenApiConfig<OperationsWithInfo>
+type MockConfig = OpenApiConfig<MockOps>
 
 describe('openapi-helpers', () => {
   let mockConfig: MockConfig

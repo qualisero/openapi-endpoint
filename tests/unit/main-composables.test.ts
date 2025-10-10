@@ -8,16 +8,15 @@ import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
 describe('useOpenApi', () => {
-  type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+type MockOps = typeof OPERATION_INFO
+const mockOperations: MockOps = OPERATION_INFO
 
-  let mockConfig: OpenApiConfig<OperationsWithInfo> = {
+  let mockConfig: OpenApiConfig<MockOps> = {
     operations: mockOperations,
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<OperationsWithInfo>
+  let api: OpenApiInstance<MockOps>
 
   beforeEach(() => {
     api = useOpenApi(mockConfig)

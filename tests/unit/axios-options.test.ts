@@ -39,10 +39,9 @@ let interceptorResponseSpy: ReturnType<typeof vi.fn>
 
 describe('axiosOptions integration', () => {
   type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+  const mockOperations: MockOps = OPERATION_INFO
 
-  let api: ReturnType<typeof useOpenApi<OperationsWithInfo>>
+  let api: ReturnType<typeof useOpenApi<MockOps>>
   let queryClient: QueryClient
   let capturedConfig: AxiosRequestConfig | null = null
 
@@ -122,7 +121,7 @@ describe('axiosOptions integration', () => {
       }
     })
 
-    const config: OpenApiConfig<OperationsWithInfo> = {
+    const config: OpenApiConfig<MockOps> = {
       operations: mockOperations,
       axios: realAxiosInstance,
       queryClient,

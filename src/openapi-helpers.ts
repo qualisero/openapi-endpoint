@@ -16,15 +16,15 @@ function _getMethodPrefix(method: HttpMethod): string | null {
   return methodPrefixes[method]
 }
 
-export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(config: OpenApiConfig<Ops>) {
+export function getHelpers<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   // Helper function to get operation info by ID
-  function getOperationInfo(operationId: Op): OperationInfo {
+  function getOperationInfo<Op extends keyof Ops>(operationId: Op): OperationInfo {
     return config.operations[operationId as keyof Ops] as unknown as OperationInfo
   }
 
   // Helper to return a url path for matching list endpoint (e.g. /items/123 -> /items/)
   // Based on operationId prefix: createItem, updateItem -> listItems
-  function getListOperationPath(operationId: Op): string | null {
+  function getListOperationPath<Op extends keyof Ops>(operationId: Op): string | null {
     const opInfo = getOperationInfo(operationId)
     const operationIdStr: string = operationId as string
     const operationPrefix = opInfo ? _getMethodPrefix(opInfo.method) : null
@@ -57,7 +57,7 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
 
   // Fallback to return a url path prefix matching list endpoint (e.g. /items/123 -> /items/)
   // based on Assumes standard CRUD Restful patterns.
-  function getCrudListPathPrefix(operationId: Op): string | null {
+  function getCrudListPathPrefix<Op extends keyof Ops>(operationId: Op): string | null {
     const { path } = getOperationInfo(operationId)
     // for PUT/PATCH/DELETE, strip last segment if it's a path parameter
     const segments = path.split('/').filter((segment) => segment.length > 0)
@@ -73,14 +73,14 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
   // }
 
   // Helper to check if an operation is a query method at runtime
-  function isQueryOperation(operationId: Op): boolean {
+  function isQueryOperation<Op extends keyof Ops>(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
     const queryMethods: HttpMethod[] = [HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS]
     return queryMethods.includes(method)
   }
 
   // Helper to check if an operation is a mutation method at runtime
-  function isMutationOperation(operationId: Op): boolean {
+  function isMutationOperation<Op extends keyof Ops>(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
     const mutationMethods: HttpMethod[] = [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
     return mutationMethods.includes(method)

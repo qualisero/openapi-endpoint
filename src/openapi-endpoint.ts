@@ -41,7 +41,7 @@ import { getHelpers } from './openapi-helpers'
  */
 export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  helpers: ReturnType<typeof getHelpers<Ops, Op>>,
+  helpers: ReturnType<typeof getHelpers<Ops>>,
   pathParamsOrOptions?:
     | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
     | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
