@@ -45,7 +45,7 @@ export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
   pathParamsOrOptions?:
     | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
     | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
-  optionsOrNull: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op> = {},
+  optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
 ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
   if (helpers.isMutationOperation(operationId)) {
     return useEndpointMutation<Ops, Op>(
