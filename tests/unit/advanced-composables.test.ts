@@ -15,7 +15,7 @@ const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
 
 describe('Advanced composable functionality', () => {
   let mockConfig: OpenApiConfig<OperationsWithInfo>
-  let helpers: ReturnType<typeof getHelpers<OperationsWithInfo, keyof OperationsWithInfo>>
+  let helpers: ReturnType<typeof getHelpers>
 
   beforeEach(() => {
     vi.clearAllMocks()

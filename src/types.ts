@@ -1,4 +1,4 @@
-import { type AxiosInstance } from 'axios'
+import { type AxiosInstance, type AxiosError } from 'axios'
 import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
 // import { type UseQueryOptions, type UseMutationOptions } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
@@ -49,13 +49,13 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
 
 // Type-safe options for queries
 export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseQueryOptions<GetResponseData<Ops, Op>>,
-  'enabled'
+  UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
+  'queryKey' | 'queryFn' | 'enabled'
 > & {
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
   axiosOptions?: AxiosRequestConfig
-  errorHandler?: (error: Error) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+  errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
 type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
@@ -71,14 +71,13 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
 }
 
 // // Type-safe options for mutations
-export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = UseMutationOptions<
-  GetResponseData<Ops, Op>,
-  Error,
-  MutationVars<Ops, Op>
+export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
+  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
+  'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
-    errorHandler?: (error: Error) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+    errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
