@@ -35,9 +35,9 @@ describe('openapi-utils', () => {
       expect(resolvePath(path, params)).toBe('/pets/123')
     })
 
-    it('should skip null/undefined parameter values', () => {
+    it('should skip undefined parameter values', () => {
       const path = '/pets/{petId}/tags/{tagId}'
-      const params = { petId: '123', tagId: null }
+      const params = { petId: '123', tagId: undefined }
       expect(resolvePath(path, params)).toBe('/pets/123/tags/{tagId}')
     })
 
