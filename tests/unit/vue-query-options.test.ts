@@ -30,10 +30,9 @@ describe('Vue Query Options Support', () => {
   describe('Query Options Type Support', () => {
     it('should accept staleTime option without typing errors', () => {
       // This test verifies that Vue Query options like staleTime are properly typed
-      const query = useEndpointQuery(
+      const api = useOpenApi(mockConfig)
+      const query = api.useQuery(
         OperationId.listPets,
-        helpers,
-        {},
         {
           staleTime: 1000, // This should not cause a typing error
           retry: 2, // This should not cause a typing error
@@ -50,10 +49,9 @@ describe('Vue Query Options Support', () => {
       const onLoad = vi.fn()
 
       // This test verifies that Vue Query options work alongside custom options
-      const query = useEndpointQuery(
+      const api = useOpenApi(mockConfig)
+      const query = api.useQuery(
         OperationId.listPets,
-        helpers,
-        {},
         {
           staleTime: 2000,
           retry: false,
@@ -69,9 +67,9 @@ describe('Vue Query Options Support', () => {
 
     it('should accept staleTime with path parameters', () => {
       // This test verifies that Vue Query options work with parameterized queries
-      const query = useEndpointQuery(
+      const api = useOpenApi(mockConfig)
+      const query = api.useQuery(
         OperationId.getPet,
-        helpers,
         { petId: '123' },
         {
           staleTime: 3000,
@@ -88,21 +86,17 @@ describe('Vue Query Options Support', () => {
   describe('Mutation Options Type Support', () => {
     it('should accept Vue Query mutation options without typing errors', () => {
       // This test verifies that mutation options from Vue Query are properly typed
-      const mutation = useEndpointMutation(
-        OperationId.createPet,
-        helpers,
-        {},
-        {
-          retry: 1,
-          retryDelay: 500,
-          useErrorBoundary: false,
-          onSuccess: vi.fn(),
-          onError: vi.fn(),
-          onSettled: vi.fn(),
-          onMutate: vi.fn(),
-          meta: { operation: 'create' },
-        },
-      )
+      const api = useOpenApi(mockConfig)
+      const mutation = api.useMutation(OperationId.createPet, {
+        retry: 1,
+        retryDelay: 500,
+        useErrorBoundary: false,
+        onSuccess: vi.fn(),
+        onError: vi.fn(),
+        onSettled: vi.fn(),
+        onMutate: vi.fn(),
+        meta: { operation: 'create' },
+      })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')

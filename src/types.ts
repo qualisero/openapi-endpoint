@@ -8,6 +8,11 @@ import type { EndpointMutationReturn } from './openapi-mutation'
 export type { EndpointQueryReturn } from './openapi-query'
 export type { EndpointMutationReturn } from './openapi-mutation'
 
+// Extend AxiosRequestConfig to include custom properties
+export interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
+  skipErrorHandling?: boolean
+}
+
 export type OperationId = string
 
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
@@ -50,11 +55,16 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
 // Type-safe options for queries
 export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
   UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
-  'queryKey' | 'queryFn' | 'enabled'
+  'queryKey' | 'queryFn'
 > & {
   enabled?: MaybeRefOrGetter<boolean>
+  staleTime?: number
+  retry?: boolean | number | ((failureCount: number, error: Error) => boolean)
+  refetchOnWindowFocus?: boolean
+  refetchInterval?: number | false
+  refetchOnMount?: boolean
   onLoad?: (data: GetResponseData<Ops, Op>) => void
-  axiosOptions?: AxiosRequestConfig
+  axiosOptions?: ExtendedAxiosRequestConfig
   errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
@@ -76,7 +86,24 @@ export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> =
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
-    axiosOptions?: AxiosRequestConfig
+    retry?: boolean | number | ((failureCount: number, error: Error) => boolean)
+    onSuccess?: (
+      data: GetResponseData<Ops, Op>,
+      variables: MutationVars<Ops, Op>,
+      context: unknown,
+    ) => void | Promise<void>
+    onError?: (error: Error, variables: MutationVars<Ops, Op>, context: unknown) => void | Promise<void>
+    onSettled?: (
+      data: GetResponseData<Ops, Op> | undefined,
+      error: Error | null,
+      variables: MutationVars<Ops, Op>,
+      context: unknown,
+    ) => void | Promise<void>
+    onMutate?: (variables: MutationVars<Ops, Op>) => unknown | Promise<unknown>
+    meta?: Record<string, unknown>
+    retryDelay?: number | ((failureCount: number, error: Error) => number)
+    useErrorBoundary?: boolean | ((error: Error) => boolean)
+    axiosOptions?: ExtendedAxiosRequestConfig
     errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
 
