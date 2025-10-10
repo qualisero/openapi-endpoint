@@ -74,7 +74,8 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
 // Type-safe options for mutations - use Partial to be more permissive
 export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> =
   // Use Partial to make all UseMutationOptions optional and avoid conflicts
-  Partial<UseMutationOptions<GetResponseData<Ops, Op>, Error, any>> &
+  // Use a union type for variables to support both standard and custom patterns
+  Partial<UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op> | Record<string, unknown>>> &
     // Include our custom mutation success options
     MutationOnSuccessOptions<Ops> & {
       axiosOptions?: AxiosRequestConfig
