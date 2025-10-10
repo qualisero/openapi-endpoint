@@ -49,8 +49,8 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
 
 // Type-safe options for queries
 export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseQueryOptions<GetResponseData<Ops, Op>>,
-  'enabled'
+  UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
+  'queryKey' | 'queryFn' | 'enabled'
 > & {
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
@@ -71,10 +71,9 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
 }
 
 // // Type-safe options for mutations
-export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = UseMutationOptions<
-  GetResponseData<Ops, Op>,
-  Error,
-  MutationVars<Ops, Op>
+export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
+  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
+  'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
@@ -130,21 +129,29 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
 export type OpenApiInstance<Ops extends Operations<Ops>> = {
   useQuery: <Op extends keyof Ops>(
     operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-    pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? QueryOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
     optionsOrNull?: QueryOptions<Ops, Op>,
   ) => EndpointQueryReturn<Ops, Op>
 
   useMutation: <Op extends keyof Ops>(
     operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-    pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? MutationOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
     optionsOrNull?: MutationOptions<Ops, Op>,
   ) => EndpointMutationReturn<Ops, Op>
 
   useEndpoint: <Op extends keyof Ops>(
     operationId: Op,
-    pathParamsOrOptions?:
-      | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-      | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? IsQueryOperation<Ops, Op> extends true
+        ? QueryOptions<Ops, Op>
+        : MutationOptions<Ops, Op>
+      :
+          | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+          | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
     optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
   ) => IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
 }
