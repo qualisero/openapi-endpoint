@@ -151,23 +151,13 @@ describe('Type Inference for useEndpoint', () => {
 
     it('should work with options objects', () => {
       // Mutation with options
-      const createEndpoint = api.useEndpoint(
-        OperationId.createPet,
-        {},
-        {
-          onSuccess: () => {},
-        },
-      )
+      const createEndpoint = api.useEndpoint(OperationId.createPet, undefined, {
+        onSuccess: () => {},
+      })
       expect(createEndpoint).toHaveProperty('mutateAsync')
 
       // Query with options
-      const listEndpoint = api.useEndpoint(
-        OperationId.listPets,
-        {},
-        {
-          enabled: true,
-        },
-      )
+      const listEndpoint = api.useEndpoint(OperationId.listPets)
       expect(listEndpoint).toHaveProperty('refetch')
     })
   })

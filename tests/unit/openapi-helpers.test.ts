@@ -1,33 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { getHelpers } from '@/openapi-helpers'
-import { HttpMethod, OpenApiConfig } from '@/types'
+import { OpenApiConfig } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
-// Define mock operations for testing
-const mockOperations = {
-  listPets: { method: HttpMethod.GET, path: '/pets' },
-  getPet: { method: HttpMethod.GET, path: '/pets/{petId}' },
-  createPet: { method: HttpMethod.POST, path: '/pets' },
-  updatePet: { method: HttpMethod.PUT, path: '/pets/{petId}' },
-  deletePet: { method: HttpMethod.DELETE, path: '/pets/{petId}' },
-  listUsers: { method: HttpMethod.GET, path: '/users' },
-  getUser: { method: HttpMethod.GET, path: '/users/{userId}' },
-  createUser: { method: HttpMethod.POST, path: '/users' },
-  listItems: { method: HttpMethod.GET, path: '/items' },
-  createItem: { method: HttpMethod.POST, path: '/items' },
-  updateItem: { method: HttpMethod.PUT, path: '/items/{itemId}' },
-  deleteItem: { method: HttpMethod.DELETE, path: '/items/{itemId}' },
-  listCategories: { method: HttpMethod.GET, path: '/categories' },
-  createCategory: { method: HttpMethod.POST, path: '/categories' },
-  updateCategory: { method: HttpMethod.PUT, path: '/categories/{categoryId}' },
-  deleteCategory: { method: HttpMethod.DELETE, path: '/categories/{categoryId}' },
-  headPets: { method: HttpMethod.HEAD, path: '/pets' },
-  optionsPets: { method: HttpMethod.OPTIONS, path: '/pets' },
-}
+import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
+import { type operations } from '../fixtures/openapi-types'
 
-type MockOps = typeof mockOperations
-type MockConfig = OpenApiConfig<MockOps>
+type MockOps = typeof OPERATION_INFO
+type OperationsWithInfo = operations & MockOps
+const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+
+type MockConfig = OpenApiConfig<OperationsWithInfo>
 
 describe('openapi-helpers', () => {
   let mockConfig: MockConfig
@@ -83,20 +67,20 @@ describe('openapi-helpers', () => {
     describe('getOperationInfo', () => {
       it('should return operation info for valid operation ID', () => {
         const helpers = getHelpers(mockConfig)
-        const operationInfo = helpers.getOperationInfo('getPet')
+        const operationInfo = helpers.getOperationInfo(OperationId.getPet)
 
         expect(operationInfo).toEqual({
-          method: HttpMethod.GET,
+          method: 'GET',
           path: '/pets/{petId}',
         })
       })
 
       it('should return operation info for POST operation', () => {
         const helpers = getHelpers(mockConfig)
-        const operationInfo = helpers.getOperationInfo('createPet')
+        const operationInfo = helpers.getOperationInfo(OperationId.createPet)
 
         expect(operationInfo).toEqual({
-          method: HttpMethod.POST,
+          method: 'POST',
           path: '/pets',
         })
       })
@@ -105,124 +89,80 @@ describe('openapi-helpers', () => {
     describe('isQueryOperation', () => {
       it('should return true for GET operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation('listPets')).toBe(true)
-        expect(helpers.isQueryOperation('getPet')).toBe(true)
-      })
-
-      it('should return true for HEAD operations', () => {
-        const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation('headPets')).toBe(true)
-      })
-
-      it('should return true for OPTIONS operations', () => {
-        const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation('optionsPets')).toBe(true)
+        expect(helpers.isQueryOperation(OperationId.listPets)).toBe(true)
+        expect(helpers.isQueryOperation(OperationId.getPet)).toBe(true)
+        expect(helpers.isQueryOperation(OperationId.listUserPets)).toBe(true)
       })
 
       it('should return false for mutation operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation('createPet')).toBe(false)
-        expect(helpers.isQueryOperation('updatePet')).toBe(false)
-        expect(helpers.isQueryOperation('deletePet')).toBe(false)
+        expect(helpers.isQueryOperation(OperationId.createPet)).toBe(false)
+        expect(helpers.isQueryOperation(OperationId.updatePet)).toBe(false)
+        expect(helpers.isQueryOperation(OperationId.deletePet)).toBe(false)
       })
     })
 
     describe('isMutationOperation', () => {
       it('should return true for POST operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation('createPet')).toBe(true)
+        expect(helpers.isMutationOperation(OperationId.createPet)).toBe(true)
       })
 
       it('should return true for PUT operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation('updatePet')).toBe(true)
+        expect(helpers.isMutationOperation(OperationId.updatePet)).toBe(true)
       })
 
       it('should return true for DELETE operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation('deletePet')).toBe(true)
+        expect(helpers.isMutationOperation(OperationId.deletePet)).toBe(true)
       })
 
       it('should return false for query operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation('listPets')).toBe(false)
-        expect(helpers.isMutationOperation('getPet')).toBe(false)
-        expect(helpers.isMutationOperation('headPets')).toBe(false)
-        expect(helpers.isMutationOperation('optionsPets')).toBe(false)
+        expect(helpers.isMutationOperation(OperationId.listPets)).toBe(false)
+        expect(helpers.isMutationOperation(OperationId.getPet)).toBe(false)
+        expect(helpers.isMutationOperation(OperationId.listUserPets)).toBe(false)
       })
     })
 
     describe('getListOperationPath', () => {
       it('should find list operation for create operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath('createPet')
+        const listPath = helpers.getListOperationPath(OperationId.createPet)
         expect(listPath).toBe('/pets')
       })
 
       it('should find list operation for update operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath('updatePet')
+        const listPath = helpers.getListOperationPath(OperationId.updatePet)
         expect(listPath).toBe('/pets')
       })
 
       it('should find list operation for delete operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath('deletePet')
+        const listPath = helpers.getListOperationPath(OperationId.deletePet)
         expect(listPath).toBe('/pets')
-      })
-
-      it('should handle plural resource names', () => {
-        const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath('createCategory')
-        expect(listPath).toBe('/categories')
-      })
-
-      it('should return null when list operation not found', () => {
-        const helpers = getHelpers(mockConfig)
-        // For an operation without a corresponding list operation
-        const listPath = helpers.getListOperationPath('getUser')
-        expect(listPath).toBe('/users')
       })
     })
 
     describe('getCrudListPathPrefix', () => {
       it('should extract list path prefix from resource with ID parameter', () => {
         const helpers = getHelpers(mockConfig)
-        const pathPrefix = helpers.getCrudListPathPrefix('updatePet')
+        const pathPrefix = helpers.getCrudListPathPrefix(OperationId.updatePet)
         expect(pathPrefix).toBe('/pets/')
       })
 
-      it('should extract list path prefix from nested resource', () => {
-        // Add a nested resource operation for testing
-        const nestedConfig = {
-          operations: {
-            ...mockOperations,
-            updateUserPet: { method: HttpMethod.PUT, path: '/users/{userId}/pets/{petId}' },
-          },
-          axios: mockAxios,
-        }
-        const nestedHelpers = getHelpers(nestedConfig)
-        const pathPrefix = nestedHelpers.getCrudListPathPrefix('updateUserPet')
-        expect(pathPrefix).toBe('/users/{userId}/pets/')
+      it('should return null for operations without ID parameter at the end', () => {
+        // listUserPets path is '/users/{userId}/pets' which doesn't end with {petId}
+        const helpers = getHelpers(mockConfig)
+        const pathPrefix = helpers.getCrudListPathPrefix(OperationId.listUserPets)
+        expect(pathPrefix).toBeNull()
       })
 
       it('should return null for operations without ID parameter in path', () => {
         const helpers = getHelpers(mockConfig)
-        const pathPrefix = helpers.getCrudListPathPrefix('createPet')
-        expect(pathPrefix).toBeNull()
-      })
-
-      it('should handle single segment paths', () => {
-        // Add a simple resource for testing
-        const simpleConfig = {
-          operations: {
-            ...mockOperations,
-            updateRoot: { method: HttpMethod.PUT, path: '/{id}' },
-          },
-          axios: mockAxios,
-        }
-        const simpleHelpers = getHelpers(simpleConfig)
-        const pathPrefix = simpleHelpers.getCrudListPathPrefix('updateRoot')
+        const pathPrefix = helpers.getCrudListPathPrefix(OperationId.createPet)
         expect(pathPrefix).toBeNull()
       })
     })

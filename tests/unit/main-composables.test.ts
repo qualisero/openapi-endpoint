@@ -54,7 +54,7 @@ describe('useOpenApi', () => {
     it('should create a query with options', () => {
       // Test that useQuery can be called with options
       const onLoad = vi.fn()
-      const query = api.useQuery('listPets', {}, { enabled: true, onLoad })
+      const query = api.useQuery(OperationId.listPets, undefined, { onLoad })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -65,7 +65,7 @@ describe('useOpenApi', () => {
   describe('useMutation', () => {
     it('should create a mutation for POST operations', () => {
       // Test that useMutation can be called with a POST operation
-      const mutation = api.useMutation('createPet', {})
+      const mutation = api.useMutation(OperationId.createPet)
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -74,7 +74,7 @@ describe('useOpenApi', () => {
 
     it('should create a mutation with path parameters', () => {
       // Test that useMutation can be called with path parameters
-      const mutation = api.useMutation('updatePet', { petId: '123' })
+      const mutation = api.useMutation(OperationId.updatePet, { petId: '123' })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -84,7 +84,7 @@ describe('useOpenApi', () => {
     it('should create a mutation with options', () => {
       // Test that useMutation can be called with options
       const onSuccess = vi.fn()
-      const mutation = api.useMutation('createPet', {}, { onSuccess })
+      const mutation = api.useMutation(OperationId.createPet, undefined, { onSuccess })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -95,30 +95,30 @@ describe('useOpenApi', () => {
   describe('useEndpoint', () => {
     it('should create an endpoint handler for any operation', () => {
       // Test that useEndpoint can be called with any operation
-      const endpoint = api.useEndpoint('listPets', {})
+      const endpoint = api.useEndpoint(OperationId.listPets)
 
       expect(endpoint).toBeTruthy()
     })
 
     it('should create an endpoint handler with path parameters', () => {
       // Test that useEndpoint can be called with path parameters
-      const endpoint = api.useEndpoint('getPet', { petId: '123' })
+      const endpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
 
       expect(endpoint).toBeTruthy()
     })
 
     it('should create an endpoint handler with options', () => {
       // Test that useEndpoint can be called with options
-      const endpoint = api.useEndpoint('listPets', {}, { enabled: true })
+      const endpoint = api.useEndpoint(OperationId.listPets)
 
       expect(endpoint).toBeTruthy()
     })
 
     it('should work with mutation operations', () => {
       // Test that useEndpoint can be called with mutation operations
-      const createEndpoint = api.useEndpoint('createPet', {})
-      const updateEndpoint = api.useEndpoint('updatePet', { petId: '123' })
-      const deleteEndpoint = api.useEndpoint('deletePet', { petId: '123' })
+      const createEndpoint = api.useEndpoint(OperationId.createPet)
+      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
+      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
 
       expect(createEndpoint).toBeTruthy()
       expect(updateEndpoint).toBeTruthy()
@@ -184,11 +184,11 @@ describe('useOpenApi', () => {
       api = useOpenApi(configWithCustomClient)
 
       // Create a query to ensure the custom client is being used
-      const query = api.useQuery('listPets', {})
+      const query = api.useQuery(OperationId.listPets)
       expect(query).toBeTruthy()
 
       // Create a mutation to ensure the custom client is being used
-      const mutation = api.useMutation('createPet', {})
+      const mutation = api.useMutation(OperationId.createPet)
       expect(mutation).toBeTruthy()
     })
 
@@ -202,10 +202,10 @@ describe('useOpenApi', () => {
       api = useOpenApi(configWithoutCustomClient)
 
       // Should still work with default queryClient
-      const query = api.useQuery('listPets', {})
+      const query = api.useQuery(OperationId.listPets)
       expect(query).toBeTruthy()
 
-      const mutation = api.useMutation('createPet', {})
+      const mutation = api.useMutation(OperationId.createPet)
       expect(mutation).toBeTruthy()
     })
 

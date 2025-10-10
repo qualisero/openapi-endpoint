@@ -52,6 +52,13 @@ bin/
    - Use `*Options` suffix for configuration types
    - Use descriptive variable names that indicate their reactive nature
 
+5. **Code Quality**: **ALWAYS** ensure linting and formatting pass before committing
+   - Run `npm run lint:fix` to fix ESLint issues automatically
+   - Run `npx prettier --write .` to fix formatting issues automatically
+   - Verify with `npm run lint` (should pass with no errors)
+   - Verify with `npx prettier --check .` (should pass with no warnings)
+   - These checks are required for all code changes and PRs
+
 ### Key Dependencies
 
 **Peer Dependencies** (required by consumers):
@@ -287,6 +294,11 @@ When drafting PRs, verify that:
 - Pay attention to Vue reactivity patterns and TanStack Query integration
 - The CLI tool is a crucial part of the developer workflow
 - Maintain backward compatibility unless explicitly requested to break it
+- **REQUIRED**: Always run linting and formatting checks before committing any changes:
+  - `npm run lint:fix` to fix ESLint issues
+  - `npx prettier --write .` to fix formatting issues
+  - `npm run lint` to verify linting passes
+  - `npx prettier --check .` to verify formatting passes
 - Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### Package Configuration
