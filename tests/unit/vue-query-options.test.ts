@@ -9,8 +9,14 @@ import { useOpenApi } from '@/index'
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
-type MockOps = typeof OPERATION_INFO
-const mockOperations: MockOps = OPERATION_INFO
+// Create operations with method information
+type MockOps = {
+  [K in keyof operations]: operations[K] & { method: (typeof OPERATION_INFO)[K]['method'] }
+}
+
+// We'll cast the operations since we can't create the full structure at runtime
+// The key thing is that the type system knows about both the OpenAPI structure and methods
+const mockOperations = OPERATION_INFO as unknown as MockOps
 
 describe('Vue Query Options Support', () => {
   let mockConfig: OpenApiConfig<MockOps>
@@ -29,7 +35,7 @@ describe('Vue Query Options Support', () => {
   describe('Query Options Type Support', () => {
     it('should accept staleTime option without typing errors', () => {
       // This test verifies that Vue Query options like staleTime are properly typed
-      const query = useEndpointQuery(
+      const query = useEndpointQuery<MockOps, 'listPets'>(
         OperationId.listPets,
         helpers,
         {},
@@ -49,7 +55,7 @@ describe('Vue Query Options Support', () => {
       const onLoad = vi.fn()
 
       // This test verifies that Vue Query options work alongside custom options
-      const query = useEndpointQuery(
+      const query = useEndpointQuery<MockOps, 'listPets'>(
         OperationId.listPets,
         helpers,
         {},
@@ -68,7 +74,7 @@ describe('Vue Query Options Support', () => {
 
     it('should accept staleTime with path parameters', () => {
       // This test verifies that Vue Query options work with parameterized queries
-      const query = useEndpointQuery(
+      const query = useEndpointQuery<MockOps, 'getPet'>(
         OperationId.getPet,
         helpers,
         { petId: '123' },
@@ -87,7 +93,7 @@ describe('Vue Query Options Support', () => {
   describe('Mutation Options Type Support', () => {
     it('should accept Vue Query mutation options without typing errors', () => {
       // This test verifies that mutation options from Vue Query are properly typed
-      const mutation = useEndpointMutation(
+      const mutation = useEndpointMutation<MockOps, 'createPet'>(
         OperationId.createPet,
         helpers,
         {},

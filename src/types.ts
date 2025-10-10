@@ -47,11 +47,11 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
     ? RequireReadonly<Data>
     : unknown
 
-// Type-safe options for queries
-export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
-  'queryKey' | 'queryFn'
+// Type-safe options for queries - use the most basic approach to ensure compatibility
+export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Partial<
+  UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>
 > & {
+  // Custom properties
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
   axiosOptions?: AxiosRequestConfig
@@ -70,10 +70,9 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
   pathParams?: GetPathParameters<Ops, Op>
 }
 
-// // Type-safe options for mutations
-export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
-  'mutationFn' | 'mutationKey'
+// Type-safe options for mutations - use the most basic approach to ensure compatibility
+export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Partial<
+  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
