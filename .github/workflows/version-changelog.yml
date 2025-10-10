@@ -63,6 +63,6 @@ jobs:
               repo: context.repo.repo,
               title: `Update version and changelog after PR #${context.payload.pull_request.number}`,
               body: issueBody,
-              assignees: ['copilot'],
+              assignees: ['copilot-swe-agent'],
               labels: ['version-update', 'changelog', 'automated']
             });
