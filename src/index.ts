@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/vue-query'
 
 import { useEndpoint } from './openapi-endpoint'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
-import { useEndpointMutation } from './openapi-mutation'
+import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 import { Operations, GetPathParameters, OpenApiConfig, QueryOptions, MutationOptions, IsQueryOperation } from './types'
 import { getHelpers } from './openapi-helpers'
 export type { OperationInfo, QueryOptions, OpenApiConfig, OpenApiInstance } from './types'
@@ -44,7 +44,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
         | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
         | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
       optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
-    ) {
+    ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
       const helpers = getHelpers<Ops, Op>(config)
 
       return useEndpoint<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)

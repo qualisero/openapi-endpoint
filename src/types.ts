@@ -108,7 +108,7 @@ type RequireReadonly<T> = {
 }
 
 export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
-  method: HttpMethod.GET
+  method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
 }
   ? true
   : false
@@ -144,5 +144,5 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
       | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
       | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
     optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
-  ) => EndpointQueryReturn<Ops, Op> | EndpointMutationReturn<Ops, Op>
+  ) => IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
 }
