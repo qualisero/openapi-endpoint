@@ -72,7 +72,7 @@ export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = Mu
 
 // // Type-safe options for mutations
 export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
+  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>, unknown>,
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
