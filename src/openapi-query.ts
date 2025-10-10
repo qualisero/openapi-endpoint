@@ -100,16 +100,6 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
         }
       },
       enabled: isEnabled,
-      staleTime: 1000 * 60,
-      retry: (failureCount, error: AxiosError) => {
-        // Don't retry 4xx errors
-        if (error.response && error.response.status >= 400 && error.response.status < 500) {
-          return false
-        }
-        // Retry up to 3 times for other errors
-        return failureCount < 3
-      },
-
       ...useQueryOptions,
     },
     h.queryClient,
