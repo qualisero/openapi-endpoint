@@ -60,7 +60,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     pathParamsOrOptions,
     optionsOrNull,
   )
-  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, ...useQueryOptions } = options
+  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
 
   const resolvedPath = computed(() => resolvePath(path, pathParams))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
@@ -76,12 +76,19 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     {
       queryKey: queryKey,
       queryFn: async (): Promise<GetResponseData<Ops, Op>> => {
-        const response = await h.axios({
-          method: method.toLowerCase(),
-          url: resolvedPath.value,
-          ...(axiosOptions || {}),
-        })
-        return response.data
+        try {
+          const response = await h.axios({
+            method: method.toLowerCase(),
+            url: resolvedPath.value,
+            ...(axiosOptions || {}),
+          })
+          return response.data
+        } catch (error) {
+          if (errorHandler) {
+            await errorHandler(error as Error)
+          }
+          throw error
+        }
       },
       enabled: isEnabled,
       staleTime: 1000 * 60,

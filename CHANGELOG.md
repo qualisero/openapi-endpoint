@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2024-10-10
+
+### Added
+
+- Added `errorHandler` option to `QueryOptions` and `MutationOptions` types
+- Custom error handler function can now be provided to `api.useQuery()` and `api.useMutation()` calls
+- Error handlers are called with the error object when axios calls fail, allowing custom error processing
+- Error handlers support both synchronous and asynchronous functions
+- Original error is still thrown after the custom error handler is executed, maintaining existing error propagation behavior
+
+### Changed
+
+- Enhanced query and mutation functions to include try-catch blocks for error handling
+- Both `queryFn` and `mutationFn` now support optional custom error handling before rethrowing errors
+
 ## [0.3.1] - 2024-10-10
 
 ### Fixed
