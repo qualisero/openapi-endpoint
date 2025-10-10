@@ -7,7 +7,7 @@ import { mockAxios } from '../setup'
 import { useOpenApi } from '@/index'
 
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { type operations, type components } from '../fixtures/openapi-types'
 
 type MockOps = typeof OPERATION_INFO
 type OperationsWithInfo = operations & MockOps
@@ -143,7 +143,7 @@ describe('Vue Query Options Support', () => {
           staleTime: 2000,
           enabled: true,
           refetchInterval: 5000,
-          onLoad: (data) => console.log('Pet loaded:', data),
+          onLoad: (data: components['schemas']['Pet']) => console.log('Pet loaded:', data),
         },
       )
 
@@ -159,8 +159,8 @@ describe('Vue Query Options Support', () => {
 
       const createPet = api.useMutation(OperationId.createPet, {
         retry: 1,
-        onSuccess: (data) => console.log('Created pet:', data),
-        onError: (error) => console.error('Error creating pet:', error),
+        onSuccess: (data: components['schemas']['Pet']) => console.log('Created pet:', data),
+        onError: (error: Error) => console.error('Error creating pet:', error),
         retryDelay: 1000,
       })
 
