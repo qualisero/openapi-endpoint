@@ -110,21 +110,14 @@ For EVERY code change, follow this exact sequence:
 
 ### Current Project State (Updated 2024-10-10)
 
-- **Current Version**: 0.3.2
+- **Current Version**: 0.3.3
 - **Node.js**: Compatible with modern Node.js versions
 - **TypeScript**: 5.9.2 with strict mode enabled
 - **Linting**: ESLint 9.37.0 with TypeScript integration
 - **Formatting**: Prettier 3.6.2 with consistent configuration
 - **Testing**: Vitest 3.2.4 with jsdom environment
 
-### Current Project State (Updated 2024-10-10)
-
-- **Current Version**: 0.3.2
-- **Node.js**: Compatible with modern Node.js versions
-- **TypeScript**: 5.9.2 with strict mode enabled
-- **Linting**: ESLint 9.37.0 with TypeScript integration
-- **Formatting**: Prettier 3.6.2 with consistent configuration
-- **Testing**: Vitest 3.2.4 with jsdom environment
+### Building and Testing
 
 ```bash
 # Build the library
