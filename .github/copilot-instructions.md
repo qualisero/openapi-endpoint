@@ -66,6 +66,12 @@ bin/
    - Update the version in `package.json` before committing any code changes
    - This ensures proper release tracking and dependency management
 
+7. **Changelog Management**: **ALWAYS** update the CHANGELOG.md for every code change
+   - Add a new section at the top for the new version following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
+   - Use sections: Added, Changed, Deprecated, Removed, Fixed, Security
+   - Include clear descriptions of what changed and why
+   - This ensures proper release documentation and user awareness of changes
+
 ### Key Dependencies
 
 **Peer Dependencies** (required by consumers):
@@ -308,8 +314,13 @@ When drafting PRs, verify that:
   - `npx prettier --check .` to verify formatting passes
 - **REQUIRED**: Always bump the package version in `package.json` for every code change:
   - Bug fixes and patches: increment patch version (0.3.0 → 0.3.1)
-  - New features: increment minor version (0.3.1 → 0.4.0) 
+  - New features: increment minor version (0.3.1 → 0.4.0)
   - Breaking changes: increment major version (0.4.0 → 1.0.0)
+- **REQUIRED**: Always update the CHANGELOG.md for every code change:
+  - Add a new section for the new version at the top
+  - Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
+  - Use appropriate sections: Added, Changed, Fixed, etc.
+  - Include clear descriptions of changes
 - Check linting and unit tests to ensure all CI tests will pass any new PR
 
 ### Package Configuration
