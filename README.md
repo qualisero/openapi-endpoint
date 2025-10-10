@@ -58,4 +58,28 @@ const api = useOpenApi({
   operations: operationInfoDict as OperationsWithInfo,
   axios: axiosInstance,
 })
+
+// Export for use in other parts of your application
+export { api }
+```
+
+### 2. Use the API in your components
+
+```typescript
+// In your Vue components
+import { api } from './api/init'
+import { OperationId } from './generated/api-operations'
+
+// Use queries for GET operations
+const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {})
+const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
+
+// Use mutations for POST/PUT/PATCH/DELETE operations  
+const createPetMutation = api.useMutation(OperationId.createPet, {})
+const updatePetMutation = api.useMutation(OperationId.updatePet, { petId: '123' })
+
+// Execute mutations
+await createPetMutation.mutateAsync({ 
+  data: { name: 'Fluffy', species: 'cat' } 
+})
 ```
