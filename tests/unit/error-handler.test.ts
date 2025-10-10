@@ -87,7 +87,7 @@ describe('Error Handler', () => {
   })
 
   describe('Query errorHandler', () => {
-    it('should call custom errorHandler when query fails', async () => {
+    it('should call custom errorHandler when query fails and not throw when handled', async () => {
       const errorHandlerMock = vi.fn()
       const testError = new Error('Network error')
 
@@ -110,17 +110,52 @@ describe('Error Handler', () => {
         errorHandler: errorHandlerMock,
       })
 
-      // Call the captured queryFn to test error handling
+      // Call the captured queryFn - should not throw when errorHandler is present
       expect(capturedQueryFn).toBeDefined()
-      await expect(capturedQueryFn!()).rejects.toThrow('Network error')
+      await expect(capturedQueryFn!()).resolves.toBeUndefined()
 
       // Verify errorHandler was called with the error
       expect(errorHandlerMock).toHaveBeenCalledTimes(1)
       expect(errorHandlerMock).toHaveBeenCalledWith(testError)
     })
 
-    it('should still throw error after calling errorHandler', async () => {
+    it('should not throw error when errorHandler is present and handles the error', async () => {
       const errorHandlerMock = vi.fn()
+      const testError = new Error('Network error')
+
+      axiosMock.mockRejectedValue(testError)
+
+      let capturedQueryFn: (() => Promise<any>) | undefined
+
+      useQueryMock.mockImplementation((options) => {
+        capturedQueryFn = options.queryFn as () => Promise<any>
+        return {
+          data: { value: null },
+          isLoading: { value: false },
+          error: { value: null },
+          refetch: vi.fn(),
+        } as any
+      })
+
+      api.useQuery(OperationId.listPets, {
+        enabled: true,
+        errorHandler: errorHandlerMock,
+      })
+
+      // Call the captured queryFn - should not throw when errorHandler is present
+      expect(capturedQueryFn).toBeDefined()
+      await expect(capturedQueryFn!()).resolves.toBeUndefined()
+
+      // Verify errorHandler was called with the error
+      expect(errorHandlerMock).toHaveBeenCalledTimes(1)
+      expect(errorHandlerMock).toHaveBeenCalledWith(testError)
+    })
+
+    it('should throw error when errorHandler can rethrow if desired', async () => {
+      const errorHandlerMock = vi.fn().mockImplementation((error) => {
+        // ErrorHandler can choose to rethrow
+        throw error
+      })
       const testError = new Error('Network error')
 
       axiosMock.mockRejectedValue(testError)
@@ -196,14 +231,14 @@ describe('Error Handler', () => {
 
       api.useQuery(OperationId.listPets, {
         enabled: true,
-        // No errorHandler provided
+        // No errorHandler provided - should still throw error
       })
 
       expect(capturedQueryFn).toBeDefined()
       await expect(capturedQueryFn!()).rejects.toThrow('Network error')
     })
 
-    it('should support async errorHandler', async () => {
+    it('should support async errorHandler and not throw when handled', async () => {
       const errorHandlerMock = vi.fn().mockResolvedValue(undefined)
       const testError = new Error('Network error')
 
@@ -227,7 +262,7 @@ describe('Error Handler', () => {
       })
 
       expect(capturedQueryFn).toBeDefined()
-      await expect(capturedQueryFn!()).rejects.toThrow('Network error')
+      await expect(capturedQueryFn!()).resolves.toBeUndefined()
 
       // Verify async errorHandler was called
       expect(errorHandlerMock).toHaveBeenCalledTimes(1)
@@ -236,7 +271,7 @@ describe('Error Handler', () => {
   })
 
   describe('Mutation errorHandler', () => {
-    it('should call custom errorHandler when mutation fails', async () => {
+    it('should call custom errorHandler when mutation fails and not throw when handled', async () => {
       const errorHandlerMock = vi.fn()
       const testError = new Error('Mutation failed')
 
@@ -263,15 +298,52 @@ describe('Error Handler', () => {
         capturedMutationFn!({
           data: { name: 'Test Pet', status: 'available' },
         }),
-      ).rejects.toThrow('Mutation failed')
+      ).resolves.toBeUndefined()
 
       // Verify errorHandler was called with the error
       expect(errorHandlerMock).toHaveBeenCalledTimes(1)
       expect(errorHandlerMock).toHaveBeenCalledWith(testError)
     })
 
-    it('should still throw error after calling errorHandler', async () => {
+    it('should not throw error when errorHandler is present and handles the error', async () => {
       const errorHandlerMock = vi.fn()
+      const testError = new Error('Mutation failed')
+
+      axiosMock.mockRejectedValue(testError)
+
+      let capturedMutationFn: ((vars: any) => Promise<any>) | undefined
+
+      useMutationMock.mockImplementation((options) => {
+        capturedMutationFn = options.mutationFn as (vars: any) => Promise<any>
+        return {
+          data: { value: null },
+          isLoading: { value: false },
+          error: { value: null },
+          mutateAsync: vi.fn(),
+        } as any
+      })
+
+      api.useMutation(OperationId.createPet, {
+        errorHandler: errorHandlerMock,
+      })
+
+      expect(capturedMutationFn).toBeDefined()
+      await expect(
+        capturedMutationFn!({
+          data: { name: 'Test Pet', status: 'available' },
+        }),
+      ).resolves.toBeUndefined()
+
+      // Verify errorHandler was called with the error
+      expect(errorHandlerMock).toHaveBeenCalledTimes(1)
+      expect(errorHandlerMock).toHaveBeenCalledWith(testError)
+    })
+
+    it('should throw error when errorHandler can rethrow if desired', async () => {
+      const errorHandlerMock = vi.fn().mockImplementation((error) => {
+        // ErrorHandler can choose to rethrow
+        throw error
+      })
       const testError = new Error('Mutation failed')
 
       axiosMock.mockRejectedValue(testError)
@@ -351,7 +423,7 @@ describe('Error Handler', () => {
       })
 
       api.useMutation(OperationId.createPet, {
-        // No errorHandler provided
+        // No errorHandler provided - should still throw error
       })
 
       expect(capturedMutationFn).toBeDefined()
@@ -362,7 +434,7 @@ describe('Error Handler', () => {
       ).rejects.toThrow('Mutation failed')
     })
 
-    it('should support async errorHandler', async () => {
+    it('should support async errorHandler and not throw when handled', async () => {
       const errorHandlerMock = vi.fn().mockResolvedValue(undefined)
       const testError = new Error('Mutation failed')
 
@@ -389,7 +461,7 @@ describe('Error Handler', () => {
         capturedMutationFn!({
           data: { name: 'Test Pet', status: 'available' },
         }),
-      ).rejects.toThrow('Mutation failed')
+      ).resolves.toBeUndefined()
 
       // Verify async errorHandler was called
       expect(errorHandlerMock).toHaveBeenCalledTimes(1)

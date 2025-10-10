@@ -55,7 +55,7 @@ export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Om
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
   axiosOptions?: AxiosRequestConfig
-  errorHandler?: (error: Error) => void | Promise<void>
+  errorHandler?: (error: Error) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
 type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
@@ -78,7 +78,7 @@ export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> =
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
-    errorHandler?: (error: Error) => void | Promise<void>
+    errorHandler?: (error: Error) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {

@@ -85,9 +85,17 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
           return response.data
         } catch (error) {
           if (errorHandler) {
-            await errorHandler(error as Error)
+            const result = await errorHandler(error as Error)
+            if (result !== undefined) {
+              return result
+            }
+            // If errorHandler returns undefined and doesn't throw, 
+            // we consider this a "recovered" state and return undefined
+            // TanStack Query will handle this as a successful query with no data
+            return undefined as GetResponseData<Ops, Op>
+          } else {
+            throw error
           }
-          throw error
         }
       },
       enabled: isEnabled,

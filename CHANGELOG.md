@@ -13,12 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom error handler function can now be provided to `api.useQuery()` and `api.useMutation()` calls
 - Error handlers are called with the error object when axios calls fail, allowing custom error processing
 - Error handlers support both synchronous and asynchronous functions
-- Original error is still thrown after the custom error handler is executed, maintaining existing error propagation behavior
+- Error handlers can optionally return a value to recover from errors, or throw/rethrow to propagate errors
 
 ### Changed
 
 - Enhanced query and mutation functions to include try-catch blocks for error handling
-- Both `queryFn` and `mutationFn` now support optional custom error handling before rethrowing errors
+- Both `queryFn` and `mutationFn` now support optional custom error handling
+- **BREAKING**: When an `errorHandler` is provided, it is responsible for deciding whether to rethrow errors or not
+- If `errorHandler` doesn't throw and returns `undefined`, the operation is considered "recovered" and succeeds with undefined data
+- If `errorHandler` returns a value, that value is used as the operation result
+- Without an `errorHandler`, the original error throwing behavior is preserved
 
 ## [0.3.1] - 2024-10-10
 
