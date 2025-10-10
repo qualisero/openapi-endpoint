@@ -21,7 +21,7 @@ jobs:
         with:
           script: |
             const copilotAgentId = process.env.COPILOT_AGENT_ID;
-            
+
             const issueBody = `## Version and Changelog Update Required
 
             A pull request has been merged to main. Please update the package version and changelog according to the following guidelines:
