@@ -148,7 +148,7 @@ describe('Type Inference for useEndpoint', () => {
 
     it('should work with options objects', () => {
       // Mutation with options
-      const createEndpoint = api.useEndpoint(OperationId.createPet, undefined, {
+      const createEndpoint = api.useEndpoint(OperationId.createPet, {
         onSuccess: () => {},
       })
       expect(createEndpoint).toHaveProperty('mutateAsync')

@@ -21,7 +21,7 @@ describe('TanStack Query Options Integration', () => {
 
   describe('Query-specific TanStack options', () => {
     it('should support staleTime configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         staleTime: 10000, // 10 seconds
       })
 
@@ -32,7 +32,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support retry configuration', () => {
       const customRetry = vi.fn(() => false)
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         retry: customRetry,
       })
 
@@ -42,7 +42,7 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support refetchOnWindowFocus configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         refetchOnWindowFocus: false,
       })
 
@@ -53,7 +53,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support select data transformation', () => {
       const selectFn = vi.fn((data) => data)
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         select: selectFn,
       })
 
@@ -63,7 +63,7 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support initialData configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         initialData: undefined,
       })
 
@@ -73,7 +73,7 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support placeholderData configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         placeholderData: undefined,
       })
 
@@ -86,7 +86,7 @@ describe('TanStack Query Options Integration', () => {
   describe('Mutation-specific TanStack options', () => {
     it('should support retry configuration for mutations', () => {
       const customRetry = vi.fn(() => false)
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         retry: customRetry,
       })
 
@@ -97,7 +97,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support onSuccess callback', () => {
       const onSuccess = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         onSuccess,
       })
 
@@ -108,7 +108,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support onError callback', () => {
       const onError = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         onError,
       })
 
@@ -119,7 +119,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support onSettled callback', () => {
       const onSettled = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         onSettled,
       })
 
@@ -130,7 +130,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support meta data configuration', () => {
       const meta = { description: 'Creating a new pet' }
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         meta,
       })
 
@@ -142,7 +142,7 @@ describe('TanStack Query Options Integration', () => {
 
   describe('Cache invalidation options', () => {
     it('should support invalidateOperations configuration', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         invalidateOperations: [OperationId.listPets],
       })
 
@@ -169,7 +169,7 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support dontInvalidate flag', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         dontInvalidate: true,
       })
 
@@ -179,7 +179,7 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support dontUpdateCache flag', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         dontUpdateCache: true,
       })
 
@@ -192,7 +192,7 @@ describe('TanStack Query Options Integration', () => {
   describe('Error handler functionality', () => {
     it('should support custom error handler in queries', () => {
       const errorHandler = vi.fn()
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         errorHandler,
       })
 
@@ -203,7 +203,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support custom error handler in mutations', () => {
       const errorHandler = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         errorHandler,
       })
 
@@ -214,7 +214,7 @@ describe('TanStack Query Options Integration', () => {
 
     it('should support async error handler', () => {
       const errorHandler = vi.fn().mockResolvedValue(undefined)
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         errorHandler,
       })
 
@@ -227,7 +227,7 @@ describe('TanStack Query Options Integration', () => {
   describe('onLoad callback functionality', () => {
     it('should support onLoad callback for immediate data access', () => {
       const onLoad = vi.fn()
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         onLoad,
       })
 
@@ -254,7 +254,7 @@ describe('TanStack Query Options Integration', () => {
 
   describe('Enabled state control', () => {
     it('should support boolean enabled state', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         enabled: false,
       })
 
@@ -266,7 +266,7 @@ describe('TanStack Query Options Integration', () => {
     it('should support reactive enabled state', () => {
       // In a real scenario, this would be a ref or computed
       const enabled = true
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         enabled,
       })
 

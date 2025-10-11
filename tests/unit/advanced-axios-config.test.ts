@@ -22,7 +22,7 @@ describe('Advanced Axios Configuration', () => {
   describe('Request transformation', () => {
     it('should support custom transformRequest', () => {
       const transformRequest = vi.fn((data) => JSON.stringify(data))
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           transformRequest,
         },
@@ -35,7 +35,7 @@ describe('Advanced Axios Configuration', () => {
 
     it('should support custom transformResponse', () => {
       const transformResponse = vi.fn((data) => JSON.parse(data))
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           transformResponse,
         },
@@ -49,7 +49,7 @@ describe('Advanced Axios Configuration', () => {
 
   describe('Timeout configurations', () => {
     it('should support global timeout configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           timeout: 30000, // 30 seconds
         },
@@ -61,7 +61,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support different timeout for mutations', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           timeout: 60000, // 1 minute for potentially slower operations
         },
@@ -73,7 +73,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support timeoutErrorMessage', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           timeout: 5000,
           timeoutErrorMessage: 'Request timed out after 5 seconds',
@@ -89,7 +89,7 @@ describe('Advanced Axios Configuration', () => {
   describe('Response handling', () => {
     it('should support custom validateStatus function', () => {
       const validateStatus = vi.fn((status: number) => status >= 200 && status < 300)
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           validateStatus,
         },
@@ -101,7 +101,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support maxContentLength configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           maxContentLength: 2000,
         },
@@ -113,7 +113,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support maxBodyLength for mutations', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           maxBodyLength: 1000,
         },
@@ -125,7 +125,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support responseType configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           responseType: 'json',
         },
@@ -137,7 +137,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support responseEncoding configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           responseEncoding: 'utf8',
         },
@@ -151,7 +151,7 @@ describe('Advanced Axios Configuration', () => {
 
   describe('Proxy and networking', () => {
     it('should support proxy configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           proxy: {
             protocol: 'http',
@@ -167,7 +167,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support maxRedirects configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           maxRedirects: 3,
         },
@@ -179,7 +179,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support decompress configuration', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           decompress: true,
         },
@@ -193,7 +193,7 @@ describe('Advanced Axios Configuration', () => {
 
   describe('Authentication and security', () => {
     it('should support withCredentials for CORS', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           withCredentials: true,
         },
@@ -205,7 +205,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support custom auth configuration', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           auth: {
             username: 'user',
@@ -225,7 +225,7 @@ describe('Advanced Axios Configuration', () => {
         'X-API-Key': 'secret-api-key',
       }
 
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           headers: authHeaders,
         },
@@ -240,7 +240,7 @@ describe('Advanced Axios Configuration', () => {
   describe('Request metadata and tracking', () => {
     it('should support custom signal for request cancellation', () => {
       const controller = new AbortController()
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           signal: controller.signal,
         },
@@ -255,7 +255,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support custom metadata', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           // Note: metadata is not a standard axios property, but can be added for custom tracking
           headers: {
@@ -274,7 +274,7 @@ describe('Advanced Axios Configuration', () => {
   describe('Data handling', () => {
     it('should support custom paramsSerializer', () => {
       const paramsSerializer = vi.fn((params) => new URLSearchParams(params).toString())
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           paramsSerializer,
         },
@@ -290,7 +290,7 @@ describe('Advanced Axios Configuration', () => {
         console.log('Upload progress:', progressEvent)
       })
 
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           onUploadProgress,
         },
@@ -306,7 +306,7 @@ describe('Advanced Axios Configuration', () => {
         console.log('Download progress:', progressEvent)
       })
 
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           onDownloadProgress,
         },
@@ -320,7 +320,7 @@ describe('Advanced Axios Configuration', () => {
 
   describe('Environment-specific configurations', () => {
     it('should support Node.js specific options', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           // Node.js specific options
           maxRedirects: 5,
@@ -334,7 +334,7 @@ describe('Advanced Axios Configuration', () => {
     })
 
     it('should support browser specific options', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           // Browser specific options
           withCredentials: true,
@@ -354,7 +354,7 @@ describe('Advanced Axios Configuration', () => {
       const onSuccess = vi.fn()
       const customHeaders = { 'X-Custom': 'value' }
 
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         // TanStack Query options
         onSuccess,
         retry: 3,
