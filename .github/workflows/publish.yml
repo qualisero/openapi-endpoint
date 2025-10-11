@@ -19,17 +19,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      
+
       - name: Check if version changed
         id: version-check
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT_VERSION"
-          
+
           PREVIOUS_VERSION=$(git show HEAD~1:package.json 2>/dev/null | \
             node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || echo "")
           echo "Previous version: $PREVIOUS_VERSION"
-          
+
           if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
             echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
             echo "should-publish=true" >> $GITHUB_OUTPUT
@@ -37,19 +37,19 @@ jobs:
             echo "Version unchanged ($CURRENT_VERSION)"
             echo "should-publish=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - uses: actions/setup-node@v4
         if: steps.version-check.outputs.should-publish == 'true'
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-      
+
       - run: npm ci
         if: steps.version-check.outputs.should-publish == 'true'
-      
+
       - run: npm run build
         if: steps.version-check.outputs.should-publish == 'true'
-      
+
       - run: npm publish --provenance --access public
         if: steps.version-check.outputs.should-publish == 'true'
         env:
