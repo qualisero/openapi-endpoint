@@ -112,16 +112,16 @@ await createEndpoint.mutateAsync({ data: { name: 'Fluffy' } }) // Mutation execu
 
 ### Automatic Cache Management and Refetching
 
-By default, mutations automatically invalidate related query caches and can trigger refetches of specific endpoints:
+By default, mutations automatically:
+
+1. Update cache for matching queries with returned data
+2. Invalidate them to trigger a reload
+3. Invalidate matching list endpoints
 
 ```typescript
-// Default behavior: automatic cache invalidation
-const createPet = api.useMutation(OperationId.createPet, {
-  onSuccess: () => {
-    // Automatically invalidates the list pets cache
-    // No manual work needed!
-  },
-})
+// Default behavior: automatic cache management
+const createPet = api.useMutation(OperationId.createPet)
+// No additional configuration needed - cache management is automatic
 
 // Manual control over cache invalidation
 const updatePet = api.useMutation(OperationId.updatePet, {
@@ -137,45 +137,47 @@ const createPetWithRefetch = api.useMutation(OperationId.createPet, {
 })
 ```
 
-### Manual Refetching of Operations
-
-You can manually trigger refetches of queries and invalidate caches:
-
-```typescript
-// Get query instances
-const petListQuery = api.useQuery(OperationId.listPets)
-const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
-
-// Manual refetch
-await petListQuery.refetch()
-
-// Refetch multiple endpoints
-await Promise.all([petListQuery.refetch(), petQuery.refetch()])
-
-// Use in mutation to refetch specific related data
-const deletePet = api.useMutation(OperationId.deletePet, {
-  onSuccess: async () => {
-    // Refetch the list after deletion
-    await petListQuery.refetch()
-  },
-})
-
-// Or pass as mutation variable for per-execution control
-await createPet.mutateAsync({
-  data: { name: 'New Pet' },
-  refetchEndpoints: [petListQuery], // Refetch only for this specific mutation
-})
-```
-
 ### Reactive Enabling/Disabling Based on Path Parameters
 
-Queries can be reactively enabled or disabled based on whether their path parameters are resolved:
+One powerful feature is chaining queries where one query provides the parameters for another:
 
 ```typescript
 import { ref, computed } from 'vue'
 
-// Reactive path parameters
-const selectedPetId = ref<string | null>(null)
+// First query to get user information
+const selectedUserId = ref<string>('user1')
+const userQuery = api.useQuery(OperationId.getUser, { userId: selectedUserId.value })
+
+// Second query that depends on the first query's result
+const userPetsQuery = api.useQuery(
+  OperationId.listUserPets,
+  computed(() => ({
+    userId: userQuery.data.value?.id, // Chain: use ID from first query
+  })),
+  {
+    enabled: computed(() => Boolean(userQuery.data.value?.id)), // Only run when first query has data
+  },
+)
+
+// Reactive parameter example
+const selectedPetId = ref<string | undefined>(undefined)
+
+// Query automatically enables/disables based on parameter availability
+const petQuery = api.useQuery(
+  OperationId.getPet,
+  computed(() => ({ petId: selectedPetId.value })),
+  {
+    // Optional: add additional enabling logic
+    enabled: computed(() => Boolean(selectedPetId.value)),
+  },
+)
+
+// Query is automatically disabled when petId is null/undefined
+console.log(petQuery.isEnabled.value) // false when selectedPetId.value is null
+
+// Enable the query by setting the parameter
+selectedPetId.value = '123'
+console.log(petQuery.isEnabled.value) // true when selectedPetId.value is set
 
 // Query automatically enables/disables based on parameter availability
 const petQuery = api.useQuery(
@@ -209,46 +211,6 @@ const userPetsQuery = api.useQuery(
     ),
   },
 )
-```
-
-### Error Handling and Custom Axios Configuration
-
-Each operation supports custom axios configuration and error handling:
-
-```typescript
-// Custom axios options per operation
-const secureQuery = api.useQuery(OperationId.listPets, {
-  axiosOptions: {
-    headers: {
-      Authorization: 'Bearer token',
-      'X-Custom-Header': 'value',
-    },
-    timeout: 10000,
-  },
-})
-
-// Custom error handling
-const queryWithErrorHandler = api.useQuery(
-  OperationId.getPet,
-  { petId: '123' },
-  {
-    errorHandler: (error) => {
-      console.error('Custom error handling:', error)
-      // Return fallback data or re-throw
-      return { id: '123', name: 'Fallback Pet' }
-    },
-  },
-)
-
-// Mutation with custom configuration
-const createPetWithConfig = api.useMutation(OperationId.createPet, {
-  axiosOptions: {
-    headers: { 'Content-Type': 'application/json' },
-  },
-  onError: (error) => {
-    console.error('Mutation failed:', error)
-  },
-})
 ```
 
 ## API Documentation

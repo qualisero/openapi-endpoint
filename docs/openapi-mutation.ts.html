@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JSDoc: Source: openapi-mutation.ts</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css" />
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css" />
+  </head>
+
+  <body>
+    <div id="main">
+      <h1 class="page-title">Source: openapi-mutation.ts</h1>
+
+      <section>
+        <article>
+          <pre
+            class="prettyprint source linenums"
+          ><code>import { computed, ref, toValue, type ComputedRef, type Ref, type MaybeRefOrGetter } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+
+import {
+  type GetPathParameters,
+  type QMutationVars,
+  type GetResponseData,
+  type QMutationOptions,
+  HttpMethod,
+  Operations,
+  GetRequestBody,
+} from './types'
+import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
+import { type OpenApiHelpers } from './openapi-helpers'
+import { isAxiosError } from 'axios'
+
+export type EndpointMutationReturn&lt;Ops extends Operations&lt;Ops>, Op extends keyof Ops> = ReturnType&lt;
+  typeof useEndpointMutation&lt;Ops, Op>
+>
+
+/**
+ * Composable for performing a strictly typed OpenAPI mutation operation using Vue Query.
+ * Ensures the operation is a mutation (POST/PUT/PATCH/DELETE) at runtime.
+ * Returns a reactive mutation object, including helpers for query key and enabled state.
+ *
+ * NOTE: By default, the mutation will automatically update cache with returned data and reload
+ * any matching GET queries for the same path.
+ *
+ * @template T OperationId type representing the OpenAPI operation.
+ * @param operationId The OpenAPI operation ID to mutate.
+ * @param pathParams Optional path parameters for the endpoint, can be reactive.
+ * @param options Optional mutation options, including Vue Query options and custom axios options:
+ *   - 'dontUpdateCache': If true, will not update cache with returned data (default: false)
+ *   - 'dontInvalidate': If true, will not invalidate matching GET queries (default: false)
+ *  - 'invalidateOperations': List of additional OperationIds to invalidate after mutation (can also be a map of OperationId to path parameters)
+ * - 'refetchEndpoints': List of additional EndpointQueryReturn objects to refetch after mutation
+ *   - `axiosOptions`: Custom axios request options (e.g., headers, params)
+ *   - All properties from {@link UseMutationOptions} (from @tanstack/vue-query)
+ * @throws Error if the operation is not a mutation operation.
+ * @returns Mutation object with
+ *   - `data`: ComputedRef of response data.
+ *   - `isEnabled`: ComputedRef indicating if mutation can be executed (path resolved).
+ *   - `extraPathParams`: Ref to set of additional path parameters when calling mutate.
+ *   - `mutate` and `mutateAsync`: Functions to trigger the mutation, taking an object with:
+ *     - `data`: The request body data for the mutation.
+ *     - `pathParams`: Optional additional path parameters for the mutation.
+ *    - `dontUpdateCache`, `dontInvalidate`, `invalidateOperations`, `refetchEndpoints`: Same as options, but can be set per-mutation.
+ *   - All other properties and methods from the underlying Vue Query mutation object.
+ */
+export function useEndpointMutation&lt;Ops extends Operations&lt;Ops>, Op extends keyof Ops>(
+  operationId: Op,
+  h: OpenApiHelpers&lt;Ops, Op>, // helpers
+  pathParamsOrOptions?: MaybeRefOrGetter&lt;GetPathParameters&lt;Ops, Op> | null | undefined> | QMutationOptions&lt;Ops, Op>,
+  optionsOrNull?: QMutationOptions&lt;Ops, Op>,
+) {
+  // Runtime check to ensure this is actually a mutation operation
+  if (!h.isMutationOperation(operationId)) {
+    throw new Error(`Operation ${String(operationId)} is not a mutation operation (POST/PUT/PATCH/DELETE)`)
+  }
+
+  const { path, method } = h.getOperationInfo(operationId)
+  const { pathParams, options } = getParamsOptionsFrom&lt;Ops, Op, QMutationOptions&lt;Ops, Op>>(
+    path,
+    pathParamsOrOptions,
+    optionsOrNull,
+  )
+  const {
+    axiosOptions,
+    dontInvalidate,
+    dontUpdateCache,
+    invalidateOperations,
+    refetchEndpoints,
+    errorHandler,
+    ...useMutationOptions
+  } = options
+  const extraPathParams = ref({}) as Ref&lt;GetPathParameters&lt;Ops, Op>>
+
+  // Compute the resolved path
+  const allPathParams = computed(() => ({
+    ...toValue(pathParams),
+    ...extraPathParams.value,
+  }))
+  const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
+  const queryKey = computed(() => generateQueryKey(resolvedPath.value))
+
+  const mutation = useMutation(
+    {
+      mutationFn: async (
+        vars: GetRequestBody&lt;Ops, Op> extends never ? QMutationVars&lt;Ops, Op> | void : QMutationVars&lt;Ops, Op>,
+      ) => {
+        const { data, pathParams: pathParamsFromMutate } = vars as QMutationVars&lt;Ops, Op> &amp; { data?: unknown }
+        extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters&lt;Ops, Op>)
+
+        // TODO: use typing to ensure all required path params are provided
+        if (!isPathResolved(resolvedPath.value)) {
+          return Promise.reject(
+            new Error(
+              `Mutation for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(allPathParams.value)})`,
+            ),
+          )
+        }
+        // Cancel any ongoing queries for this path (prevent race conditions with refresh)
+        await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
+
+        try {
+          const response = await h.axios({
+            method: method.toLowerCase(),
+            url: resolvedPath.value,
+            ...(data !== undefined &amp;&amp; { data }),
+            ...axiosOptions,
+          })
+          return response.data
+        } catch (error: unknown) {
+          if (errorHandler &amp;&amp; isAxiosError(error)) {
+            const result = await errorHandler(error)
+            if (result !== undefined) {
+              return result
+            }
+            // If errorHandler returns undefined and doesn't throw,
+            // we consider this a "recovered" state and return undefined
+            // TanStack Query will handle this as a successful mutation with no data
+            return undefined as GetResponseData&lt;Ops, Op>
+          } else {
+            throw error
+          }
+        }
+      },
+      onSuccess: async (data, vars, _context) => {
+        const {
+          dontInvalidate: dontInvalidateMutate,
+          dontUpdateCache: dontUpdateCacheMutate,
+          invalidateOperations: invalidateOperationsMutate,
+          refetchEndpoints: refetchEndpointsMutate,
+        } = vars || {}
+
+        // update cache with returned data for PUT/PATCH requests
+        if (
+          // dontUpdateCacheMutate supersedes dontUpdateCache from options
+          (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) &amp;&amp;
+          data &amp;&amp;
+          [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
+        ) {
+          await h.queryClient.setQueryData(queryKey.value, data)
+        }
+
+        // Invalidate queries for this path, and any additional specified operations
+        if (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) {
+          // Invalidate all queries for this path (exact for POST, prefix for others):
+          await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
+
+          const listPath = h.getListOperationPath(operationId)
+          if (listPath) {
+            const listResolvedPath = resolvePath(listPath, pathParams)
+            if (isPathResolved(listResolvedPath)) {
+              const listQueryKey = generateQueryKey(listResolvedPath)
+              await h.queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
+            }
+          }
+        }
+
+        const operationsWithPathParams: [Op, GetPathParameters&lt;Ops, Op>][] = []
+        Array.from([invalidateOperations, invalidateOperationsMutate]).forEach((ops) => {
+          operationsWithPathParams.push(
+            ...((typeof ops === 'object' &amp;&amp; !Array.isArray(ops)
+              ? Object.entries(ops)
+              : ops?.map((opId) => [opId, {}]) || []) as [Op, GetPathParameters&lt;Ops, Op>][]),
+          )
+        })
+
+        if (operationsWithPathParams.length > 0) {
+          const promises = operationsWithPathParams.map(([opId, opParams]) => {
+            const opInfo = h.getOperationInfo(opId)
+            const opPath = resolvePath(opInfo.path, {
+              ...allPathParams.value,
+              ...opParams,
+            })
+            if (isPathResolved(opPath)) {
+              const opQueryKey = generateQueryKey(opPath)
+              return h.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
+            } else {
+              console.warn(
+                `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,
+              )
+              return Promise.reject()
+            }
+          })
+          await Promise.all(promises)
+        }
+
+        if (refetchEndpoints &amp;&amp; refetchEndpoints.length > 0) {
+          await Promise.all(refetchEndpoints.map((endpoint) => endpoint.refetch()))
+        }
+        if (refetchEndpointsMutate &amp;&amp; refetchEndpointsMutate.length > 0) {
+          await Promise.all(refetchEndpointsMutate.map((endpoint) => endpoint.refetch()))
+        }
+      },
+      onSettled: () => {
+        extraPathParams.value = {} as GetPathParameters&lt;Ops, Op>
+      },
+      ...useMutationOptions,
+    },
+    h.queryClient,
+  )
+
+  return {
+    ...mutation,
+    data: mutation.data as ComputedRef&lt;GetResponseData&lt;Ops, Op> | undefined>,
+    isEnabled: computed(() => isPathResolved(resolvedPath.value)),
+    extraPathParams,
+  }
+}
+</code></pre>
+        </article>
+      </section>
+    </div>
+
+    <nav>
+      <h2><a href="index.html">Home</a></h2>
+      <h3>Global</h3>
+      <ul>
+        <li><a href="global.html#_debugIsQueryOperation">_debugIsQueryOperation</a></li>
+        <li><a href="global.html#queryClient">queryClient</a></li>
+        <li><a href="global.html#useEndpoint">useEndpoint</a></li>
+        <li><a href="global.html#useEndpointMutation">useEndpointMutation</a></li>
+        <li><a href="global.html#useEndpointQuery">useEndpointQuery</a></li>
+        <li><a href="global.html#useMutation">useMutation</a></li>
+        <li><a href="global.html#useOpenApi">useOpenApi</a></li>
+        <li><a href="global.html#useQuery">useQuery</a></li>
+      </ul>
+    </nav>
+
+    <br class="clear" />
+
+    <footer>
+      Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sat Oct 11 2025 22:44:45
+      GMT+0000 (Coordinated Universal Time)
+    </footer>
+
+    <script>
+      prettyPrint()
+    </script>
+    <script src="scripts/linenumber.js"></script>
+  </body>
+</html>

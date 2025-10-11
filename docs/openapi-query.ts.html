@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JSDoc: Source: openapi-query.ts</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css" />
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css" />
+  </head>
+
+  <body>
+    <div id="main">
+      <h1 class="page-title">Source: openapi-query.ts</h1>
+
+      <section>
+        <article>
+          <pre
+            class="prettyprint source linenums"
+          ><code>import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { Operations, type GetPathParameters, type GetResponseData, type QQueryOptions } from './types'
+import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
+import { isAxiosError } from 'axios'
+import { type OpenApiHelpers } from './openapi-helpers'
+
+export type EndpointQueryReturn&lt;Ops extends Operations&lt;Ops>, Op extends keyof Ops> = ReturnType&lt;
+  typeof useEndpointQuery&lt;Ops, Op>
+> &amp; {
+  onLoad: (callback: (data: GetResponseData&lt;Ops, Op>) => void) => void
+}
+
+/**
+ * Composable for performing a strictly typed OpenAPI query operation using Vue Query.
+ * Ensures the operation is a query (GET/HEAD/OPTIONS) at runtime.
+ * Returns a reactive query object, including helpers for query key, enabled state, and an `onLoad` callback.
+ *
+ * @template T OperationId type representing the OpenAPI operation.
+ * @param operationId The OpenAPI operation ID to query.
+ * @param pathParams Optional path parameters for the endpoint, can be reactive.
+ * @param options Optional query options, including:
+ *   - All properties from {@link UseQueryOptions} (from @tanstack/vue-query)
+ *   - `enabled`: Whether the query should automatically run (boolean or reactive).
+ *   - `onLoad`: Callback invoked once when data is loaded (immediately or after fetch).
+ *   - `axiosOptions`: Custom axios request options (e.g., headers, params).
+ * @throws Error if the operation is not a query operation.
+ * @returns Query object with strict typing and helpers:
+ *   - `data`: ComputedRef of response data.
+ *   - `isEnabled`: ComputedRef indicating if query is enabled.
+ *   - `queryKey`: ComputedRef of the query key.
+ *   - `onLoad`: Method to register a callback for when data is loaded.
+ */
+export function useEndpointQuery&lt;Ops extends Operations&lt;Ops>, Op extends keyof Ops>(
+  operationId: Op,
+  h: OpenApiHelpers&lt;Ops, Op>,
+  pathParamsOrOptions?: MaybeRefOrGetter&lt;GetPathParameters&lt;Ops, Op> | null | undefined> | QQueryOptions&lt;Ops, Op>,
+  optionsOrNull?: QQueryOptions&lt;Ops, Op>,
+) {
+  // Runtime check to ensure this is actually a query operation
+  if (!h.isQueryOperation(operationId)) {
+    throw new Error(`Operation ${String(operationId)} is not a query operation (GET/HEAD/OPTIONS)`)
+  }
+  const { path, method } = h.getOperationInfo(operationId)
+  const { pathParams, options } = getParamsOptionsFrom&lt;Ops, Op, QQueryOptions&lt;Ops, Op>>(
+    path,
+    pathParamsOrOptions,
+    optionsOrNull,
+  )
+  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
+
+  const resolvedPath = computed(() => resolvePath(path, pathParams))
+  const queryKey = computed(() => generateQueryKey(resolvedPath.value))
+
+  // Check if path is fully resolved for enabling the query
+  const isEnabled = computed(() => {
+    const baseEnabled = enabledInit !== undefined ? toValue(enabledInit) : true
+    return baseEnabled &amp;&amp; isPathResolved(resolvedPath.value)
+  })
+
+  const query = useQuery(
+    {
+      queryKey,
+      queryFn: async () => {
+        try {
+          const response = await h.axios({
+            method: method.toLowerCase(),
+            url: resolvedPath.value,
+            ...axiosOptions,
+          })
+          return response.data
+        } catch (error: unknown) {
+          if (errorHandler &amp;&amp; isAxiosError(error)) {
+            const result = await errorHandler(error)
+            if (result !== undefined) {
+              return result
+            }
+            // If errorHandler returns undefined and doesn't throw,
+            // we consider this a "recovered" state and return undefined
+            // TanStack Query will handle this as a successful query with no data
+            return undefined as GetResponseData&lt;Ops, Op>
+          } else {
+            throw error
+          }
+        }
+      },
+      enabled: isEnabled,
+      staleTime: 1000 * 60,
+      retry: (_failureCount: number, error: Error) => {
+        // Don't retry 4xx errors if error is AxiosError
+        if (isAxiosError(error) &amp;&amp; error.response &amp;&amp; error.response.status >= 400 &amp;&amp; error.response.status &lt; 500) {
+          return false
+        }
+        // Retry up to 3 times for other errors
+        return _failureCount &lt; 3
+      },
+      ...useQueryOptions,
+    },
+    h.queryClient,
+  )
+
+  // onLoad callback is called once, as soon as data is available (immediately or when loading finishes)
+  // Shared onLoad handler setup
+  const setupOnLoadHandler = (callback: (data: GetResponseData&lt;Ops, Op>) => void) => {
+    // If data is already available, call immediately
+    if (query.data.value !== undefined) {
+      callback(query.data.value)
+    } else {
+      // Watch for data to become available
+      let hasLoaded = false
+      const stopWatch = watch(query.data, (newData) => {
+        if (newData !== undefined &amp;&amp; !hasLoaded) {
+          hasLoaded = true
+          callback(newData)
+          stopWatch() // Stop watching after first load
+        }
+      })
+    }
+  }
+
+  // Handle onLoad callback from options
+  if (onLoadInit) {
+    setupOnLoadHandler(onLoadInit)
+  }
+
+  // Create onLoad method
+  const onLoad = (callback: (data: GetResponseData&lt;Ops, Op>) => void) => {
+    setupOnLoadHandler(callback)
+  }
+
+  return {
+    ...query,
+    data: query.data as ComputedRef&lt;GetResponseData&lt;Ops, Op> | undefined>,
+    isEnabled,
+    queryKey,
+    onLoad,
+  }
+}
+</code></pre>
+        </article>
+      </section>
+    </div>
+
+    <nav>
+      <h2><a href="index.html">Home</a></h2>
+      <h3>Global</h3>
+      <ul>
+        <li><a href="global.html#_debugIsQueryOperation">_debugIsQueryOperation</a></li>
+        <li><a href="global.html#queryClient">queryClient</a></li>
+        <li><a href="global.html#useEndpoint">useEndpoint</a></li>
+        <li><a href="global.html#useEndpointMutation">useEndpointMutation</a></li>
+        <li><a href="global.html#useEndpointQuery">useEndpointQuery</a></li>
+        <li><a href="global.html#useMutation">useMutation</a></li>
+        <li><a href="global.html#useOpenApi">useOpenApi</a></li>
+        <li><a href="global.html#useQuery">useQuery</a></li>
+      </ul>
+    </nav>
+
+    <br class="clear" />
+
+    <footer>
+      Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sat Oct 11 2025 22:44:45
+      GMT+0000 (Coordinated Universal Time)
+    </footer>
+
+    <script>
+      prettyPrint()
+    </script>
+    <script src="scripts/linenumber.js"></script>
+  </body>
+</html>

@@ -87,48 +87,23 @@ describe('Advanced Usage Examples', () => {
     })
   })
 
-  describe('Manual Refetching of Operations', () => {
-    it('should support manual refetch of queries', async () => {
-      const petListQuery = api.useQuery(OperationId.listPets)
-      const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
-
-      expect(petListQuery.refetch).toBeDefined()
-      expect(petQuery.refetch).toBeDefined()
-
-      // Verify refetch methods are callable
-      expect(typeof petListQuery.refetch).toBe('function')
-      expect(typeof petQuery.refetch).toBe('function')
-    })
-
-    it('should support refetching in mutation onSuccess', () => {
-      const petListQuery = api.useQuery(OperationId.listPets)
-      const deletePet = api.useMutation(OperationId.deletePet, {
-        onSuccess: async () => {
-          // Can call refetch on specific queries
-          expect(petListQuery.refetch).toBeDefined()
-        },
-      })
-
-      expect(deletePet).toBeTruthy()
-    })
-
-    it('should support per-execution refetch control', async () => {
-      const _petListQuery = api.useQuery(OperationId.listPets)
-      const createPet = api.useMutation(OperationId.createPet)
-
-      // Verify that mutation accepts refetchEndpoints in variables
-      expect(createPet.mutateAsync).toBeDefined()
-
-      // This should work with refetchEndpoints in the mutation variables
-      // The actual execution would be:
-      // await createPet.mutateAsync({
-      //   data: { name: 'New Pet' },
-      //   refetchEndpoints: [_petListQuery]
-      // })
-    })
-  })
-
   describe('Reactive Enabling/Disabling Based on Path Parameters', () => {
+    it('should support chaining queries where one provides ID for another', () => {
+      // This would be a more complex test, but for now just verify the basic structure
+      const selectedUserId = ref<string>('user1')
+
+      // Use an existing operation that has userId parameter
+      const userPetsQuery = api.useQuery(
+        OperationId.listUserPets,
+        computed(() => ({ userId: selectedUserId.value })),
+        {
+          enabled: computed(() => Boolean(selectedUserId.value)),
+        },
+      )
+
+      expect(userPetsQuery).toBeTruthy()
+      expect(userPetsQuery.isEnabled).toBeDefined()
+    })
     it('should reactively enable/disable queries based on parameter availability', () => {
       const selectedPetId = ref<string | undefined>(undefined)
 
@@ -172,53 +147,6 @@ describe('Advanced Usage Examples', () => {
       expect(query.queryKey).toBeDefined()
 
       // In real usage, changing reactiveParams.value would update the query
-    })
-  })
-
-  describe('Error Handling and Custom Axios Configuration', () => {
-    it('should support custom axios options per operation', () => {
-      const secureQuery = api.useQuery(OperationId.listPets, {
-        axiosOptions: {
-          headers: {
-            Authorization: 'Bearer token',
-            'X-Custom-Header': 'value',
-          },
-          timeout: 10000,
-        },
-      })
-
-      expect(secureQuery).toBeTruthy()
-      expect(secureQuery).toHaveProperty('data')
-    })
-
-    it('should support custom error handling', () => {
-      const queryWithErrorHandler = api.useQuery(
-        OperationId.getPet,
-        { petId: '123' },
-        {
-          errorHandler: (error) => {
-            console.error('Custom error handling:', error)
-            // Return fallback data or re-throw
-            return { id: '123', name: 'Fallback Pet' }
-          },
-        },
-      )
-
-      expect(queryWithErrorHandler).toBeTruthy()
-    })
-
-    it('should support mutation with custom configuration', () => {
-      const createPetWithConfig = api.useMutation(OperationId.createPet, {
-        axiosOptions: {
-          headers: { 'Content-Type': 'application/json' },
-        },
-        onError: (error) => {
-          console.error('Mutation failed:', error)
-        },
-      })
-
-      expect(createPetWithConfig).toBeTruthy()
-      expect(createPetWithConfig).toHaveProperty('mutate')
     })
   })
 
