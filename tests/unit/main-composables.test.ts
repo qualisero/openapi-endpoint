@@ -143,8 +143,18 @@ describe('useOpenApi', () => {
       expect(typeof deleteEndpoint.mutateAsync).toBe('function')
       expect(typeof standaloneMutation.mutateAsync).toBe('function')
 
+      // Call mutateAsync to ensure it works without vars (should not throw)
       expect(() => deleteEndpoint.mutateAsync()).not.toThrow()
       expect(() => standaloneMutation.mutateAsync()).not.toThrow()
+
+      // also test with other vars but no data
+      const testQuery = api.useQuery(OperationId.listPets)
+      expect(() =>
+        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: [OperationId.listPets] }),
+      ).not.toThrow()
+      expect(() =>
+        standaloneMutation.mutateAsync({ dontUpdateCache: true, refetchEndpoints: [testQuery] }),
+      ).not.toThrow()
 
       // Verify the objects have the expected mutation properties
       expect(deleteEndpoint).toHaveProperty('mutate')
