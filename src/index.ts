@@ -85,13 +85,13 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      * @example
      * ```typescript
      * // Query without path parameters
-     * const { data: pets, isLoading } = api.useQuery('listPets', {
+     * const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {
      *   enabled: true,
      *   onLoad: (data) => console.log('Loaded:', data)
      * })
      *
      * // Query with path parameters
-     * const { data: pet } = api.useQuery('getPet', { petId: '123' }, {
+     * const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' }, {
      *   enabled: computed(() => Boolean(petId.value))
      * })
      * ```
@@ -123,13 +123,13 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      * @example
      * ```typescript
      * // Mutation without path parameters
-     * const createPet = api.useMutation('createPet', {
+     * const createPet = api.useMutation(OperationId.createPet, {
      *   onSuccess: (data) => console.log('Created:', data),
      *   onError: (error) => console.error('Failed:', error)
      * })
      *
      * // Mutation with path parameters
-     * const updatePet = api.useMutation('updatePet', { petId: '123' }, {
+     * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' }, {
      *   onSuccess: async () => {
      *     // Automatically invalidates related queries
      *   }
@@ -166,10 +166,10 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      * @example
      * ```typescript
      * // Automatically becomes a query for GET operations
-     * const listEndpoint = api.useEndpoint('listPets')
+     * const listEndpoint = api.useEndpoint(OperationId.listPets)
      *
      * // Automatically becomes a mutation for POST operations
-     * const createEndpoint = api.useEndpoint('createPet')
+     * const createEndpoint = api.useEndpoint(OperationId.createPet)
      *
      * // TypeScript knows the correct return type based on the operation
      * const data = listEndpoint.data // Query data

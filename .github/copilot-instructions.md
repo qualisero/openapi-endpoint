@@ -209,9 +209,9 @@ const api = useOpenApi<OpenApiOperations>({
 })
 
 // Use the unified API methods
-const { data: pets, isLoading } = api.useQuery('listPets', {})
-const createPet = api.useMutation('createPet', {})
-const genericEndpoint = api.useEndpoint('getPet', { petId: '123' })
+const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
+const createPet = api.useMutation(OperationId.createPet)
+const genericEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
 ```
 
 #### Query Operations (GET/HEAD/OPTIONS)
@@ -219,7 +219,7 @@ const genericEndpoint = api.useEndpoint('getPet', { petId: '123' })
 ```typescript
 // Use for read-only operations with automatic type inference
 const userQuery = api.useQuery(
-  'getUser',
+  OperationId.getUser,
   { userId: '123' },
   {
     enabled: true,
@@ -238,7 +238,7 @@ const queryKey = userQuery.queryKey
 
 ```typescript
 // Use for data modifications with cache management
-const createUser = api.useMutation('createUser', {
+const createUser = api.useMutation(OperationId.createUser, {
   onSuccess: async (data, vars) => {
     // Automatic cache invalidation and updates
   },

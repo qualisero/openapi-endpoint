@@ -64,11 +64,11 @@ export { api, OperationId }
 import { api, OperationId } from './api/init'
 
 // Use queries for GET operations
-const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {})
+const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
 const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
 
 // Use mutations for POST/PUT/PATCH/DELETE operations
-const createPetMutation = api.useMutation(OperationId.createPet, {})
+const createPetMutation = api.useMutation(OperationId.createPet)
 
 // Execute mutations
 await createPetMutation.mutateAsync({
