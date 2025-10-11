@@ -133,10 +133,10 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           refetchEndpoints: refetchEndpointsMutate,
         } = vars || {}
 
-        // Optimistically update cache with returned data for PUT/PATCH requests
+        // update cache with returned data for PUT/PATCH requests
         if (
           // dontUpdateCacheMutate supersedes dontUpdateCache from options
-          (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) &&
+          (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) &&
           data &&
           [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
         ) {
@@ -144,7 +144,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         }
 
         // Invalidate queries for this path, and any additional specified operations
-        if (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) {
+        if (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) {
           // Invalidate all queries for this path (exact for POST, prefix for others):
           await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
 
