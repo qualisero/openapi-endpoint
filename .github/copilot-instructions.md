@@ -115,13 +115,17 @@ For EVERY code change, follow this exact sequence:
    npm run fix         # Auto-fix linting and format all files
    npm run test:run    # Verify all tests pass
    ```
-3. **Before committing, verify everything works:**
+3. **For documentation changes affecting JSDoc comments, also run:**
+   ```bash
+   npm run jsdoc       # Regenerate API documentation
+   ```
+4. **Before committing, verify everything works:**
    ```bash
    npm run check       # Comprehensive checks (types + lint + format)
    ```
-4. **Commit your changes**
+5. **Commit your changes**
 
-**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands.
+**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands. Documentation changes require JSDoc regeneration.
 
 ### Efficient Copilot Agent Setup
 

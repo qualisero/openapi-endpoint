@@ -20,7 +20,7 @@ export default [
 
   // Global ignores
   {
-    ignores: ['dist/**', 'node_modules/**', '*.tgz', '*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', '*.tgz', '*.d.ts', 'docs/**'],
   },
 
   // TypeScript and JavaScript files

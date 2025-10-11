@@ -9,3 +9,6 @@ coverage
 
 # Temporary files
 /tmp
+
+# Generated documentation
+docs
