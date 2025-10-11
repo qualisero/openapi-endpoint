@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-10-11
+
+### Added
+
+- Comprehensive test coverage for TanStack Query and Axios options with 176 total tests
+- TypeScript compilation error validation tests to ensure type safety at compile time
+- Advanced Axios configuration tests covering request/response transformation, timeout, proxy, authentication
+- TanStack Query-specific tests for retry behavior, cache invalidation, data transformation, and meta configuration
+- Error handler tests for both queries and mutations with async support
+
+### Changed
+
+- Improved code clarity by consolidating imports, extracting shared constants, and removing dead code
+- Streamlined type definitions with better organization and reduced complexity
+- Enhanced mutation parameter handling to support operations without request bodies
+
+### Fixed
+
+- DELETE operation support - mutations without request bodies now work correctly without requiring `data` parameter
+- Type safety for operations with optional request bodies - `data` parameter is now properly optional when not needed
+
 ## [0.4.0] - 2025-01-11
 
 ### Added
