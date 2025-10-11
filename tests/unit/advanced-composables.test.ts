@@ -6,7 +6,7 @@ import { getHelpers } from '@/openapi-helpers'
 import { GetPathParameters, OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/_openapi-typed-operations'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 const mockOperations: OpenApiOperations = openApiOperations
 

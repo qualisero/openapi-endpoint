@@ -3,7 +3,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/_openapi-typed-operations'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 describe('useOpenApi', () => {
   let mockConfig: OpenApiConfig<OpenApiOperations> = {
