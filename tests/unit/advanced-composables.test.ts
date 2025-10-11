@@ -3,7 +3,7 @@ import { useEndpointQuery } from '@/openapi-query'
 import { useEndpointMutation } from '@/openapi-mutation'
 import { useEndpoint } from '@/openapi-endpoint'
 import { getHelpers } from '@/openapi-helpers'
-import { GetPathParameters, OpenApiConfig } from '@/types'
+import { GetPathParameters } from '@/types'
 import { mockAxios } from '../setup'
 
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'

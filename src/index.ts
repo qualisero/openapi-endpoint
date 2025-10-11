@@ -1,16 +1,11 @@
-import type { MaybeRefOrGetter } from 'vue'
 import { QueryClient } from '@tanstack/vue-query'
 
 import { useEndpoint } from './openapi-endpoint'
-import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
-import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
+import { useEndpointQuery } from './openapi-query'
+import { useEndpointMutation } from './openapi-mutation'
 import {
   Operations,
-  GetPathParameters,
   OpenApiConfig,
-  QQueryOptions,
-  QMutationOptions,
-  IsQueryOperation,
   OperationInfo,
   OpenApiInstance,
 } from './types'
@@ -27,11 +22,10 @@ export const queryClient = new QueryClient({
 
 export function useOpenApi<
   OperationTypes extends Operations<OperationTypes>,
-  OpInfo extends Record<string, OperationInfo>,
->(config: OpenApiConfig<OpInfo>) {
+  OpInfo extends Record<string, OperationInfo> = Record<string, OperationInfo>,
+>(config: OpenApiConfig<OpInfo>): OpenApiInstance<OperationTypes & OpInfo> {
   // Internally combine the operation types with operation info
-  type CombinedOps = OperationTypes & OpInfo
-  const combinedOperations: CombinedOps = config.operations as CombinedOps
+  const combinedOperations = config.operations as OperationTypes & OpInfo
 
   // Create the internal config with combined operations for helper functions
   const internalConfig = {
@@ -41,50 +35,19 @@ export function useOpenApi<
   }
 
   return {
-    useQuery: function <Op extends keyof CombinedOps>(
-      operationId: IsQueryOperation<CombinedOps, Op> extends true ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
-        ? QQueryOptions<CombinedOps, Op>
-        : MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined> | QQueryOptions<CombinedOps, Op>,
-      optionsOrNull?: QQueryOptions<CombinedOps, Op>,
-    ): EndpointQueryReturn<CombinedOps, Op> {
-      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
-
-      return useEndpointQuery<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+    useQuery(operationId, pathParamsOrOptions?, optionsOrNull?) {
+      const helpers = getHelpers(internalConfig)
+      return useEndpointQuery(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useMutation: function <Op extends keyof CombinedOps>(
-      operationId: IsQueryOperation<CombinedOps, Op> extends false ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
-        ? QMutationOptions<CombinedOps, Op>
-        : MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined> | QMutationOptions<CombinedOps, Op>,
-      optionsOrNull?: QMutationOptions<CombinedOps, Op>,
-    ) {
-      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
-
-      return useEndpointMutation<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+    useMutation(operationId, pathParamsOrOptions?, optionsOrNull?) {
+      const helpers = getHelpers(internalConfig)
+      return useEndpointMutation(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useEndpoint: function <Op extends keyof CombinedOps>(
-      operationId: Op,
-      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
-        ? IsQueryOperation<CombinedOps, Op> extends true
-          ? QQueryOptions<CombinedOps, Op>
-          : QMutationOptions<CombinedOps, Op>
-        :
-            | MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined>
-            | (IsQueryOperation<CombinedOps, Op> extends true
-                ? QQueryOptions<CombinedOps, Op>
-                : QMutationOptions<CombinedOps, Op>),
-      optionsOrNull?: IsQueryOperation<CombinedOps, Op> extends true
-        ? QQueryOptions<CombinedOps, Op>
-        : QMutationOptions<CombinedOps, Op>,
-    ): IsQueryOperation<CombinedOps, Op> extends true
-      ? EndpointQueryReturn<CombinedOps, Op>
-      : EndpointMutationReturn<CombinedOps, Op> {
-      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
-
-      return useEndpoint<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+    useEndpoint(operationId, pathParamsOrOptions?, optionsOrNull?) {
+      const helpers = getHelpers(internalConfig)
+      return useEndpoint(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
   }
 }

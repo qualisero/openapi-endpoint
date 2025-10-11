@@ -14,10 +14,10 @@ describe('useOpenApi', () => {
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<operations, typeof OPERATION_INFO>
+  let api: OpenApiInstance<operations & typeof OPERATION_INFO>
 
   beforeEach(() => {
-    api = useOpenApi<operations, typeof OPERATION_INFO>(mockConfig)
+    api = useOpenApi<operations>(mockConfig)
   })
 
   it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
@@ -178,7 +178,7 @@ describe('useOpenApi', () => {
         queryClient: customQueryClient,
       }
 
-      api = useOpenApi<operations, typeof OPERATION_INFO>(configWithCustomClient)
+      api = useOpenApi<operations>(configWithCustomClient)
 
       // Create a query to ensure the custom client is being used
       const query = api.useQuery(OperationId.listPets)
@@ -196,7 +196,7 @@ describe('useOpenApi', () => {
         // No queryClient specified
       }
 
-      api = useOpenApi<operations, typeof OPERATION_INFO>(configWithoutCustomClient)
+      api = useOpenApi<operations>(configWithoutCustomClient)
 
       // Should still work with default queryClient
       const query = api.useQuery(OperationId.listPets)
@@ -210,7 +210,7 @@ describe('useOpenApi', () => {
       // Create an API instance and verify it matches the OpenApiInstance type
 
       // Type test: this should compile without errors
-      const typedApi: OpenApiInstance<operations, typeof OPERATION_INFO> = api
+      const typedApi: OpenApiInstance<operations & typeof OPERATION_INFO> = api
 
       // Verify the api instance has the expected methods
       expect(typedApi).toHaveProperty('useQuery')

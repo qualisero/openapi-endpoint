@@ -40,7 +40,7 @@ let interceptorResponseSpy: ReturnType<typeof vi.fn>
 describe('axiosOptions integration', () => {
   type CombinedOps = operations & typeof OPERATION_INFO
 
-  let api: ReturnType<typeof useOpenApi<CombinedOps, typeof OPERATION_INFO>>
+  let api: ReturnType<typeof useOpenApi<CombinedOps>>
   let queryClient: QueryClient
   let capturedConfig: AxiosRequestConfig | null = null
 
@@ -126,7 +126,7 @@ describe('axiosOptions integration', () => {
       queryClient,
     }
 
-    api = useOpenApi<CombinedOps, typeof OPERATION_INFO>(config)
+    api = useOpenApi<CombinedOps>(config)
   })
 
   afterEach(() => {

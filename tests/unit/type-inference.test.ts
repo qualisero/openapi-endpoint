@@ -20,10 +20,10 @@ describe('Type Inference for useEndpoint', () => {
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<operations, typeof OPERATION_INFO>
+  let api: OpenApiInstance<operations & typeof OPERATION_INFO>
 
   beforeEach(() => {
-    api = useOpenApi<operations, typeof OPERATION_INFO>(mockConfig)
+    api = useOpenApi<operations>(mockConfig)
   })
 
   describe('Mutation operation type inference', () => {
