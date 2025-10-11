@@ -145,8 +145,7 @@ One powerful feature is chaining queries where one query provides the parameters
 import { ref, computed } from 'vue'
 
 // First query to get user information
-const selectedUserId = ref<string>('user1')
-const userQuery = api.useQuery(OperationId.getUser, { userId: selectedUserId.value })
+const userQuery = api.useQuery(OperationId.getUser, { userId: 123 })
 
 // Second query that depends on the first query's result
 const userPetsQuery = api.useQuery(
@@ -154,9 +153,6 @@ const userPetsQuery = api.useQuery(
   computed(() => ({
     userId: userQuery.data.value?.id, // Chain: use ID from first query
   })),
-  {
-    enabled: computed(() => Boolean(userQuery.data.value?.id)), // Only run when first query has data
-  },
 )
 
 // Reactive parameter example
@@ -166,27 +162,6 @@ const selectedPetId = ref<string | undefined>(undefined)
 const petQuery = api.useQuery(
   OperationId.getPet,
   computed(() => ({ petId: selectedPetId.value })),
-  {
-    // Optional: add additional enabling logic
-    enabled: computed(() => Boolean(selectedPetId.value)),
-  },
-)
-
-// Query is automatically disabled when petId is null/undefined
-console.log(petQuery.isEnabled.value) // false when selectedPetId.value is null
-
-// Enable the query by setting the parameter
-selectedPetId.value = '123'
-console.log(petQuery.isEnabled.value) // true when selectedPetId.value is set
-
-// Query automatically enables/disables based on parameter availability
-const petQuery = api.useQuery(
-  OperationId.getPet,
-  computed(() => ({ petId: selectedPetId.value })),
-  {
-    // Optional: add additional enabling logic
-    enabled: computed(() => Boolean(selectedPetId.value)),
-  },
 )
 
 // Query is automatically disabled when petId is null/undefined
@@ -205,9 +180,7 @@ const userPetsQuery = api.useQuery(
   computed(() => ({ userId: userId.value })),
   {
     enabled: computed(
-      () =>
-        Boolean(userId.value) && // Path param must be present
-        shouldFetchPets.value, // Additional business logic
+      () => shouldFetchPets.value, // Additional business logic
     ),
   },
 )
