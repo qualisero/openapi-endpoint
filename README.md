@@ -7,6 +7,17 @@
 
 Type-safe OpenAPI integration for Vue Query (TanStack Query).
 
+## Overview
+
+Let's you get TanStack Vue Query composables that enforce consistency (name of endpoints, typing) with your API's `openapi.json` file:
+
+```typescript
+const { data, isLoading } = api.useQuery(OperationId.getPet, { petId: '123' })
+
+const createPetMutation = api.useMutation(OperationId.createPet)
+createPetMutation.mutate({data: { name: 'Fluffy', species: 'cat' }})
+```
+
 ## Installation
 
 ```bash
