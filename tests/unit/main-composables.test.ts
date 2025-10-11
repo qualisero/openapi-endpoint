@@ -17,6 +17,17 @@ describe('useOpenApi', () => {
     axios: mockAxios,
   }
 
+  // function createConfig<OperationInfoType, OperationTypes>(operationInfo: OperationInfoType) {
+  //   type OperationsWithInfo = OperationTypes & OperationInfoType
+  //   const operationsWithInfo = operationInfo as OperationsWithInfo
+  //   const config: OpenApiConfig<OperationsWithInfo> = {
+  //     operations: operationsWithInfo,
+  //     axios: mockAxios,
+  //   }
+  //   return config
+  // }
+  // let mockConfig = createConfig(OPERATION_INFO)
+
   let api: OpenApiInstance<OperationsWithInfo>
 
   beforeEach(() => {

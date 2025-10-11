@@ -1,24 +1,9 @@
 import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import {
-  Operations,
-  type GetPathParameters,
-  type GetResponseData,
-  type QueryOptions,
-  // type OperationsConfig,
-  // type OperationId,
-} from './types'
+import { Operations, type GetPathParameters, type GetResponseData, type QQueryOptions } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
-import type { AxiosError } from 'axios'
 import { isAxiosError } from 'axios'
 import { getHelpers } from './openapi-helpers'
-
-// DEBUG:
-// import axios from 'axios'
-
-// Move to a module init
-// import { OperationId } from '../../api/api-operations'
-// import axios from '@/api/axios'
 
 export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
   typeof useEndpointQuery<Ops, Op>
@@ -49,15 +34,16 @@ export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Op
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
   h: ReturnType<typeof getHelpers<Ops, Op>>,
-  pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
-  optionsOrNull?: QueryOptions<Ops, Op>,
+  pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+  optionsOrNull?: QQueryOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a query operation
   if (!h.isQueryOperation(operationId)) {
     throw new Error(`Operation ${String(operationId)} is not a query operation (GET/HEAD/OPTIONS)`)
   }
   const { path, method } = h.getOperationInfo(operationId)
-  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QueryOptions<Ops, Op>>(
+  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QQueryOptions<Ops, Op>>(
+    path,
     pathParamsOrOptions,
     optionsOrNull,
   )
@@ -101,15 +87,14 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
       },
       enabled: isEnabled,
       staleTime: 1000 * 60,
-      retry: (failureCount, error: AxiosError) => {
-        // Don't retry 4xx errors
-        if (error.response && error.response.status >= 400 && error.response.status < 500) {
+      retry: (_failureCount: number, error: Error) => {
+        // Don't retry 4xx errors if error is AxiosError
+        if (isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
           return false
         }
         // Retry up to 3 times for other errors
-        return failureCount < 3
+        return _failureCount < 3
       },
-
       ...useQueryOptions,
     },
     h.queryClient,

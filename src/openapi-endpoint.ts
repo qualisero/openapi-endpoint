@@ -4,28 +4,28 @@ import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 import type {
   // IsQueryOperation,
   GetPathParameters,
-  QueryOptions,
-  MutationOptions,
+  QQueryOptions,
+  QMutationOptions,
   Operations,
   IsQueryOperation,
 } from './types'
 import { getHelpers } from './openapi-helpers'
 
 // NOTE: rather than using conditional overloads, we are adjusting the signature in the calling code based on IsQueryOperation
-// Conditional overload: if operation is a query, use QueryOptions and return QueryReturn
+// Conditional overload: if operation is a query, use QQueryOptions and return QueryReturn
 // export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
 //   config: OpenApiConfig<Ops>,
 //   operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
-//   optionsOrNull?: QueryOptions<Ops, Op>
+//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+//   optionsOrNull?: QQueryOptions<Ops, Op>
 // ): EndpointQueryReturn<Ops, Op>
 
-// // Conditional overload: if operation is a mutation, use MutationOptions and return MutationReturn
+// // Conditional overload: if operation is a mutation, use QMutationOptions and return MutationReturn
 // export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
 //   config: OpenApiConfig<Ops>,
 //   operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
-//   optionsOrNull?: MutationOptions<Ops, Op>
+//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+//   optionsOrNull?: QMutationOptions<Ops, Op>
 // ): EndpointMutationReturn<Ops, Op>
 
 /**
@@ -44,22 +44,24 @@ export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
   helpers: ReturnType<typeof getHelpers<Ops, Op>>,
   pathParamsOrOptions?:
     | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-    | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
-  optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
+    | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
+  optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
 ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
   if (helpers.isMutationOperation(operationId)) {
     return useEndpointMutation<Ops, Op>(
       operationId,
       helpers,
-      pathParamsOrOptions,
-      optionsOrNull as MutationOptions<Ops, Op>,
+      pathParamsOrOptions as
+        | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+        | QMutationOptions<Ops, Op>,
+      optionsOrNull as QMutationOptions<Ops, Op>,
     ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else if (helpers.isQueryOperation(operationId)) {
     return useEndpointQuery<Ops, Op>(
       operationId,
       helpers,
-      pathParamsOrOptions,
-      optionsOrNull as QueryOptions<Ops, Op>,
+      pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+      optionsOrNull as QQueryOptions<Ops, Op>,
     ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else {
     throw new Error(`Operation ${String(operationId)} is neither a query nor a mutation operation`)

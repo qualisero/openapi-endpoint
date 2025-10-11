@@ -1,7 +1,7 @@
 import { type AxiosInstance, type AxiosError } from 'axios'
 import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
 // import { type UseQueryOptions, type UseMutationOptions } from '@tanstack/vue-query'
-import type { MaybeRefOrGetter } from 'vue'
+import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import { type AxiosRequestConfig } from 'axios'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
@@ -12,11 +12,7 @@ export type OperationId = string
 
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
 
-export interface OpenApiConfig<
-  Ops extends Operations<Ops>,
-  // Ids extends Record<keyof Ops & string, string> = Record<keyof Ops & string, string>,
-> {
-  // operationIds: Ids
+export interface OpenApiConfig<Ops extends Operations<Ops>> {
   operations: Ops
   axios: AxiosInstance
   queryClient?: QueryClient
@@ -47,8 +43,14 @@ export type GetResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
     ? RequireReadonly<Data>
     : unknown
 
+type OmitMaybeRef<T, K extends PropertyKey> =
+  T extends MaybeRef<infer U>
+    ? MaybeRef<Omit<U, K> & Partial<Pick<U, K & keyof U>>>
+    : Omit<T, K> & Partial<Pick<T, K & keyof T>>
+
 // Type-safe options for queries
-export type QueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
+// NOTE: because UseQueryOptions is a MaybeRef, regular Omit won't work:
+export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
   UseQueryOptions<GetResponseData<Ops, Op>, Error, GetResponseData<Ops, Op>, GetResponseData<Ops, Op>>,
   'queryKey' | 'queryFn' | 'enabled'
 > & {
@@ -65,20 +67,29 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
   refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
 }
 
-export type MutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
+export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
   data: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
 }
 
 // // Type-safe options for mutations
-export type MutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, MutationVars<Ops, Op>>,
+export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
+  UseMutationOptions<GetResponseData<Ops, Op>, Error, QMutationVars<Ops, Op>>,
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
     errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
+// export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = UseMutationOptions<
+//   GetResponseData<Ops, Op>,
+//   Error,
+//   QMutationVars<Ops, Op>
+// > &
+//   MutationOnSuccessOptions<Ops> & {
+//     axiosOptions?: AxiosRequestConfig
+//     errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+//   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
@@ -130,28 +141,28 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
   useQuery: <Op extends keyof Ops>(
     operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
     pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-      ? QueryOptions<Ops, Op>
-      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QueryOptions<Ops, Op>,
-    optionsOrNull?: QueryOptions<Ops, Op>,
+      ? QQueryOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+    optionsOrNull?: QQueryOptions<Ops, Op>,
   ) => EndpointQueryReturn<Ops, Op>
 
   useMutation: <Op extends keyof Ops>(
     operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
     pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-      ? MutationOptions<Ops, Op>
-      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
-    optionsOrNull?: MutationOptions<Ops, Op>,
+      ? QMutationOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+    optionsOrNull?: QMutationOptions<Ops, Op>,
   ) => EndpointMutationReturn<Ops, Op>
 
   useEndpoint: <Op extends keyof Ops>(
     operationId: Op,
     pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
       ? IsQueryOperation<Ops, Op> extends true
-        ? QueryOptions<Ops, Op>
-        : MutationOptions<Ops, Op>
+        ? QQueryOptions<Ops, Op>
+        : QMutationOptions<Ops, Op>
       :
           | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-          | (IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>),
-    optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QueryOptions<Ops, Op> : MutationOptions<Ops, Op>,
+          | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
+    optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
   ) => IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
 }
