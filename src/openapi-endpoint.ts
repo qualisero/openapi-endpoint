@@ -51,14 +51,16 @@ export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
     return useEndpointMutation<Ops, Op>(
       operationId,
       helpers,
-      pathParamsOrOptions,
+      pathParamsOrOptions as
+        | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+        | QMutationOptions<Ops, Op>,
       optionsOrNull as QMutationOptions<Ops, Op>,
     ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else if (helpers.isQueryOperation(operationId)) {
     return useEndpointQuery<Ops, Op>(
       operationId,
       helpers,
-      pathParamsOrOptions,
+      pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
       optionsOrNull as QQueryOptions<Ops, Op>,
     ) as IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
   } else {
