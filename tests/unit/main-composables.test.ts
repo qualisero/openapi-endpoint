@@ -17,21 +17,18 @@ describe('useOpenApi', () => {
     axios: mockAxios,
   }
 
-  // function createConfig<OperationInfoType, OperationTypes>(operationInfo: OperationInfoType) {
-  //   type OperationsWithInfo = OperationTypes & OperationInfoType
-  //   const operationsWithInfo = operationInfo as OperationsWithInfo
-  //   const config: OpenApiConfig<OperationsWithInfo> = {
-  //     operations: operationsWithInfo,
-  //     axios: mockAxios,
-  //   }
-  //   return config
-  // }
-  // let mockConfig = createConfig(OPERATION_INFO)
+  // New simplified API configuration
+  let simplifiedConfig: OpenApiConfig<typeof OPERATION_INFO> = {
+    operations: OPERATION_INFO,
+    axios: mockAxios,
+  }
 
   let api: OpenApiInstance<OperationsWithInfo>
+  let simplifiedApi: OpenApiInstance<operations, typeof OPERATION_INFO>
 
   beforeEach(() => {
     api = useOpenApi(mockConfig)
+    simplifiedApi = useOpenApi<operations, typeof OPERATION_INFO>(simplifiedConfig)
   })
 
   it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
@@ -41,6 +38,27 @@ describe('useOpenApi', () => {
     expect(typeof api.useQuery).toBe('function')
     expect(typeof api.useMutation).toBe('function')
     expect(typeof api.useEndpoint).toBe('function')
+  })
+
+  it('should work with the new simplified API creation flow', () => {
+    // Test that the new simplified API works
+    expect(simplifiedApi).toHaveProperty('useQuery')
+    expect(simplifiedApi).toHaveProperty('useMutation')
+    expect(simplifiedApi).toHaveProperty('useEndpoint')
+    expect(typeof simplifiedApi.useQuery).toBe('function')
+    expect(typeof simplifiedApi.useMutation).toBe('function')
+    expect(typeof simplifiedApi.useEndpoint).toBe('function')
+
+    // Test that it can create queries and mutations
+    const query = simplifiedApi.useQuery(OperationId.listPets)
+    expect(query).toBeTruthy()
+    expect(query).toHaveProperty('data')
+    expect(query).toHaveProperty('isLoading')
+
+    const mutation = simplifiedApi.useMutation(OperationId.createPet)
+    expect(mutation).toBeTruthy()
+    expect(mutation).toHaveProperty('mutate')
+    expect(mutation).toHaveProperty('mutateAsync')
   })
 
   describe('useQuery', () => {

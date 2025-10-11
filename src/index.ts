@@ -11,6 +11,7 @@ import {
   QQueryOptions,
   QMutationOptions,
   IsQueryOperation,
+  OperationInfo,
 } from './types'
 import { getHelpers } from './openapi-helpers'
 export type { OperationInfo, QQueryOptions, OpenApiConfig, OpenApiInstance } from './types'
@@ -23,46 +24,66 @@ export const queryClient = new QueryClient({
   },
 })
 
-export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
+export function useOpenApi<
+  OperationTypes extends Operations<OperationTypes>,
+  OpInfo extends Record<string, OperationInfo>,
+>(config: OpenApiConfig<OpInfo>) {
+  // Internally combine the operation types with operation info
+  type CombinedOps = OperationTypes & OpInfo
+  const combinedOperations: CombinedOps = config.operations as CombinedOps
+
+  // Create the internal config with combined operations for helper functions
+  const internalConfig = {
+    operations: combinedOperations,
+    axios: config.axios,
+    queryClient: config.queryClient,
+  }
+
   return {
-    useQuery: function <Op extends keyof Ops>(
-      operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? QQueryOptions<Ops, Op>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
-      optionsOrNull?: QQueryOptions<Ops, Op>,
-    ): EndpointQueryReturn<Ops, Op> {
-      const helpers = getHelpers<Ops, Op>(config)
+    useQuery: function <Op extends keyof CombinedOps>(
+      operationId: IsQueryOperation<CombinedOps, Op> extends true ? Op : never,
+      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
+        ? QQueryOptions<CombinedOps, Op>
+        : MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined> | QQueryOptions<CombinedOps, Op>,
+      optionsOrNull?: QQueryOptions<CombinedOps, Op>,
+    ): EndpointQueryReturn<CombinedOps, Op> {
+      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
 
-      return useEndpointQuery<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+      return useEndpointQuery<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useMutation: function <Op extends keyof Ops>(
-      operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? QMutationOptions<Ops, Op>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
-      optionsOrNull?: QMutationOptions<Ops, Op>,
+    useMutation: function <Op extends keyof CombinedOps>(
+      operationId: IsQueryOperation<CombinedOps, Op> extends false ? Op : never,
+      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
+        ? QMutationOptions<CombinedOps, Op>
+        : MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined> | QMutationOptions<CombinedOps, Op>,
+      optionsOrNull?: QMutationOptions<CombinedOps, Op>,
     ) {
-      const helpers = getHelpers<Ops, Op>(config)
+      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
 
-      return useEndpointMutation<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+      return useEndpointMutation<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
 
-    useEndpoint: function <Op extends keyof Ops>(
+    useEndpoint: function <Op extends keyof CombinedOps>(
       operationId: Op,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? IsQueryOperation<Ops, Op> extends true
-          ? QQueryOptions<Ops, Op>
-          : QMutationOptions<Ops, Op>
+      pathParamsOrOptions?: GetPathParameters<CombinedOps, Op> extends Record<string, never>
+        ? IsQueryOperation<CombinedOps, Op> extends true
+          ? QQueryOptions<CombinedOps, Op>
+          : QMutationOptions<CombinedOps, Op>
         :
-            | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-            | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
-      optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
-    ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
-      const helpers = getHelpers<Ops, Op>(config)
+            | MaybeRefOrGetter<GetPathParameters<CombinedOps, Op> | null | undefined>
+            | (IsQueryOperation<CombinedOps, Op> extends true
+                ? QQueryOptions<CombinedOps, Op>
+                : QMutationOptions<CombinedOps, Op>),
+      optionsOrNull?: IsQueryOperation<CombinedOps, Op> extends true
+        ? QQueryOptions<CombinedOps, Op>
+        : QMutationOptions<CombinedOps, Op>,
+    ): IsQueryOperation<CombinedOps, Op> extends true
+      ? EndpointQueryReturn<CombinedOps, Op>
+      : EndpointMutationReturn<CombinedOps, Op> {
+      const helpers = getHelpers<CombinedOps, Op>(internalConfig)
 
-      return useEndpoint<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+      return useEndpoint<CombinedOps, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
   }
 }

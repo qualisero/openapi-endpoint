@@ -1,5 +1,7 @@
-import { HttpMethod, type OperationInfo, OpenApiConfig, Operations } from './types'
+import { HttpMethod, type OperationInfo, Operations } from './types'
 import { queryClient as defaultQueryClient } from './index'
+import type { AxiosInstance } from 'axios'
+import type { QueryClient } from '@tanstack/vue-query'
 
 // helper returning the operationId prefix given an http method
 function _getMethodPrefix(method: HttpMethod): string | null {
@@ -16,7 +18,11 @@ function _getMethodPrefix(method: HttpMethod): string | null {
   return methodPrefixes[method]
 }
 
-export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(config: OpenApiConfig<Ops>) {
+export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(config: {
+  operations: Ops
+  axios: AxiosInstance
+  queryClient?: QueryClient
+}) {
   // Helper function to get operation info by ID
   function getOperationInfo(operationId: Op): OperationInfo {
     return config.operations[operationId as keyof Ops] as unknown as OperationInfo
