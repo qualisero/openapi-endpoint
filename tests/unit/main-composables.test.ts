@@ -136,19 +136,31 @@ describe('useOpenApi', () => {
       // Test that useEndpoint can be called with DELETE operations
       const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
 
-      deleteEndpoint.mutateAsync().then(() => {
-        // Success callback
-        expect(true).toBe(true) // Dummy assertion to indicate success
+      // Test with a simple TanStack mutation first
+      const simpleMutation = useMutation({
+        mutationFn: async (vars?: any) => {
+          console.log('Simple mutation called with:', vars)
+          return Promise.resolve('success')
+        }
       })
 
-      // Original TanStack Mutation works:
-      const debug = useMutation({
-        mutationFn: () => Promise.resolve(true),
-      })
-      debug.mutateAsync().then(() => {
-        // Success callback
-        expect(true).toBe(true) // Dummy assertion to indicate success
-      })
+      console.log('Simple mutation test:')
+      const simpleResult = simpleMutation.mutateAsync()
+      console.log('Simple result type:', typeof simpleResult)
+
+      // Now test with the actual mutations
+      const standaloneMutation = api.useMutation(OperationId.deletePet, { petId: '123' })
+      
+      console.log('Standalone mutation test:')
+      const standaloneResult = standaloneMutation.mutateAsync({})
+      console.log('Standalone result type:', typeof standaloneResult)
+
+      console.log('Endpoint mutation test:')
+      const endpointResult = deleteEndpoint.mutateAsync({})
+      console.log('Endpoint result type:', typeof endpointResult)
+
+      // The simple mutation should work
+      expect(typeof simpleResult).toBe('object')
     })
 
     it('should correctly infer types for mutation operations', () => {

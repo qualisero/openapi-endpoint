@@ -85,7 +85,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   const mutation = useMutation(
     {
       mutationFn: async (vars: QMutationVars<Ops, Op>) => {
-        const { data, pathParams: pathParamsFromMutate } = vars
+        const { data, pathParams: pathParamsFromMutate } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
         // TODO: use typing to ensure all required path params are provided
@@ -103,7 +103,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           const response = await h.axios({
             method: method.toLowerCase(),
             url: resolvedPath.value,
-            data: data,
+            ...(data !== undefined && { data }),
             ...axiosOptions,
           })
           return response.data
