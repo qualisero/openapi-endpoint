@@ -12,8 +12,8 @@ export type OperationId = string
 
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
 
-export interface OpenApiConfig<OpInfo extends Record<string, OperationInfo>> {
-  operations: OpInfo
+export interface OpenApiConfig<Ops> {
+  operations: Ops
   axios: AxiosInstance
   queryClient?: QueryClient
 }
@@ -137,45 +137,32 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
 // export type IsMutationOperation<Op extends string> = IsQueryOperation<Op> extends true ? false : true
 
 // Type representing an instance of the OpenAPI client returned by useOpenApi
-export type OpenApiInstance<
-  OperationTypes extends Operations<OperationTypes>,
-  OpInfo extends Record<string, OperationInfo>,
-> = {
-  useQuery: <Op extends keyof (OperationTypes & OpInfo)>(
-    operationId: IsQueryOperation<OperationTypes & OpInfo, Op> extends true ? Op : never,
-    pathParamsOrOptions?: GetPathParameters<OperationTypes & OpInfo, Op> extends Record<string, never>
-      ? QQueryOptions<OperationTypes & OpInfo, Op>
-      :
-          | MaybeRefOrGetter<GetPathParameters<OperationTypes & OpInfo, Op> | null | undefined>
-          | QQueryOptions<OperationTypes & OpInfo, Op>,
-    optionsOrNull?: QQueryOptions<OperationTypes & OpInfo, Op>,
-  ) => EndpointQueryReturn<OperationTypes & OpInfo, Op>
+export type OpenApiInstance<Ops extends Operations<Ops>> = {
+  useQuery: <Op extends keyof Ops>(
+    operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? QQueryOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+    optionsOrNull?: QQueryOptions<Ops, Op>,
+  ) => EndpointQueryReturn<Ops, Op>
 
-  useMutation: <Op extends keyof (OperationTypes & OpInfo)>(
-    operationId: IsQueryOperation<OperationTypes & OpInfo, Op> extends false ? Op : never,
-    pathParamsOrOptions?: GetPathParameters<OperationTypes & OpInfo, Op> extends Record<string, never>
-      ? QMutationOptions<OperationTypes & OpInfo, Op>
-      :
-          | MaybeRefOrGetter<GetPathParameters<OperationTypes & OpInfo, Op> | null | undefined>
-          | QMutationOptions<OperationTypes & OpInfo, Op>,
-    optionsOrNull?: QMutationOptions<OperationTypes & OpInfo, Op>,
-  ) => EndpointMutationReturn<OperationTypes & OpInfo, Op>
+  useMutation: <Op extends keyof Ops>(
+    operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? QMutationOptions<Ops, Op>
+      : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+    optionsOrNull?: QMutationOptions<Ops, Op>,
+  ) => EndpointMutationReturn<Ops, Op>
 
-  useEndpoint: <Op extends keyof (OperationTypes & OpInfo)>(
+  useEndpoint: <Op extends keyof Ops>(
     operationId: Op,
-    pathParamsOrOptions?: GetPathParameters<OperationTypes & OpInfo, Op> extends Record<string, never>
-      ? IsQueryOperation<OperationTypes & OpInfo, Op> extends true
-        ? QQueryOptions<OperationTypes & OpInfo, Op>
-        : QMutationOptions<OperationTypes & OpInfo, Op>
+    pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      ? IsQueryOperation<Ops, Op> extends true
+        ? QQueryOptions<Ops, Op>
+        : QMutationOptions<Ops, Op>
       :
-          | MaybeRefOrGetter<GetPathParameters<OperationTypes & OpInfo, Op> | null | undefined>
-          | (IsQueryOperation<OperationTypes & OpInfo, Op> extends true
-              ? QQueryOptions<OperationTypes & OpInfo, Op>
-              : QMutationOptions<OperationTypes & OpInfo, Op>),
-    optionsOrNull?: IsQueryOperation<OperationTypes & OpInfo, Op> extends true
-      ? QQueryOptions<OperationTypes & OpInfo, Op>
-      : QMutationOptions<OperationTypes & OpInfo, Op>,
-  ) => IsQueryOperation<OperationTypes & OpInfo, Op> extends true
-    ? EndpointQueryReturn<OperationTypes & OpInfo, Op>
-    : EndpointMutationReturn<OperationTypes & OpInfo, Op>
+          | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+          | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
+    optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
+  ) => IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op>
 }

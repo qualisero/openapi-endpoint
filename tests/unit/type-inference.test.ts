@@ -24,18 +24,10 @@ describe('Type Inference for useEndpoint', () => {
     axios: mockAxios,
   }
 
-  // Test new simplified API as well
-  let simplifiedConfig: OpenApiConfig<typeof OPERATION_INFO> = {
-    operations: OPERATION_INFO,
-    axios: mockAxios,
-  }
-
   let api: OpenApiInstance<OperationsWithInfo>
-  let simplifiedApi: OpenApiInstance<operations, typeof OPERATION_INFO>
 
   beforeEach(() => {
     api = useOpenApi(mockConfig)
-    simplifiedApi = useOpenApi<operations, typeof OPERATION_INFO>(simplifiedConfig)
   })
 
   describe('Mutation operation type inference', () => {
@@ -166,18 +158,6 @@ describe('Type Inference for useEndpoint', () => {
 
       // Query with options
       const listEndpoint = api.useEndpoint(OperationId.listPets)
-      expect(listEndpoint).toHaveProperty('refetch')
-    })
-
-    it('should work with simplified API for type inference', () => {
-      // Test that the simplified API maintains the same type inference
-      const createEndpoint = simplifiedApi.useEndpoint(OperationId.createPet)
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-
-      const listEndpoint = simplifiedApi.useEndpoint(OperationId.listPets)
-      expect(listEndpoint).toHaveProperty('data')
-      expect(listEndpoint).toHaveProperty('isLoading')
       expect(listEndpoint).toHaveProperty('refetch')
     })
   })
