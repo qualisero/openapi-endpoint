@@ -138,6 +138,8 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
 
 // Type representing an instance of the OpenAPI client returned by useOpenApi
 export type OpenApiInstance<Ops extends Operations<Ops>> = {
+  _debugIsQueryOperation: <Op extends keyof Ops>(operationId: Op) => IsQueryOperation<Ops, Op>
+
   useQuery: <Op extends keyof Ops>(
     operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
     pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>

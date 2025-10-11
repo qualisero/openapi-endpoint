@@ -4,14 +4,11 @@ import { OpenApiConfig } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
-import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
-type MockOps = typeof OPERATION_INFO
-type OperationsWithInfo = operations & MockOps
-const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+const mockOperations: OpenApiOperations = openApiOperations
 
-type MockConfig = OpenApiConfig<OperationsWithInfo>
+type MockConfig = OpenApiConfig<OpenApiOperations>
 
 describe('openapi-helpers', () => {
   let mockConfig: MockConfig

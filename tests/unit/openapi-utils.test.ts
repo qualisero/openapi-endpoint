@@ -2,10 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { resolvePath, isPathResolved, generateQueryKey, getParamsOptionsFrom } from '@/openapi-utils'
 import { QQueryOptions } from '@/types'
 
-import { OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
-
-type MockOps = operations & typeof OPERATION_INFO
+import { type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 describe('openapi-utils', () => {
   describe('resolvePath', () => {
@@ -91,7 +88,7 @@ describe('openapi-utils', () => {
     it('should extract path params when provided as first parameter and options as second', () => {
       const path = '/pets/{petId}'
       const pathParams = { petId: '123' }
-      const result = getParamsOptionsFrom<MockOps, 'getPet', QQueryOptions<MockOps, 'getPet'>>(
+      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
         path,
         pathParams,
         {}, // empty options object
@@ -102,12 +99,15 @@ describe('openapi-utils', () => {
     })
 
     it('should treat object as options when it has option-like properties', () => {
-      const options: QQueryOptions<MockOps, 'getPet'> = {
+      const options: QQueryOptions<OpenApiOperations, 'getPet'> = {
         enabled: true,
         onLoad: vi.fn(),
       }
       const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<MockOps, 'getPet', QQueryOptions<MockOps, 'getPet'>>(path, options)
+      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
+        path,
+        options,
+      )
 
       // When an object with option-like properties is passed as first arg with no second arg,
       // it's treated as options
@@ -118,12 +118,12 @@ describe('openapi-utils', () => {
     it('should extract both params and options when both provided', () => {
       const pathParams = { petId: '123' }
       const path = '/pets/{petId}'
-      const options: QQueryOptions<MockOps, 'getPet'> = {
+      const options: QQueryOptions<OpenApiOperations, 'getPet'> = {
         enabled: true,
         onLoad: vi.fn(),
       }
 
-      const result = getParamsOptionsFrom<MockOps, 'getPet', QQueryOptions<MockOps, 'getPet'>>(
+      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
         path,
         pathParams,
         options,
@@ -135,7 +135,11 @@ describe('openapi-utils', () => {
 
     it('should handle null/undefined params gracefully', () => {
       const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<MockOps, 'getPet', QQueryOptions<MockOps, 'getPet'>>(path, null, undefined)
+      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
+        path,
+        null,
+        undefined,
+      )
 
       expect(result.pathParams).toEqual({})
       expect(result.options).toEqual({})
@@ -143,7 +147,11 @@ describe('openapi-utils', () => {
 
     it('should handle empty object as path params', () => {
       const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<MockOps, 'getPet', QQueryOptions<MockOps, 'getPet'>>(path, {}, undefined)
+      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
+        path,
+        {},
+        undefined,
+      )
 
       // Empty object is treated as options when no second argument
       expect(result.pathParams).toEqual({})

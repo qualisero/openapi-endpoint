@@ -6,11 +6,12 @@ This is a TypeScript library that provides type-safe OpenAPI integration for Vue
 
 ### Key Features
 
-- **Code Generation**: CLI tool to generate TypeScript types and operation metadata from OpenAPI specs
+- **Code Generation**: CLI tool to generate TypeScript types and streamlined operation metadata from OpenAPI specs
 - **Type Safety**: Full TypeScript support with strict typing for API operations
 - **Vue Integration**: Built for Vue 3 with composition API support
 - **TanStack Query**: Leverages TanStack Query for reactive data fetching and caching
 - **Path Parameters**: Automatic resolution and validation of OpenAPI path parameters
+- **Streamlined API**: Single composable (`useOpenApi`) provides unified access to queries, mutations, and generic endpoints
 
 ## Project Structure
 
@@ -27,6 +28,26 @@ src/
 bin/
 └── openapi-codegen.js    # CLI entry point
 ```
+
+## Current API Structure (Post-Streamlining)
+
+The library provides a unified API through the `useOpenApi` composable:
+
+```typescript
+// Primary usage pattern - always use the main API composable
+const api = useOpenApi<OpenApiOperations>({
+  operations: openApiOperations, // Generated streamlined operations
+  axios: axiosInstance,
+})
+
+// Preferred API methods (use these instead of individual composables):
+api.useQuery() // For GET operations
+api.useMutation() // For POST/PUT/PATCH/DELETE operations
+api.useEndpoint() // Generic endpoint (auto-detects operation type)
+api.debug() // Debug utility
+```
+
+**Important**: Emphasize using the unified API (`api.useQuery`, `api.useMutation`, `api.useEndpoint`) rather than individual composables (`useEndpointQuery`, `useEndpointMutation`) directly.
 
 ## Development Guidelines
 
@@ -52,13 +73,23 @@ bin/
    - Use `*Options` suffix for configuration types
    - Use descriptive variable names that indicate their reactive nature
 
-5. **Code Quality**: **MANDATORY** - Format and lint fixing after EVERY code change
-   - **ALWAYS** run `npm run lint:fix` after EVERY code change to automatically fix ESLint issues
-   - **ALWAYS** run `npm run format` after EVERY code change to automatically format all files with Prettier
-   - **ALWAYS** verify with `npm run lint` (must pass with no errors)
-   - **ALWAYS** verify with `npm run format:check` (must pass with no warnings)
-   - These steps are REQUIRED after every single code modification, no exceptions
-   - Format and lint fixing is non-negotiable for all code changes and PRs
+5. **Code Quality & Testing**: **MANDATORY** - Test and validate after EVERY code change
+   - **ALWAYS** run `npm run fix` after EVERY code change (combines lint:fix + format)
+   - **ALWAYS** run `npm run check` before committing (combines types + lint + format:check)
+   - **ALWAYS** run `npm run test:run` to verify all tests pass
+   - **ALWAYS** run `npm run types` and `npm run types:test` to ensure type safety
+   - Testing and type validation are REQUIRED after every single code modification
+   - Format, lint fixing, and testing are non-negotiable for all code changes and PRs
+
+### Testing Strategy - CRITICAL
+
+**Runtime and Type Testing**:
+
+- Run `npm run test:run` after every code change to ensure runtime behavior is correct
+- Run `npm run types:test` after every code change to ensure TypeScript compilation succeeds
+- Tests must validate both functionality and type safety
+- Use the streamlined `openApiOperations` format in all new tests
+- Follow existing test patterns in `tests/unit/main-composables.test.ts` for proper API usage
 
 ### Key Dependencies
 
@@ -81,21 +112,43 @@ For EVERY code change, follow this exact sequence:
 1. **Make your code changes**
 2. **IMMEDIATELY after any code modification, run:**
    ```bash
-   npm run lint:fix    # Auto-fix linting issues
-   npm run format      # Auto-format all files
+   npm run fix         # Auto-fix linting and format all files
+   npm run test:run    # Verify all tests pass
    ```
-3. **Verify the fixes worked:**
+3. **Before committing, verify everything works:**
    ```bash
-   npm run lint        # Must pass with 0 errors
-   npm run format:check # Must pass with 0 warnings
+   npm run check       # Comprehensive checks (types + lint + format)
    ```
 4. **Commit your changes**
 
-**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the format and lint fix commands.
+**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands.
 
-### Current Project State (Updated 2024-10-10)
+### Efficient Copilot Agent Setup
 
-- **Current Version**: 0.3.3
+**Quick Start Commands**:
+
+```bash
+# Initial setup
+npm install
+npm run check  # Verify everything works
+
+# Development workflow
+npm run dev     # Start test watcher
+npm run fix     # Fix code after changes
+npm run check   # Final verification before commit
+```
+
+**For Building and Testing**:
+
+- `npm run build` - Build the library for production
+- `npm run test:coverage` - Run tests with coverage reports
+- `npm run test:ui` - Interactive test runner with web UI
+- `npm run types` - Type-check source code only
+- `npm run types:test` - Type-check test files only
+
+### Current Project State (Updated 2025-01-11)
+
+- **Current Version**: 0.3.5
 - **Node.js**: Compatible with modern Node.js versions
 - **TypeScript**: 5.9.2 with strict mode enabled
 - **Linting**: ESLint 9.37.0 with TypeScript integration
@@ -132,7 +185,7 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 Generated files:
 
 - `openapi-types.ts` - TypeScript type definitions
-- `api-operations.ts` - Operation metadata for the library
+- `api-operations.ts` - Streamlined operation definitions combining metadata and types
 
 #### CLI Implementation Patterns
 
@@ -146,12 +199,27 @@ The CLI follows these patterns:
 
 ### Implementation Patterns
 
+#### Primary API Usage (Recommended)
+
+```typescript
+// Initialize once with streamlined operations
+const api = useOpenApi<OpenApiOperations>({
+  operations: openApiOperations, // From generated api-operations.ts
+  axios: axiosInstance,
+})
+
+// Use the unified API methods
+const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
+const createPet = api.useMutation(OperationId.createPet)
+const genericEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
+```
+
 #### Query Operations (GET/HEAD/OPTIONS)
 
 ```typescript
 // Use for read-only operations with automatic type inference
 const userQuery = api.useQuery(
-  'getUser',
+  OperationId.getUser,
   { userId: '123' },
   {
     enabled: true,
@@ -170,7 +238,7 @@ const queryKey = userQuery.queryKey
 
 ```typescript
 // Use for data modifications with cache management
-const createUser = api.useMutation('createUser', {
+const createUser = api.useMutation(OperationId.createUser, {
   onSuccess: async (data, vars) => {
     // Automatic cache invalidation and updates
   },
@@ -212,57 +280,36 @@ if (!isPathResolved(resolvedPath.value)) {
 
 ### Type Safety Guidelines
 
-1. **Operations Interface**: Define operations as an interface extending the base Operations type
-2. **Path Parameters**: Use `GetPathParameters<Ops, Op>` to extract required path parameters
+1. **Use Streamlined Operations**: Always use the generated `openApiOperations` format
+2. **Path Parameters**: Leverage `GetPathParameters<Ops, Op>` for type-safe path parameters
 3. **Response Types**: Use `GetResponseData<Ops, Op>` for type-safe response handling
-4. **Method Validation**: Runtime checks ensure operations match their expected HTTP methods
+4. **Reactive Parameters**: Support `MaybeRefOrGetter<T>` for dynamic values
 
-### Common Patterns to Follow
+### Common Patterns
 
-1. **Reactive Parameters**: Always support `MaybeRefOrGetter<T>` for dynamic values
+1. **Reactive Parameters**:
 
    ```typescript
    // Good: supports both static and reactive values
    pathParams?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
    ```
 
-2. **Query Keys**: Generate consistent query keys from resolved paths
-
-   ```typescript
-   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
-   ```
-
-3. **Cache Management**: Implement automatic cache invalidation for related operations
-
-   ```typescript
-   await queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
-   ```
-
-4. **Error Context**: Include operation ID and path information in error messages
+2. **Error Context**: Include operation ID and path information in error messages
 
    ```typescript
    throw new Error(`Operation '${String(operationId)}' failed: ${resolvedPath.value}`)
    ```
 
-5. **TypeScript Documentation**: Use comprehensive JSDoc comments for public APIs
-
+3. **JSDoc Documentation**: Use comprehensive documentation for public APIs
    ```typescript
    /**
     * @template Ops Operations interface extending base Operations type
-    * @template Op Specific operation key from the operations interface
     * @param operationId The OpenAPI operation ID to query
     * @returns Query object with strict typing and helpers
     */
    ```
 
-6. **Composable Return Types**: Define explicit return types for composables
-   ```typescript
-   export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
-     typeof useEndpointQuery<Ops, Op>
-   > & {
-     onLoad: (callback: (data: GetResponseData<Ops, Op>) => void) => void
-   }
-   ```
+**Important**: Keep this instruction file concise and focus on the unified API (`useOpenApi`) rather than individual composables.
 
 ### What NOT to do
 

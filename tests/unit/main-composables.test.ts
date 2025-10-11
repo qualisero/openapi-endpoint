@@ -23,6 +23,14 @@ describe('useOpenApi', () => {
     expect(typeof api.useEndpoint).toBe('function')
   })
 
+  it('should correctly type operationId parameters', () => {
+    // TypeScript compile-time type assertions
+    const _listPetsIsQuery: true = api._debugIsQueryOperation(OperationId.listPets)
+    const _getPetIsQuery: true = api._debugIsQueryOperation(OperationId.getPet)
+    const _createPetIsQuery: false = api._debugIsQueryOperation(OperationId.createPet)
+    const _createPetIsQueryTyped: false = api._debugIsQueryOperation(OperationId.createPet)
+  })
+
   describe('useQuery', () => {
     it('should create a query for GET operations', () => {
       // Test that useQuery can be called with a GET operation

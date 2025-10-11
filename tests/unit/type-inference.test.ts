@@ -3,8 +3,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
 
-import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 /**
  * This test file specifically validates that the type inference issue
@@ -15,16 +14,14 @@ import { type operations } from '../fixtures/openapi-types'
  * `mutateAsync` are available.
  */
 describe('Type Inference for useEndpoint', () => {
-  type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+  const mockOperations: OpenApiOperations = openApiOperations
 
-  let mockConfig: OpenApiConfig<OperationsWithInfo> = {
+  let mockConfig: OpenApiConfig<OpenApiOperations> = {
     operations: mockOperations,
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<OperationsWithInfo>
+  let api: OpenApiInstance<OpenApiOperations>
 
   beforeEach(() => {
     api = useOpenApi(mockConfig)

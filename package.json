@@ -24,17 +24,20 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "types": "tsc --noEmit",
-    "types:test": "npx tsc --noEmit --project tests/tsconfig.json",
+    "dev": "vitest",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "check": "npm run types && npm run types:test && npm run lint && npm run format:check",
+    "fix": "npm run lint:fix && npm run format",
+    "types": "tsc --noEmit",
+    "types:test": "npx tsc --noEmit --project tests/tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepublishOnly": "npm run build && npm run types"
+    "prepublishOnly": "npm run build && npm run check"
   },
   "keywords": [
     "vue",

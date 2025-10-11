@@ -2,16 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 describe('Axios Options Integration', () => {
-  type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
+  const mockOperations: OpenApiOperations = openApiOperations
 
-  let mockConfig: OpenApiConfig<OperationsWithInfo>
-  let api: OpenApiInstance<OperationsWithInfo>
+  let mockConfig: OpenApiConfig<OpenApiOperations>
+  let api: OpenApiInstance<OpenApiOperations>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -206,7 +203,7 @@ describe('Axios Options Integration', () => {
       const globalAxios = mockAxios
       globalAxios.defaults.headers.common['Global-Header'] = 'global-value'
 
-      const configWithGlobalAxios: OpenApiConfig<OperationsWithInfo> = {
+      const configWithGlobalAxios: OpenApiConfig<OpenApiOperations> = {
         operations: mockOperations,
         axios: globalAxios,
       }

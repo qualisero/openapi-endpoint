@@ -28,7 +28,7 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 This will generate two files in your specified output directory:
 
 - `openapi-types.ts` - TypeScript type definitions for your API
-- `api-operations.ts` - Operation IDs and metadata for use with this library
+- `api-operations.ts` - Streamlined operation definitions combining metadata and types
 
 ## Usage
 
@@ -37,46 +37,38 @@ This will generate two files in your specified output directory:
 ```typescript
 // api/init.ts
 import { useOpenApi } from '@qualisero/openapi-endpoint'
-import { QueryClient } from '@tanstack/vue-query'
 import axios from 'axios'
 
-// Import your generated OpenAPI types and operations
-import type { operations } from './generated/openapi-types'
-import { OperationId, OPERATION_INFO } from './generated/api-operations'
+// Import your generated operations (includes both metadata and types)
+import { OperationId, openApiOperations, type OpenApiOperations } from './generated/api-operations'
 
 // Create axios instance
 const axiosInstance = axios.create({
   baseURL: 'https://api.example.com',
 })
 
-// Properly type the operations for the library
-const operationInfoDict = OPERATION_INFO
-type OperationsWithInfo = operations & typeof operationInfoDict
-
-// Initialize the package
-const api = useOpenApi({
-  operations: operationInfoDict as OperationsWithInfo,
+// Initialize the package with the streamlined operations
+const api = useOpenApi<OpenApiOperations>({
+  operations: openApiOperations,
   axios: axiosInstance,
 })
 
 // Export for use in other parts of your application
-export { api }
+export { api, OperationId }
 ```
 
 ### 2. Use the API in your components
 
 ```typescript
 // In your Vue components
-import { api } from './api/init'
-import { OperationId } from './generated/api-operations'
+import { api, OperationId } from './api/init'
 
 // Use queries for GET operations
-const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {})
+const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
 const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
 
 // Use mutations for POST/PUT/PATCH/DELETE operations
-const createPetMutation = api.useMutation(OperationId.createPet, {})
-const updatePetMutation = api.useMutation(OperationId.updatePet, { petId: '123' })
+const createPetMutation = api.useMutation(OperationId.createPet)
 
 // Execute mutations
 await createPetMutation.mutateAsync({
