@@ -10,7 +10,7 @@ import {
   Operations,
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
-import { getHelpers } from './openapi-helpers'
+import { type OpenApiHelpers } from './openapi-helpers'
 import { isAxiosError } from 'axios'
 
 export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
@@ -48,7 +48,7 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  */
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  h: ReturnType<typeof getHelpers<Ops, Op>>, // helpers
+  h: OpenApiHelpers<Ops, Op>, // helpers
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
   optionsOrNull?: QMutationOptions<Ops, Op>,
 ) {
@@ -84,7 +84,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
 
   const mutation = useMutation(
     {
-      mutationFn: async (vars: QMutationVars<Ops, Op>): Promise<GetResponseData<Ops, Op>> => {
+      mutationFn: async (vars: QMutationVars<Ops, Op>) => {
         const { data, pathParams: pathParamsFromMutate } = vars
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
@@ -104,7 +104,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
             method: method.toLowerCase(),
             url: resolvedPath.value,
             data: data,
-            ...(axiosOptions || {}),
+            ...axiosOptions,
           })
           return response.data
         } catch (error: unknown) {

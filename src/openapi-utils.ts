@@ -1,6 +1,30 @@
 import { toValue, type MaybeRefOrGetter } from 'vue'
 import { type GetPathParameters, type QMutationOptions, type QQueryOptions, Operations } from './types'
 
+// Known option-like properties to distinguish from path parameters
+const OPTION_PROPERTIES = [
+  'enabled',
+  'onSuccess',
+  'onError',
+  'onSettled',
+  'select',
+  'retry',
+  'staleTime',
+  'cacheTime',
+  'refetchOnWindowFocus',
+  'refetchOnReconnect',
+  'refetchOnMount',
+  'suspense',
+  'useErrorBoundary',
+  'meta',
+  'mutationKey',
+  'mutationFn',
+  'queryKey',
+  'queryFn',
+  'initialData',
+  'context',
+]
+
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
   path: string,
@@ -23,32 +47,9 @@ export function resolvePath(
 function isPathParams(path: string, pathParams: Record<string, string | number | undefined>): boolean {
   if (!pathParams) return false
   const paramNames = Object.keys(pathParams)
-  // List of known option-like properties to exclude
-  const optionProps = [
-    'enabled',
-    'onSuccess',
-    'onError',
-    'onSettled',
-    'select',
-    'retry',
-    'staleTime',
-    'cacheTime',
-    'refetchOnWindowFocus',
-    'refetchOnReconnect',
-    'refetchOnMount',
-    'suspense',
-    'useErrorBoundary',
-    'meta',
-    'mutationKey',
-    'mutationFn',
-    'queryKey',
-    'queryFn',
-    'initialData',
-    'context',
-    // Add more as needed
-  ]
+
   // If any option-like property is present, it's not path params
-  if (paramNames.some((name) => optionProps.includes(name))) {
+  if (paramNames.some((name) => OPTION_PROPERTIES.includes(name))) {
     return false
   }
   return paramNames.every((paramName) => path.includes(`{${paramName}}`))
@@ -76,9 +77,9 @@ export function getParamsOptionsFrom<
   pathParams: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
   options: Options
 } {
-  // Check if pathParamsOrOptions is MutationOptions or QueryOptions by checking if options is undefined
-  // and pathParamsOrOptions has MutationOptions properties
-  let pathParams: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | undefined = undefined
+  type PathParams = MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+
+  let pathParams: PathParams | undefined = undefined
   let options: Options | undefined = undefined
 
   if (optionsOrNull === undefined) {
@@ -91,18 +92,19 @@ export function getParamsOptionsFrom<
       isPathParams(path, pathParamsOrOptionsValue as Record<string, string | number | undefined>)
     ) {
       // Called as: useEndpointQuery(operationId, pathParams)
-      pathParams = pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+      pathParams = pathParamsOrOptions as PathParams
     } else {
       // Called as: useEndpointQuery(operationId, [options])
       options = pathParamsOrOptions as Options
     }
   } else {
     // Called as: useEndpointQuery(operationId, pathParams, options)
-    pathParams = pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+    pathParams = pathParamsOrOptions as PathParams
     options = optionsOrNull
   }
+
   return {
-    pathParams: pathParams ?? ({} as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>),
+    pathParams: pathParams ?? ({} as PathParams),
     options: options ?? ({} as Options),
   }
 }

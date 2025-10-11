@@ -53,7 +53,7 @@ describe('useOpenApi', () => {
     it('should create a query with options', () => {
       // Test that useQuery can be called with options
       const onLoad = vi.fn()
-      const query = api.useQuery(OperationId.listPets, undefined, { onLoad })
+      const query = api.useQuery(OperationId.listPets, { onLoad })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -83,7 +83,7 @@ describe('useOpenApi', () => {
     it('should create a mutation with options', () => {
       // Test that useMutation can be called with options
       const onSuccess = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, { onSuccess })
+      const mutation = api.useMutation(OperationId.createPet, { onSuccess })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
