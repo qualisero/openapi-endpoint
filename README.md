@@ -15,7 +15,7 @@ Let's you get TanStack Vue Query composables that enforce consistency (name of e
 const { data, isLoading } = api.useQuery(OperationId.getPet, { petId: '123' })
 
 const createPetMutation = api.useMutation(OperationId.createPet)
-createPetMutation.mutate({data: { name: 'Fluffy', species: 'cat' }})
+createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
 ```
 
 ## Installation
