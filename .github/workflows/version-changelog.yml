@@ -25,13 +25,9 @@ jobs:
           COPILOT_AGENT_ID: ${{ vars.COPILOT_AGENT_ID }}
         with:
           script: |
-            const copilotAgentId = process.env.COPILOT_AGENT_ID;
-
             const issueBody = `## Version and Changelog Update Required
 
             A pull request has been merged to main. Please update the package version and changelog according to the following guidelines:
-
-            Agent: ${copilotAgentId}
 
             ### Version Management Guidelines
 
@@ -61,7 +57,7 @@ jobs:
             - [ ] Add new section to \`CHANGELOG.md\` with appropriate changes
             - [ ] Ensure changelog entries are concise and user-focused
             - [ ] Update \`README.md\` if necessary (new features, API changes, or installation instructions)
-            - [ ] Create pull request with version and changelog updates
+            - [ ] Create pull request with version and changelog updates, with explicit title (eg "Bumping version from x.x to x.y and updating changelog")
 
             ### Reference
 
