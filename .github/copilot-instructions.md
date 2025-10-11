@@ -117,7 +117,7 @@ For EVERY code change, follow this exact sequence:
    ```
 3. **For documentation changes affecting JSDoc comments, also run:**
    ```bash
-   npm run jsdoc       # Regenerate API documentation
+   npm run docs        # Regenerate API documentation
    ```
 4. **Before committing, verify everything works:**
    ```bash
@@ -126,6 +126,12 @@ For EVERY code change, follow this exact sequence:
 5. **Commit your changes**
 
 **This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands. Documentation changes require JSDoc regeneration.
+
+**For publishing documentation to GitHub Pages (maintainers only):**
+
+```bash
+npm run docs:publish  # Generate and publish docs to gh-pages branch
+```
 
 ### Efficient Copilot Agent Setup
 

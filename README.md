@@ -215,7 +215,7 @@ const userPetsQuery = api.useQuery(
 
 ## API Documentation
 
-Full API documentation is available in the [generated docs](./docs/index.html). The documentation includes detailed information about all methods, types, and configuration options.
+Full API documentation is available at [https://qualisero.github.io/openapi-endpoint/](https://qualisero.github.io/openapi-endpoint/). The documentation includes detailed information about all methods, types, and configuration options.
 
 ## Contributing
 
