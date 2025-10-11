@@ -2,7 +2,7 @@ import { type MaybeRefOrGetter } from 'vue'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 import type { GetPathParameters, QQueryOptions, QMutationOptions, Operations, IsQueryOperation } from './types'
-import { getHelpers } from './openapi-helpers'
+import { type OpenApiHelpers } from './openapi-helpers'
 
 /**
  * Composable for performing a strictly typed OpenAPI operation (query or mutation) using Vue Query.
@@ -17,7 +17,7 @@ import { getHelpers } from './openapi-helpers'
  */
 export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  helpers: ReturnType<typeof getHelpers<Ops, Op>>,
+  helpers: OpenApiHelpers<Ops, Op>,
   pathParamsOrOptions?:
     | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
     | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),

@@ -93,3 +93,5 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
     queryClient: config.queryClient || defaultQueryClient,
   }
 }
+
+export type OpenApiHelpers<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<typeof getHelpers<Ops, Op>>

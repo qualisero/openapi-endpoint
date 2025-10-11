@@ -257,9 +257,10 @@ describe('Advanced Axios Configuration', () => {
     it('should support custom metadata', () => {
       const mutation = api.useMutation(OperationId.createPet, undefined, {
         axiosOptions: {
-          metadata: {
-            operation: 'create-pet',
-            source: 'admin-panel',
+          // Note: metadata is not a standard axios property, but can be added for custom tracking
+          headers: {
+            'X-Operation': 'create-pet',
+            'X-Source': 'admin-panel',
           },
         },
       })

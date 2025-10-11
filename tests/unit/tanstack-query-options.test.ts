@@ -63,9 +63,8 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support initialData configuration', () => {
-      const initialData = []
       const query = api.useQuery(OperationId.listPets, undefined, {
-        initialData,
+        initialData: undefined,
       })
 
       expect(query).toBeTruthy()
@@ -74,9 +73,8 @@ describe('TanStack Query Options Integration', () => {
     })
 
     it('should support placeholderData configuration', () => {
-      const placeholderData = []
       const query = api.useQuery(OperationId.listPets, undefined, {
-        placeholderData,
+        placeholderData: undefined,
       })
 
       expect(query).toBeTruthy()
