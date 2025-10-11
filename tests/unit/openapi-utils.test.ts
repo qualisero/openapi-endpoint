@@ -2,11 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { resolvePath, isPathResolved, generateQueryKey, getParamsOptionsFrom } from '@/openapi-utils'
 import { QQueryOptions } from '@/types'
 
-import { OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
-
-type MockOps = operations & typeof OPERATION_INFO
-
 describe('openapi-utils', () => {
   describe('resolvePath', () => {
     it('should return path unchanged when no params provided', () => {

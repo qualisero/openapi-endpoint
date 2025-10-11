@@ -6,15 +6,13 @@ import { getHelpers } from '@/openapi-helpers'
 import { GetPathParameters, OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 
-import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
-type MockOps = operations & typeof OPERATION_INFO
-const mockOperations: MockOps = OPERATION_INFO as MockOps
+const mockOperations: OpenApiOperations = openApiOperations
 
 describe('Advanced composable functionality', () => {
-  let mockConfig: OpenApiConfig<MockOps>
-  let helpers: ReturnType<typeof getHelpers<MockOps, keyof MockOps>>
+  let mockConfig: OpenApiConfig<OpenApiOperations>
+  let helpers: ReturnType<typeof getHelpers<OpenApiOperations, keyof OpenApiOperations>>
 
   beforeEach(() => {
     vi.clearAllMocks()
