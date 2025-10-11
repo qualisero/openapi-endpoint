@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { Operations, type GetPathParameters, type GetResponseData, type QQueryOptions } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import { isAxiosError } from 'axios'
-import { getHelpers } from './openapi-helpers'
+import { type OpenApiHelpers } from './openapi-helpers'
 
 export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
   typeof useEndpointQuery<Ops, Op>
@@ -33,7 +33,7 @@ export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Op
  */
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  h: ReturnType<typeof getHelpers<Ops, Op>>,
+  h: OpenApiHelpers<Ops, Op>,
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
   optionsOrNull?: QQueryOptions<Ops, Op>,
 ) {
@@ -54,20 +54,19 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
 
   // Check if path is fully resolved for enabling the query
   const isEnabled = computed(() => {
-    // can be explicitly disabled via options
     const baseEnabled = enabledInit !== undefined ? toValue(enabledInit) : true
     return baseEnabled && isPathResolved(resolvedPath.value)
   })
 
   const query = useQuery(
     {
-      queryKey: queryKey,
-      queryFn: async (): Promise<GetResponseData<Ops, Op>> => {
+      queryKey,
+      queryFn: async () => {
         try {
           const response = await h.axios({
             method: method.toLowerCase(),
             url: resolvedPath.value,
-            ...(axiosOptions || {}),
+            ...axiosOptions,
           })
           return response.data
         } catch (error: unknown) {

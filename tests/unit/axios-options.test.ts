@@ -26,7 +26,7 @@ describe('Axios Options Integration', () => {
         Authorization: 'Bearer token123',
       }
 
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           headers: customHeaders,
         },
@@ -38,7 +38,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should pass timeout configuration through axios options', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           timeout: 5000,
         },
@@ -50,7 +50,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should pass baseURL override through axios options', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           baseURL: 'https://custom-api.example.com',
         },
@@ -88,7 +88,7 @@ describe('Axios Options Integration', () => {
         'X-API-Key': 'api-key-123',
       }
 
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           headers: customHeaders,
         },
@@ -100,7 +100,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should pass timeout configuration through axios options', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           timeout: 10000,
         },
@@ -131,7 +131,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should handle multiple axios options configurations', () => {
-      const mutation = api.useMutation(OperationId.createPet, undefined, {
+      const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           timeout: 15000,
           maxContentLength: 2000,
@@ -150,7 +150,7 @@ describe('Axios Options Integration', () => {
 
   describe('useEndpoint with axios options', () => {
     it('should pass axios options to query endpoints', () => {
-      const endpoint = api.useEndpoint(OperationId.listPets, undefined, {
+      const endpoint = api.useEndpoint(OperationId.listPets, {
         axiosOptions: {
           headers: {
             'Cache-Control': 'no-cache',
@@ -164,7 +164,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should pass axios options to mutation endpoints', () => {
-      const endpoint = api.useEndpoint(OperationId.createPet, undefined, {
+      const endpoint = api.useEndpoint(OperationId.createPet, {
         axiosOptions: {
           timeout: 8000,
           headers: {
@@ -209,7 +209,7 @@ describe('Axios Options Integration', () => {
       }
 
       const apiWithGlobal = useOpenApi(configWithGlobalAxios)
-      const query = apiWithGlobal.useQuery(OperationId.listPets, undefined, {
+      const query = apiWithGlobal.useQuery(OperationId.listPets, {
         axiosOptions: {
           headers: {
             'Request-Specific': 'request-value',
@@ -223,7 +223,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should handle empty axios options gracefully', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {},
       })
 
@@ -233,7 +233,7 @@ describe('Axios Options Integration', () => {
     })
 
     it('should handle undefined axios options', () => {
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         enabled: true,
         // axiosOptions is intentionally undefined
       })
@@ -254,7 +254,7 @@ describe('Axios Options Integration', () => {
         (error) => Promise.reject(error),
       )
 
-      const query = api.useQuery(OperationId.listPets, undefined, {
+      const query = api.useQuery(OperationId.listPets, {
         axiosOptions: {
           headers: {
             'Custom-Header': 'value',

@@ -53,7 +53,7 @@ describe('useOpenApi', () => {
     it('should create a query with options', () => {
       // Test that useQuery can be called with options
       const onLoad = vi.fn()
-      const query = api.useQuery(OperationId.listPets, undefined, { onLoad })
+      const query = api.useQuery(OperationId.listPets, { onLoad })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -83,7 +83,7 @@ describe('useOpenApi', () => {
     it('should create a mutation with options', () => {
       // Test that useMutation can be called with options
       const onSuccess = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, undefined, { onSuccess })
+      const mutation = api.useMutation(OperationId.createPet, { onSuccess })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -130,6 +130,37 @@ describe('useOpenApi', () => {
       expect(updateEndpoint).toHaveProperty('mutateAsync')
       expect(deleteEndpoint).toHaveProperty('mutate')
       expect(deleteEndpoint).toHaveProperty('mutateAsync')
+    })
+
+    it('should work with mutation operations not requiring variables', () => {
+      // Test that useEndpoint can be called with DELETE operations
+      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
+
+      // Test with the standalone mutation as well
+      const standaloneMutation = api.useMutation(OperationId.deletePet, { petId: '123' })
+
+      // Both should have mutateAsync functions
+      expect(typeof deleteEndpoint.mutateAsync).toBe('function')
+      expect(typeof standaloneMutation.mutateAsync).toBe('function')
+
+      // Call mutateAsync to ensure it works without vars (should not throw)
+      expect(() => deleteEndpoint.mutateAsync()).not.toThrow()
+      expect(() => standaloneMutation.mutateAsync()).not.toThrow()
+
+      // also test with other vars but no data
+      const testQuery = api.useQuery(OperationId.listPets)
+      expect(() =>
+        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: [OperationId.listPets] }),
+      ).not.toThrow()
+      expect(() =>
+        standaloneMutation.mutateAsync({ dontUpdateCache: true, refetchEndpoints: [testQuery] }),
+      ).not.toThrow()
+
+      // Verify the objects have the expected mutation properties
+      expect(deleteEndpoint).toHaveProperty('mutate')
+      expect(deleteEndpoint).toHaveProperty('mutateAsync')
+      expect(standaloneMutation).toHaveProperty('mutate')
+      expect(standaloneMutation).toHaveProperty('mutateAsync')
     })
 
     it('should correctly infer types for mutation operations', () => {

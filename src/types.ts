@@ -1,12 +1,10 @@
-import { type AxiosInstance, type AxiosError } from 'axios'
+import { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios'
 import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
-// import { type UseQueryOptions, type UseMutationOptions } from '@tanstack/vue-query'
 import type { MaybeRef, MaybeRefOrGetter } from 'vue'
-import { type AxiosRequestConfig } from 'axios'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
-export type { EndpointQueryReturn } from './openapi-query'
-export type { EndpointMutationReturn } from './openapi-mutation'
+
+export type { EndpointQueryReturn, EndpointMutationReturn }
 
 export type OperationId = string
 
@@ -68,28 +66,21 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
 }
 
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
-  data: GetRequestBody<Ops, Op>
+  data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
 }
-
-// // Type-safe options for mutations
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, QMutationVars<Ops, Op>>,
+  UseMutationOptions<
+    GetResponseData<Ops, Op>,
+    Error,
+    GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
+  >,
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
     errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
-// export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = UseMutationOptions<
-//   GetResponseData<Ops, Op>,
-//   Error,
-//   QMutationVars<Ops, Op>
-// > &
-//   MutationOnSuccessOptions<Ops> & {
-//     axiosOptions?: AxiosRequestConfig
-//     errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
-//   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
@@ -124,17 +115,6 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
 }
   ? true
   : false
-
-// export type IsMutationOperation<Ops extends object, Op extends keyof Ops> =
-//   IsQueryOperation<Ops, Op> extends true ? false : true
-
-// export type IsQueryOperation<Ops extends object, Op extends keyof Ops> = Op extends OperationKey
-//   ? (typeof operationInfoDict)[Op]['method'] extends HttpMethod.GET
-//     ? true
-//     : false
-//   : never
-
-// export type IsMutationOperation<Op extends string> = IsQueryOperation<Op> extends true ? false : true
 
 // Type representing an instance of the OpenAPI client returned by useOpenApi
 export type OpenApiInstance<Ops extends Operations<Ops>> = {

@@ -8,9 +8,10 @@ import {
   type QMutationOptions,
   HttpMethod,
   Operations,
+  GetRequestBody,
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
-import { getHelpers } from './openapi-helpers'
+import { type OpenApiHelpers } from './openapi-helpers'
 import { isAxiosError } from 'axios'
 
 export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
@@ -48,7 +49,7 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  */
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
-  h: ReturnType<typeof getHelpers<Ops, Op>>, // helpers
+  h: OpenApiHelpers<Ops, Op>, // helpers
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
   optionsOrNull?: QMutationOptions<Ops, Op>,
 ) {
@@ -84,8 +85,10 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
 
   const mutation = useMutation(
     {
-      mutationFn: async (vars: QMutationVars<Ops, Op>): Promise<GetResponseData<Ops, Op>> => {
-        const { data, pathParams: pathParamsFromMutate } = vars
+      mutationFn: async (
+        vars: GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>,
+      ) => {
+        const { data, pathParams: pathParamsFromMutate } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
         // TODO: use typing to ensure all required path params are provided
@@ -103,8 +106,8 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           const response = await h.axios({
             method: method.toLowerCase(),
             url: resolvedPath.value,
-            data: data,
-            ...(axiosOptions || {}),
+            ...(data !== undefined && { data }),
+            ...axiosOptions,
           })
           return response.data
         } catch (error: unknown) {
@@ -128,7 +131,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           dontUpdateCache: dontUpdateCacheMutate,
           invalidateOperations: invalidateOperationsMutate,
           refetchEndpoints: refetchEndpointsMutate,
-        } = vars
+        } = vars || {}
 
         // Optimistically update cache with returned data for PUT/PATCH requests
         if (
