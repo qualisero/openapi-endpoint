@@ -117,7 +117,7 @@ For EVERY code change, follow this exact sequence:
    ```
 3. **For documentation changes affecting JSDoc comments, also run:**
    ```bash
-   npm run docs        # Regenerate API documentation
+   npm run docs:publish        # Regenerate API documentation
    ```
 4. **Before committing, verify everything works:**
    ```bash
