@@ -136,7 +136,7 @@ describe('useOpenApi', () => {
       // Test that useEndpoint can be called with DELETE operations
       const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
 
-      deleteEndpoint.mutateAsync({}).then(() => {
+      deleteEndpoint.mutateAsync().then(() => {
         // Success callback
         expect(true).toBe(true) // Dummy assertion to indicate success
       })
