@@ -7,7 +7,12 @@ on:
 
 jobs:
   create-version-issue:
-    if: github.event.pull_request.merged == true
+    if: |
+      github.event.pull_request.merged == true &&
+      !contains(github.event.pull_request.title, 'changelog') &&
+      !contains(github.event.pull_request.title, 'version') &&
+      !contains(github.event.pull_request.head.ref, 'changelog') &&
+      !contains(github.event.pull_request.head.ref, 'version')
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -55,6 +60,7 @@ jobs:
             - [ ] Update version in \`package.json\`
             - [ ] Add new section to \`CHANGELOG.md\` with appropriate changes
             - [ ] Ensure changelog entries are concise and user-focused
+            - [ ] Update \`README.md\` if necessary (new features, API changes, or installation instructions)
             - [ ] Create pull request with version and changelog updates
 
             ### Reference
