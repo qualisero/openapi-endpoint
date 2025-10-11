@@ -1,5 +1,5 @@
 import { toValue, type MaybeRefOrGetter } from 'vue'
-import { type GetPathParameters, type MutationOptions, type QueryOptions, Operations } from './types'
+import { type GetPathParameters, type QMutationOptions, type QQueryOptions, Operations } from './types'
 
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
@@ -20,6 +20,12 @@ export function resolvePath(
   return resolvedPath
 }
 
+function isPathParams(path: string, pathParams: Record<string, string | number | undefined>): boolean {
+  if (!pathParams) return false
+  const paramNames = Object.keys(pathParams)
+  return paramNames.every((paramName) => path.includes(`{${paramName}}`))
+}
+
 // Helper to check if all required path parameters are provided
 export function isPathResolved(path: string): boolean {
   return !/{[^}]+}/.test(path)
@@ -33,8 +39,9 @@ export function generateQueryKey(resolvedPath: string): string[] {
 export function getParamsOptionsFrom<
   Ops extends Operations<Ops>,
   Op extends keyof Ops,
-  Options extends MutationOptions<Ops, Op> | QueryOptions<Ops, Op>,
+  Options extends QMutationOptions<Ops, Op> | QQueryOptions<Ops, Op>,
 >(
+  path: string,
   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | Options,
   optionsOrNull?: Options,
 ): {
@@ -43,11 +50,24 @@ export function getParamsOptionsFrom<
 } {
   // Check if pathParamsOrOptions is MutationOptions or QueryOptions by checking if options is undefined
   // and pathParamsOrOptions has MutationOptions properties
-  let pathParams: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | undefined
-  let options: Options | undefined
-  if (optionsOrNull === undefined && pathParamsOrOptions && typeof pathParamsOrOptions === 'object') {
-    // Called as: useEndpointQuery(operationId, options)
-    options = pathParamsOrOptions as Options
+  let pathParams: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | undefined = undefined
+  let options: Options | undefined = undefined
+
+  if (optionsOrNull === undefined) {
+    const pathParamsOrOptionsValue = toValue(pathParamsOrOptions)
+    if (
+      typeof pathParamsOrOptions === 'object' &&
+      pathParamsOrOptions !== null &&
+      pathParamsOrOptionsValue &&
+      typeof pathParamsOrOptionsValue === 'object' &&
+      isPathParams(path, pathParamsOrOptionsValue as Record<string, string | number | undefined>)
+    ) {
+      // Called as: useEndpointQuery(operationId, pathParams)
+      pathParams = pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
+    } else {
+      // Called as: useEndpointQuery(operationId, [options])
+      options = pathParamsOrOptions as Options
+    }
   } else {
     // Called as: useEndpointQuery(operationId, pathParams, options)
     pathParams = pathParamsOrOptions as MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>

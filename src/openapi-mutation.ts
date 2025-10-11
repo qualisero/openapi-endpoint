@@ -3,9 +3,9 @@ import { useMutation } from '@tanstack/vue-query'
 
 import {
   type GetPathParameters,
-  type MutationVars,
+  type QMutationVars,
   type GetResponseData,
-  type MutationOptions,
+  type QMutationOptions,
   HttpMethod,
   Operations,
 } from './types'
@@ -49,8 +49,8 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
   h: ReturnType<typeof getHelpers<Ops, Op>>, // helpers
-  pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | MutationOptions<Ops, Op>,
-  optionsOrNull?: MutationOptions<Ops, Op>,
+  pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+  optionsOrNull?: QMutationOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a mutation operation
   if (!h.isMutationOperation(operationId)) {
@@ -58,7 +58,8 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   }
 
   const { path, method } = h.getOperationInfo(operationId)
-  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, MutationOptions<Ops, Op>>(
+  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QMutationOptions<Ops, Op>>(
+    path,
     pathParamsOrOptions,
     optionsOrNull,
   )
@@ -81,119 +82,122 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
 
-  const mutation = useMutation({
-    mutationFn: async (vars: MutationVars<Ops, Op>): Promise<GetResponseData<Ops, Op>> => {
-      const { data, pathParams: pathParamsFromMutate } = vars
-      extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
+  const mutation = useMutation(
+    {
+      mutationFn: async (vars: QMutationVars<Ops, Op>): Promise<GetResponseData<Ops, Op>> => {
+        const { data, pathParams: pathParamsFromMutate } = vars
+        extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
-      // TODO: use typing to ensure all required path params are provided
-      if (!isPathResolved(resolvedPath.value)) {
-        return Promise.reject(
-          new Error(
-            `Mutation for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(allPathParams.value)})`,
-          ),
-        )
-      }
-      // Cancel any ongoing queries for this path (prevent race conditions with refresh)
-      await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
-
-      try {
-        const response = await h.axios({
-          method: method.toLowerCase(),
-          url: resolvedPath.value,
-          data: data,
-          ...(axiosOptions || {}),
-        })
-        return response.data
-      } catch (error: unknown) {
-        if (errorHandler && isAxiosError(error)) {
-          const result = await errorHandler(error)
-          if (result !== undefined) {
-            return result
-          }
-          // If errorHandler returns undefined and doesn't throw,
-          // we consider this a "recovered" state and return undefined
-          // TanStack Query will handle this as a successful mutation with no data
-          return undefined as GetResponseData<Ops, Op>
-        } else {
-          throw error
+        // TODO: use typing to ensure all required path params are provided
+        if (!isPathResolved(resolvedPath.value)) {
+          return Promise.reject(
+            new Error(
+              `Mutation for '${String(operationId)}' cannot be used, as path is not resolved: ${resolvedPath.value} (params: ${JSON.stringify(allPathParams.value)})`,
+            ),
+          )
         }
-      }
-    },
-    onSuccess: async (data, vars, _context) => {
-      const {
-        dontInvalidate: dontInvalidateMutate,
-        dontUpdateCache: dontUpdateCacheMutate,
-        invalidateOperations: invalidateOperationsMutate,
-        refetchEndpoints: refetchEndpointsMutate,
-      } = vars
+        // Cancel any ongoing queries for this path (prevent race conditions with refresh)
+        await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
 
-      // Optimistically update cache with returned data for PUT/PATCH requests
-      if (
-        // dontUpdateCacheMutate supersedes dontUpdateCache from options
-        (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) &&
-        data &&
-        [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
-      ) {
-        await h.queryClient.setQueryData(queryKey.value, data)
-      }
-
-      // Invalidate queries for this path, and any additional specified operations
-      if (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) {
-        // Invalidate all queries for this path (exact for POST, prefix for others):
-        await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
-
-        const listPath = h.getListOperationPath(operationId)
-        if (listPath) {
-          const listResolvedPath = resolvePath(listPath, pathParams)
-          if (isPathResolved(listResolvedPath)) {
-            const listQueryKey = generateQueryKey(listResolvedPath)
-            await h.queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
-          }
-        }
-      }
-
-      const operationsWithPathParams: [Op, GetPathParameters<Ops, Op>][] = []
-      Array.from([invalidateOperations, invalidateOperationsMutate]).forEach((ops) => {
-        operationsWithPathParams.push(
-          ...((typeof ops === 'object' && !Array.isArray(ops)
-            ? Object.entries(ops)
-            : ops?.map((opId) => [opId, {}]) || []) as [Op, GetPathParameters<Ops, Op>][]),
-        )
-      })
-
-      if (operationsWithPathParams.length > 0) {
-        const promises = operationsWithPathParams.map(([opId, opParams]) => {
-          const opInfo = h.getOperationInfo(opId)
-          const opPath = resolvePath(opInfo.path, {
-            ...allPathParams.value,
-            ...opParams,
+        try {
+          const response = await h.axios({
+            method: method.toLowerCase(),
+            url: resolvedPath.value,
+            data: data,
+            ...(axiosOptions || {}),
           })
-          if (isPathResolved(opPath)) {
-            const opQueryKey = generateQueryKey(opPath)
-            return h.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
+          return response.data
+        } catch (error: unknown) {
+          if (errorHandler && isAxiosError(error)) {
+            const result = await errorHandler(error)
+            if (result !== undefined) {
+              return result
+            }
+            // If errorHandler returns undefined and doesn't throw,
+            // we consider this a "recovered" state and return undefined
+            // TanStack Query will handle this as a successful mutation with no data
+            return undefined as GetResponseData<Ops, Op>
           } else {
-            console.warn(
-              `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,
-            )
-            return Promise.reject()
+            throw error
           }
-        })
-        await Promise.all(promises)
-      }
+        }
+      },
+      onSuccess: async (data, vars, _context) => {
+        const {
+          dontInvalidate: dontInvalidateMutate,
+          dontUpdateCache: dontUpdateCacheMutate,
+          invalidateOperations: invalidateOperationsMutate,
+          refetchEndpoints: refetchEndpointsMutate,
+        } = vars
 
-      if (refetchEndpoints && refetchEndpoints.length > 0) {
-        await Promise.all(refetchEndpoints.map((endpoint) => endpoint.refetch()))
-      }
-      if (refetchEndpointsMutate && refetchEndpointsMutate.length > 0) {
-        await Promise.all(refetchEndpointsMutate.map((endpoint) => endpoint.refetch()))
-      }
+        // Optimistically update cache with returned data for PUT/PATCH requests
+        if (
+          // dontUpdateCacheMutate supersedes dontUpdateCache from options
+          (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) &&
+          data &&
+          [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
+        ) {
+          await h.queryClient.setQueryData(queryKey.value, data)
+        }
+
+        // Invalidate queries for this path, and any additional specified operations
+        if (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) {
+          // Invalidate all queries for this path (exact for POST, prefix for others):
+          await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
+
+          const listPath = h.getListOperationPath(operationId)
+          if (listPath) {
+            const listResolvedPath = resolvePath(listPath, pathParams)
+            if (isPathResolved(listResolvedPath)) {
+              const listQueryKey = generateQueryKey(listResolvedPath)
+              await h.queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
+            }
+          }
+        }
+
+        const operationsWithPathParams: [Op, GetPathParameters<Ops, Op>][] = []
+        Array.from([invalidateOperations, invalidateOperationsMutate]).forEach((ops) => {
+          operationsWithPathParams.push(
+            ...((typeof ops === 'object' && !Array.isArray(ops)
+              ? Object.entries(ops)
+              : ops?.map((opId) => [opId, {}]) || []) as [Op, GetPathParameters<Ops, Op>][]),
+          )
+        })
+
+        if (operationsWithPathParams.length > 0) {
+          const promises = operationsWithPathParams.map(([opId, opParams]) => {
+            const opInfo = h.getOperationInfo(opId)
+            const opPath = resolvePath(opInfo.path, {
+              ...allPathParams.value,
+              ...opParams,
+            })
+            if (isPathResolved(opPath)) {
+              const opQueryKey = generateQueryKey(opPath)
+              return h.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
+            } else {
+              console.warn(
+                `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,
+              )
+              return Promise.reject()
+            }
+          })
+          await Promise.all(promises)
+        }
+
+        if (refetchEndpoints && refetchEndpoints.length > 0) {
+          await Promise.all(refetchEndpoints.map((endpoint) => endpoint.refetch()))
+        }
+        if (refetchEndpointsMutate && refetchEndpointsMutate.length > 0) {
+          await Promise.all(refetchEndpointsMutate.map((endpoint) => endpoint.refetch()))
+        }
+      },
+      onSettled: () => {
+        extraPathParams.value = {} as GetPathParameters<Ops, Op>
+      },
+      ...useMutationOptions,
     },
-    onSettled: () => {
-      extraPathParams.value = {} as GetPathParameters<Ops, Op>
-    },
-    ...useMutationOptions,
-  })
+    h.queryClient,
+  )
 
   return {
     ...mutation,
