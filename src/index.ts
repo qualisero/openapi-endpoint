@@ -63,7 +63,7 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      * @param operationId - The operation ID to debug
      * @returns Information about whether the operation is a query operation
      */
-    debug: function <Op extends keyof Ops>(operationId: Op) {
+    _debugIsQueryOperation: function <Op extends keyof Ops>(operationId: Op) {
       const helpers = getHelpers<Ops, Op>(config)
       const info = helpers.getOperationInfo(operationId)
       console.log('Operation Info:', info)

@@ -114,7 +114,7 @@ function parseOperationsFromSpec(openapiContent: string): {
     })
   })
 
-  // Keep original order from OpenAPI spec for consistency with existing fixtures
+  operationIds.sort()
 
   return { operationIds, operationInfoMap }
 }
@@ -169,7 +169,7 @@ export type OperationId = keyof OpenApiOperations
 }
 
 async function generateApiOperations(openapiContent: string, outputDir: string): Promise<void> {
-  console.log('🔨 Generating api-operations.ts file...')
+  console.log('🔨 Generating openapi-typed-operations.ts file...')
 
   const { operationIds, operationInfoMap } = parseOperationsFromSpec(openapiContent)
 
@@ -177,10 +177,10 @@ async function generateApiOperations(openapiContent: string, outputDir: string):
   const tsContent = generateApiOperationsContent(operationIds, operationInfoMap)
 
   // Write to output file
-  const outputPath = path.join(outputDir, 'api-operations.ts')
+  const outputPath = path.join(outputDir, 'openapi-typed-operations.ts')
   fs.writeFileSync(outputPath, tsContent)
 
-  console.log(`✅ Generated api-operations file: ${outputPath}`)
+  console.log(`✅ Generated openapi-typed-operations file: ${outputPath}`)
   console.log(`📊 Found ${operationIds.length} operations`)
 }
 
@@ -198,7 +198,7 @@ Examples:
 
 This command will generate:
   - openapi-types.ts    (TypeScript types from OpenAPI spec)
-  - api-operations.ts   (Operation IDs and info for use with this library)
+  - openapi-typed-operations.ts   (Operation IDs and info for use with this library)
 `)
 }
 

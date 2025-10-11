@@ -3,7 +3,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/_openapi-typed-operations'
 
 describe('useOpenApi', () => {
   let mockConfig: OpenApiConfig<OpenApiOperations> = {
@@ -21,6 +21,14 @@ describe('useOpenApi', () => {
     expect(typeof api.useQuery).toBe('function')
     expect(typeof api.useMutation).toBe('function')
     expect(typeof api.useEndpoint).toBe('function')
+  })
+
+  it('should correctly type operationId parameters', () => {
+    // TypeScript compile-time type assertions
+    const _listPetsIsQuery: true = api._debugIsQueryOperation(OperationId.listPets)
+    const _getPetIsQuery: true = api._debugIsQueryOperation(OperationId.getPet)
+    const _createPetIsQuery: false = api._debugIsQueryOperation(OperationId.createPet)
+    const _createPetIsQueryTyped: false = api._debugIsQueryOperation(OperationId.createPet)
   })
 
   describe('useQuery', () => {

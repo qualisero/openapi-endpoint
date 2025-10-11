@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/_openapi-typed-operations'
 
 describe('Axios Options Integration', () => {
   const mockOperations: OpenApiOperations = openApiOperations

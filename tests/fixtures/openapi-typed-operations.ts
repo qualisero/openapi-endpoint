@@ -17,29 +17,29 @@ export enum HttpMethod {
 // Create the typed structure that combines operations with operation metadata
 // This ensures the debug method returns correct values and all operations are properly typed
 const operationsBase = {
-  listPets: {
-    path: '/pets',
-    method: HttpMethod.GET,
-  },
   createPet: {
     path: '/pets',
     method: HttpMethod.POST,
-  },
-  getPet: {
-    path: '/pets/{petId}',
-    method: HttpMethod.GET,
-  },
-  updatePet: {
-    path: '/pets/{petId}',
-    method: HttpMethod.PUT,
   },
   deletePet: {
     path: '/pets/{petId}',
     method: HttpMethod.DELETE,
   },
+  getPet: {
+    path: '/pets/{petId}',
+    method: HttpMethod.GET,
+  },
+  listPets: {
+    path: '/pets',
+    method: HttpMethod.GET,
+  },
   listUserPets: {
     path: '/users/{userId}/pets',
     method: HttpMethod.GET,
+  },
+  updatePet: {
+    path: '/pets/{petId}',
+    method: HttpMethod.PUT,
   },
 } as const
 
@@ -50,12 +50,12 @@ export type OpenApiOperations = typeof openApiOperations
 
 // Dynamically generate OperationId enum from the operations keys
 export const OperationId = {
-  listPets: 'listPets' as const,
   createPet: 'createPet' as const,
-  getPet: 'getPet' as const,
-  updatePet: 'updatePet' as const,
   deletePet: 'deletePet' as const,
+  getPet: 'getPet' as const,
+  listPets: 'listPets' as const,
   listUserPets: 'listUserPets' as const,
+  updatePet: 'updatePet' as const,
 } satisfies Record<keyof typeof operationsBase, keyof typeof operationsBase>
 
 // Export the type for TypeScript inference

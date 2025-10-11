@@ -37,7 +37,8 @@ describe('CLI codegen functionality', () => {
         })
       })
 
-      // Keep original order from OpenAPI spec for consistency with existing fixtures
+      operationIds.sort()
+
       return { operationIds, operationInfoMap }
     }
 
@@ -45,7 +46,7 @@ describe('CLI codegen functionality', () => {
       const openapiContent = JSON.stringify(toyOpenApiSpec)
       const result = parseOperationsFromSpec(openapiContent)
 
-      expect(result.operationIds).toEqual(['listPets', 'createPet', 'getPet', 'updatePet', 'deletePet', 'listUserPets'])
+      expect(result.operationIds).toEqual(['createPet', 'deletePet', 'getPet', 'listPets', 'listUserPets', 'updatePet'])
     })
 
     it('should create operation info map with correct structure', () => {

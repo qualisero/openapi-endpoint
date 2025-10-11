@@ -3,7 +3,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
 
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/_openapi-typed-operations'
 
 /**
  * This test file specifically validates that the type inference issue
