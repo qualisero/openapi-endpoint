@@ -1,0 +1,30 @@
+{
+  "source": {
+    "include": ["./src/"],
+    "includePattern": "\\.(js|ts)$",
+    "exclude": ["node_modules/"]
+  },
+  "opts": {
+    "destination": "./docs/",
+    "recurse": true
+  },
+  "plugins": ["plugins/markdown", "better-docs/typescript"],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false,
+    "better-docs": {
+      "name": "Vue OpenAPI Query Documentation",
+      "logo": false,
+      "title": "Vue OpenAPI Query API Documentation",
+      "css": false,
+      "trackingCode": false,
+      "hideGenerator": true,
+      "navigation": [
+        {
+          "label": "GitHub",
+          "href": "https://github.com/qualisero/openapi-endpoint"
+        }
+      ]
+    }
+  }
+}
