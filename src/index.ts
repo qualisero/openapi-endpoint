@@ -25,6 +25,12 @@ export const queryClient = new QueryClient({
 
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   return {
+    debug: function <Op extends keyof Ops>(operationId: Op) {
+      const helpers = getHelpers<Ops, Op>(config)
+      const info = helpers.getOperationInfo(operationId)
+      console.log('Operation Info:', info)
+      return {} as IsQueryOperation<Ops, Op>
+    },
     useQuery: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>

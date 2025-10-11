@@ -11,6 +11,11 @@ const mockAxiosInstance = {
   head: vi.fn(() => Promise.resolve({ data: {} })),
   options: vi.fn(() => Promise.resolve({ data: {} })),
   request: vi.fn(() => Promise.resolve({ data: {} })),
+  interceptors: {
+    request: { use: vi.fn(), eject: vi.fn() },
+    response: { use: vi.fn(), eject: vi.fn() },
+  },
+  defaults: { headers: { common: {} } },
 } as unknown as AxiosInstance
 
 // Set up mocks at the top level before any imports

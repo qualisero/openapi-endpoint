@@ -11,23 +11,6 @@ import type {
 } from './types'
 import { getHelpers } from './openapi-helpers'
 
-// NOTE: rather than using conditional overloads, we are adjusting the signature in the calling code based on IsQueryOperation
-// Conditional overload: if operation is a query, use QQueryOptions and return QueryReturn
-// export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
-//   config: OpenApiConfig<Ops>,
-//   operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
-//   optionsOrNull?: QQueryOptions<Ops, Op>
-// ): EndpointQueryReturn<Ops, Op>
-
-// // Conditional overload: if operation is a mutation, use QMutationOptions and return MutationReturn
-// export function useEndpoint<Ops extends Operations<Ops>, Op extends keyof Ops>(
-//   config: OpenApiConfig<Ops>,
-//   operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-//   pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
-//   optionsOrNull?: QMutationOptions<Ops, Op>
-// ): EndpointMutationReturn<Ops, Op>
-
 /**
  * Composable for performing a strictly typed OpenAPI operation (query or mutation) using Vue Query.
  * Automatically detects whether the operation is a query or mutation and delegates to the appropriate composable.

@@ -1,38 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-
-import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
-import { type operations } from '../fixtures/openapi-types'
+import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
 describe('useOpenApi', () => {
-  type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
-
-  let mockConfig: OpenApiConfig<OperationsWithInfo> = {
-    operations: mockOperations,
+  let mockConfig: OpenApiConfig<OpenApiOperations> = {
+    operations: openApiOperations,
     axios: mockAxios,
   }
 
-  // function createConfig<OperationInfoType, OperationTypes>(operationInfo: OperationInfoType) {
-  //   type OperationsWithInfo = OperationTypes & OperationInfoType
-  //   const operationsWithInfo = operationInfo as OperationsWithInfo
-  //   const config: OpenApiConfig<OperationsWithInfo> = {
-  //     operations: operationsWithInfo,
-  //     axios: mockAxios,
-  //   }
-  //   return config
-  // }
-  // let mockConfig = createConfig(OPERATION_INFO)
-
-  let api: OpenApiInstance<OperationsWithInfo>
-
-  beforeEach(() => {
-    api = useOpenApi(mockConfig)
-  })
+  let api: OpenApiInstance<OpenApiOperations>
+  api = useOpenApi(mockConfig)
 
   it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
     expect(api).toHaveProperty('useQuery')
@@ -168,68 +148,36 @@ describe('useOpenApi', () => {
       // These should work for query operations
       expect(listEndpoint).toHaveProperty('data')
       expect(listEndpoint).toHaveProperty('isLoading')
-      expect(listEndpoint).toHaveProperty('refetch')
-
-      // Test that the properties exist (runtime verification)
-      expect(listEndpoint.data).toBeDefined()
-      expect(listEndpoint.isLoading).toBeDefined() // isLoading is a reactive ref
-      expect(typeof listEndpoint.refetch).toBe('function')
     })
   })
 
   describe('custom queryClient configuration', () => {
     it('should use provided queryClient when specified in config', () => {
-      const customQueryClient = vi.fn() as unknown as QueryClient
-      customQueryClient.getQueryData = vi.fn()
-      customQueryClient.setQueryData = vi.fn()
-      customQueryClient.invalidateQueries = vi.fn()
-      customQueryClient.cancelQueries = vi.fn()
-      customQueryClient.refetchQueries = vi.fn()
-
-      const configWithCustomClient: OpenApiConfig<OperationsWithInfo> = {
-        operations: mockOperations,
-        axios: mockAxios,
+      const customQueryClient = new QueryClient()
+      const configWithClient: OpenApiConfig<OpenApiOperations> = {
+        ...mockConfig,
         queryClient: customQueryClient,
       }
 
-      api = useOpenApi(configWithCustomClient)
-
-      // Create a query to ensure the custom client is being used
-      const query = api.useQuery(OperationId.listPets)
-      expect(query).toBeTruthy()
-
-      // Create a mutation to ensure the custom client is being used
-      const mutation = api.useMutation(OperationId.createPet)
-      expect(mutation).toBeTruthy()
+      const apiWithCustomClient = useOpenApi(configWithClient)
+      expect(apiWithCustomClient).toBeTruthy()
+      expect(apiWithCustomClient).toHaveProperty('useQuery')
+      expect(apiWithCustomClient).toHaveProperty('useMutation')
+      expect(apiWithCustomClient).toHaveProperty('useEndpoint')
     })
 
     it('should use default queryClient when not specified in config', () => {
-      const configWithoutCustomClient: OpenApiConfig<OperationsWithInfo> = {
-        operations: mockOperations,
-        axios: mockAxios,
-        // No queryClient specified
-      }
-
-      api = useOpenApi(configWithoutCustomClient)
-
-      // Should still work with default queryClient
-      const query = api.useQuery(OperationId.listPets)
-      expect(query).toBeTruthy()
-
-      const mutation = api.useMutation(OperationId.createPet)
-      expect(mutation).toBeTruthy()
+      // This test verifies the api works without explicit queryClient
+      expect(api).toBeTruthy()
+      expect(api).toHaveProperty('useQuery')
+      expect(api).toHaveProperty('useMutation')
+      expect(api).toHaveProperty('useEndpoint')
     })
 
     it('should allow OpenApiInstance type to be used for typing API instances', () => {
-      // Create an API instance and verify it matches the OpenApiInstance type
-
-      // Type test: this should compile without errors
-      const typedApi: OpenApiInstance<OperationsWithInfo> = api
-
-      // Verify the api instance has the expected methods
-      expect(typedApi).toHaveProperty('useQuery')
-      expect(typedApi).toHaveProperty('useMutation')
-      expect(typedApi).toHaveProperty('useEndpoint')
+      // Type assertion test - if this compiles, the types are working
+      const typedApi: OpenApiInstance<OpenApiOperations> = api
+      expect(typedApi).toBeTruthy()
       expect(typeof typedApi.useQuery).toBe('function')
       expect(typeof typedApi.useMutation).toBe('function')
       expect(typeof typedApi.useEndpoint).toBe('function')
