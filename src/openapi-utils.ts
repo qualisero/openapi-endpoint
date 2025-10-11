@@ -23,6 +23,34 @@ export function resolvePath(
 function isPathParams(path: string, pathParams: Record<string, string | number | undefined>): boolean {
   if (!pathParams) return false
   const paramNames = Object.keys(pathParams)
+  // List of known option-like properties to exclude
+  const optionProps = [
+    'enabled',
+    'onSuccess',
+    'onError',
+    'onSettled',
+    'select',
+    'retry',
+    'staleTime',
+    'cacheTime',
+    'refetchOnWindowFocus',
+    'refetchOnReconnect',
+    'refetchOnMount',
+    'suspense',
+    'useErrorBoundary',
+    'meta',
+    'mutationKey',
+    'mutationFn',
+    'queryKey',
+    'queryFn',
+    'initialData',
+    'context',
+    // Add more as needed
+  ]
+  // If any option-like property is present, it's not path params
+  if (paramNames.some((name) => optionProps.includes(name))) {
+    return false
+  }
   return paramNames.every((paramName) => path.includes(`{${paramName}}`))
 }
 
