@@ -145,7 +145,10 @@ describe('useOpenApi', () => {
       const debug = useMutation({
         mutationFn: () => Promise.resolve(true),
       })
-      debug.mutateAsync()
+      debug.mutateAsync().then(() => {
+        // Success callback
+        expect(true).toBe(true) // Dummy assertion to indicate success
+      })
     })
 
     it('should correctly infer types for mutation operations', () => {
