@@ -163,7 +163,14 @@ describe('Type Inference for useEndpoint', () => {
     it('should demonstrate compile-time type safety constraints', () => {
       // Test that operation IDs are constrained to known operations
       type ValidOperationIds = keyof OpenApiOperations
-      const validOps: ValidOperationIds[] = ['listPets', 'getPet', 'createPet', 'updatePet', 'deletePet', 'listUserPets']
+      const validOps: ValidOperationIds[] = [
+        'listPets',
+        'getPet',
+        'createPet',
+        'updatePet',
+        'deletePet',
+        'listUserPets',
+      ]
       expect(validOps.length).toBe(6)
 
       // Test that path parameters are properly typed
@@ -179,32 +186,45 @@ describe('Type Inference for useEndpoint', () => {
 
     it('should prevent using wrong operation types with compilation errors', () => {
       // The following lines should fail TypeScript compilation if uncommented:
-      
-      /* 
+
       // @ts-expect-error - Non-existing operation ID
-      api.useQuery('nonExistentOperation');
-      
-      // @ts-expect-error - createPet is not a query operation  
-      api.useQuery(OperationId.createPet);
-      
+      api.useQuery('nonExistentOperation')
+
+      // @ts-expect-error - Non-existing operation ID
+      api.useMutation('nonExistentOperation')
+
+      // @ts-expect-error - createPet is not a query operation
+      api.useQuery(OperationId.createPet)
+
       // @ts-expect-error - listPets is not a mutation operation
-      api.useMutation(OperationId.listPets);
-      
+      api.useMutation(OperationId.listPets)
+
       // @ts-expect-error - Wrong path parameter type (number instead of string)
-      api.useQuery(OperationId.getPet, { petId: 123 });
-      
+      api.useQuery(OperationId.getPet, { petId: 123 })
+
       // @ts-expect-error - Non-existing path parameter
-      api.useQuery(OperationId.getPet, { wrongParam: 'test' });
-      
-      // @ts-expect-error - Missing required path parameter
-      api.useQuery(OperationId.getPet, {});
-      
+      api.useQuery(OperationId.getPet, { wrongParam: 'test' })
+
       // @ts-expect-error - Wrong option type (string instead of boolean)
-      api.useQuery(OperationId.listPets, { enabled: 'yes' });
-      
+      api.useQuery(OperationId.listPets, { enabled: 'yes' })
+
       // @ts-expect-error - axiosOptions should be object, not string
-      api.useQuery(OperationId.listPets, { axiosOptions: 'invalid' });
-      */
+      api.useQuery(OperationId.listPets, { axiosOptions: 'invalid' })
+
+      // @ts-expect-error - Wrong path parameter type (number instead of string)
+      api.useMutation(OperationId.updatePet, { petId: 123 })
+
+      // @ts-expect-error - Non-existing path parameter
+      api.useMutation(OperationId.updatePet, { wrongParam: 'test' })
+
+      // @ts-expect-error - Wrong option type (string instead of boolean)
+      api.useMutation(OperationId.createPet, { enabled: 'yes' })
+
+      // @ts-expect-error - axiosOptions should be object, not string
+      api.useMutation(OperationId.createPet, { axiosOptions: 'invalid' })
+
+      // @ts-expect-error - Missing required path parameter
+      api.useMutation(OperationId.deletePet).mutate()
 
       // Runtime assertions to ensure the test runs
       expect(true).toBe(true)
@@ -264,16 +284,16 @@ describe('Type Inference for useEndpoint', () => {
 
     it('should provide compile-time documentation for type constraints', () => {
       // This test serves as documentation for developers about TypeScript constraints
-      
+
       // Valid query operations (GET methods)
       type QueryOperations = 'listPets' | 'getPet' | 'listUserPets'
-      
-      // Valid mutation operations (POST/PUT/DELETE methods)  
+
+      // Valid mutation operations (POST/PUT/DELETE methods)
       type MutationOperations = 'createPet' | 'updatePet' | 'deletePet'
-      
+
       // Operations requiring path parameters
       type OperationsWithPathParams = 'getPet' | 'updatePet' | 'deletePet' | 'listUserPets'
-      
+
       // Operations without path parameters
       type OperationsWithoutPathParams = 'listPets' | 'createPet'
 

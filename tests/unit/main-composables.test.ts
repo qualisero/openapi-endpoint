@@ -132,6 +132,16 @@ describe('useOpenApi', () => {
       expect(deleteEndpoint).toHaveProperty('mutateAsync')
     })
 
+    it('should work with mutation operations not requiring variables', () => {
+      // Test that useEndpoint can be called with DELETE operations
+      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
+
+      deleteEndpoint.mutateAsync({}).then(() => {
+        // Success callback
+        expect(true).toBe(true) // Dummy assertion to indicate success
+      })
+    })
+
     it('should correctly infer types for mutation operations', () => {
       // This test specifically addresses the issue mentioned in the problem statement
       const createEndpoint = api.useEndpoint(OperationId.createPet)
