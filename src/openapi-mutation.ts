@@ -8,6 +8,7 @@ import {
   type QMutationOptions,
   HttpMethod,
   Operations,
+  GetRequestBody,
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import { type OpenApiHelpers } from './openapi-helpers'
@@ -84,7 +85,9 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
 
   const mutation = useMutation(
     {
-      mutationFn: async (vars: QMutationVars<Ops, Op>) => {
+      mutationFn: async (
+        vars: GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>,
+      ) => {
         const { data, pathParams: pathParamsFromMutate } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
@@ -128,7 +131,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           dontUpdateCache: dontUpdateCacheMutate,
           invalidateOperations: invalidateOperationsMutate,
           refetchEndpoints: refetchEndpointsMutate,
-        } = vars
+        } = vars || {}
 
         // Optimistically update cache with returned data for PUT/PATCH requests
         if (

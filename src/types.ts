@@ -66,13 +66,15 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
 }
 
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
+  data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
-} & (GetRequestBody<Ops, Op> extends never 
-  ? {} 
-  : { data: GetRequestBody<Ops, Op> })
-
+}
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
-  UseMutationOptions<GetResponseData<Ops, Op>, Error, QMutationVars<Ops, Op>>,
+  UseMutationOptions<
+    GetResponseData<Ops, Op>,
+    Error,
+    GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
+  >,
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {

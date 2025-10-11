@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
-import { QueryClient, useMutation } from '@tanstack/vue-query'
+import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
@@ -138,16 +138,13 @@ describe('useOpenApi', () => {
 
       // Test with the standalone mutation as well
       const standaloneMutation = api.useMutation(OperationId.deletePet, { petId: '123' })
-      
+
       // Both should have mutateAsync functions
       expect(typeof deleteEndpoint.mutateAsync).toBe('function')
       expect(typeof standaloneMutation.mutateAsync).toBe('function')
 
-      // For operations without request body, calling with empty object should work
-      // (The actual execution might return undefined in test environment due to mocking,
-      // but the important thing is that the calls don't throw TypeScript or runtime errors)
-      expect(() => deleteEndpoint.mutateAsync({})).not.toThrow()
-      expect(() => standaloneMutation.mutateAsync({})).not.toThrow()
+      expect(() => deleteEndpoint.mutateAsync()).not.toThrow()
+      expect(() => standaloneMutation.mutateAsync()).not.toThrow()
 
       // Verify the objects have the expected mutation properties
       expect(deleteEndpoint).toHaveProperty('mutate')

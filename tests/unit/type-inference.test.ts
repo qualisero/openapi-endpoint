@@ -186,7 +186,7 @@ describe('Type Inference for useEndpoint', () => {
 
     it('should prevent using wrong operation types with compilation errors', () => {
       // The following lines should fail TypeScript compilation if uncommented:
-      
+
       /* 
       // @ts-expect-error - Non-existing operation ID
       api.useQuery('nonExistentOperation')
