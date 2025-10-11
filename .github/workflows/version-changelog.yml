@@ -72,9 +72,9 @@ jobs:
               labels: ['version-update', 'changelog', 'automated']
             };
 
-            // Only add assignees if we found the Copilot agent
-            if (copilotAgentId) {
-              issueData.assignees = [copilotAgentId];
-            }
+            // Disabled until we manage to get the proper Id
+            // if (copilotAgentId) {
+            //   issueData.assignees = [copilotAgentId];
+            // }
 
             await github.rest.issues.create(issueData);
