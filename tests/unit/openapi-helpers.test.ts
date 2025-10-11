@@ -1,24 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { getHelpers } from '@/openapi-helpers'
-import { OpenApiConfig } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
-type MockOps = typeof OPERATION_INFO
-type OperationsWithInfo = operations & MockOps
-const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
-
-type MockConfig = OpenApiConfig<OperationsWithInfo>
+type CombinedOps = operations & typeof OPERATION_INFO
 
 describe('openapi-helpers', () => {
-  let mockConfig: MockConfig
+  let mockConfig: {
+    operations: CombinedOps
+    axios: any
+    queryClient?: any
+  }
 
   beforeEach(() => {
     mockConfig = {
-      operations: mockOperations,
+      operations: OPERATION_INFO as CombinedOps,
       axios: mockAxios,
     }
   })
@@ -46,8 +45,8 @@ describe('openapi-helpers', () => {
         refetchQueries: vi.fn(),
       } as unknown as QueryClient
 
-      const configWithCustomClient: MockConfig = {
-        operations: mockOperations,
+      const configWithCustomClient = {
+        operations: OPERATION_INFO as CombinedOps,
         axios: mockAxios,
         queryClient: customQueryClient,
       }

@@ -9,21 +9,21 @@ import { mockAxios } from '../setup'
 import { OperationId, OPERATION_INFO } from '../fixtures/api-operations'
 import { type operations } from '../fixtures/openapi-types'
 
-type MockOps = operations & typeof OPERATION_INFO
-const mockOperations: MockOps = OPERATION_INFO as MockOps
+type CombinedOps = operations & typeof OPERATION_INFO
 
 describe('Advanced composable functionality', () => {
-  let mockConfig: OpenApiConfig<MockOps>
-  let helpers: ReturnType<typeof getHelpers<MockOps, keyof MockOps>>
+  let helpers: ReturnType<typeof getHelpers<CombinedOps, keyof CombinedOps>>
 
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockConfig = {
-      operations: mockOperations,
+    // Cast to the internal combined config that getHelpers expects
+    const internalConfig = {
+      operations: OPERATION_INFO as CombinedOps,
       axios: mockAxios,
+      queryClient: undefined,
     }
-    helpers = getHelpers(mockConfig)
+    helpers = getHelpers(internalConfig)
   })
 
   describe('useEndpointQuery', () => {

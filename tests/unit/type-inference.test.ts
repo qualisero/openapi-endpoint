@@ -15,19 +15,15 @@ import { type operations } from '../fixtures/openapi-types'
  * `mutateAsync` are available.
  */
 describe('Type Inference for useEndpoint', () => {
-  type MockOps = typeof OPERATION_INFO
-  type OperationsWithInfo = operations & MockOps
-  const mockOperations: OperationsWithInfo = OPERATION_INFO as OperationsWithInfo
-
-  let mockConfig: OpenApiConfig<OperationsWithInfo> = {
-    operations: mockOperations,
+  let mockConfig: OpenApiConfig<typeof OPERATION_INFO> = {
+    operations: OPERATION_INFO,
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<OperationsWithInfo>
+  let api: OpenApiInstance<operations, typeof OPERATION_INFO>
 
   beforeEach(() => {
-    api = useOpenApi(mockConfig)
+    api = useOpenApi<operations, typeof OPERATION_INFO>(mockConfig)
   })
 
   describe('Mutation operation type inference', () => {
