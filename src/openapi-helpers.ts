@@ -1,9 +1,9 @@
 import { HttpMethod, type OperationInfo, OpenApiConfig, Operations } from './types'
 import { queryClient as defaultQueryClient } from './index'
 
-// helper returning the operationId prefix given an http method
-function _getMethodPrefix(method: HttpMethod): string | null {
-  const methodPrefixes: Record<HttpMethod, string | null> = {
+// Helper returning the operationId prefix given an http method
+function getMethodPrefix(method: HttpMethod): string | null {
+  const METHOD_PREFIXES: Record<HttpMethod, string | null> = {
     [HttpMethod.GET]: 'get', // or 'list' depending on the operationId
     [HttpMethod.POST]: 'create',
     [HttpMethod.PUT]: 'update',
@@ -13,7 +13,7 @@ function _getMethodPrefix(method: HttpMethod): string | null {
     [HttpMethod.OPTIONS]: null,
     [HttpMethod.TRACE]: null,
   }
-  return methodPrefixes[method]
+  return METHOD_PREFIXES[method]
 }
 
 export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(config: OpenApiConfig<Ops>) {
@@ -27,7 +27,7 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
   function getListOperationPath(operationId: Op): string | null {
     const opInfo = getOperationInfo(operationId)
     const operationIdStr: string = operationId as string
-    const operationPrefix = opInfo ? _getMethodPrefix(opInfo.method) : null
+    const operationPrefix = opInfo ? getMethodPrefix(opInfo.method) : null
     // Make sure operationId matches `<operationPrefix><upercase resourceName>` pattern
     if (!operationPrefix || !/^[A-Z]/.test(operationIdStr.charAt(operationPrefix.length)))
       // If not, fallback to CRUD heuristic
@@ -67,23 +67,20 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
     return null
   }
 
-  // Helper function to get all operation IDs
-  // function getAllOperationIds(): OperationId<C>[] {
-  //   return Object.values(OperationId)
-  // }
+  // Constants for HTTP method categorization
+  const QUERY_METHODS: HttpMethod[] = [HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS]
+  const MUTATION_METHODS: HttpMethod[] = [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
 
   // Helper to check if an operation is a query method at runtime
   function isQueryOperation(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
-    const queryMethods: HttpMethod[] = [HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS]
-    return queryMethods.includes(method)
+    return QUERY_METHODS.includes(method)
   }
 
   // Helper to check if an operation is a mutation method at runtime
   function isMutationOperation(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
-    const mutationMethods: HttpMethod[] = [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
-    return mutationMethods.includes(method)
+    return MUTATION_METHODS.includes(method)
   }
 
   return {
