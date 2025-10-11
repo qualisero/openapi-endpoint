@@ -203,7 +203,7 @@ describe('Axios Options Integration', () => {
       const globalAxios = mockAxios
       globalAxios.defaults.headers.common['Global-Header'] = 'global-value'
 
-      const configWithGlobalAxios: OpenApiConfig<OperationsWithInfo> = {
+      const configWithGlobalAxios: OpenApiConfig<OpenApiOperations> = {
         operations: mockOperations,
         axios: globalAxios,
       }

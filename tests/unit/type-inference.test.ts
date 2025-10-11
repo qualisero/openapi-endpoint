@@ -21,7 +21,7 @@ describe('Type Inference for useEndpoint', () => {
     axios: mockAxios,
   }
 
-  let api: OpenApiInstance<OperationsWithInfo>
+  let api: OpenApiInstance<OpenApiOperations>
 
   beforeEach(() => {
     api = useOpenApi(mockConfig)
