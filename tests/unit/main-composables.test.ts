@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
-import { QueryClient } from '@tanstack/vue-query'
+import { QueryClient, useMutation } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
 
@@ -140,6 +140,12 @@ describe('useOpenApi', () => {
         // Success callback
         expect(true).toBe(true) // Dummy assertion to indicate success
       })
+
+      // Original TanStack Mutation works:
+      const debug = useMutation({
+        mutationFn: () => Promise.resolve(true),
+      })
+      debug.mutateAsync()
     })
 
     it('should correctly infer types for mutation operations', () => {
