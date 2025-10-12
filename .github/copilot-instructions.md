@@ -121,13 +121,7 @@ For EVERY code change, follow this exact sequence:
    ```
 4. **Commit your changes**
 
-**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands. Documentation changes require JSDoc regeneration.
-
-**For publishing documentation to GitHub Pages (maintainers only):**
-
-```bash
-npm run docs:publish  # Generate and publish docs to gh-pages branch
-```
+**This workflow is NON-NEGOTIABLE** - no code changes should be committed without running the fix and test commands.
 
 ### Efficient Copilot Agent Setup
 

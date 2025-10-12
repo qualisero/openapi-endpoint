@@ -20,6 +20,7 @@
     }
   },
   "typedocOptions": {
+    "$schema": "https://typedoc.org/schema.json",
     "entryPoints": ["./src/index.ts"],
     "out": "./docs/",
     "name": "Vue OpenAPI Query Documentation",
@@ -27,6 +28,7 @@
     "excludeInternal": true,
     "excludePrivate": true,
     "excludeProtected": true,
+    "exclude": ["**/node_modules/**", "**/dist/**", "**/tests/**", "**/*.test.ts", "**/*.spec.ts"],
     "excludeNotDocumented": false,
     "sort": ["source-order"],
     "categorizeByGroup": false,
