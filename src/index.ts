@@ -13,7 +13,7 @@ import {
   IsQueryOperation,
 } from './types'
 import { getHelpers } from './openapi-helpers'
-export type { OperationInfo, QQueryOptions, OpenApiConfig, OpenApiInstance } from './types'
+export type { OpenApiConfig, OpenApiInstance } from './types'
 export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 
