@@ -98,29 +98,24 @@ jobs:
               const issueId = issueResponse.repository.issue.id;
               console.log(`Issue GraphQL ID: ${issueId}`);
 
-              // Get Copilot user ID
+              // Get Copilot user ID using the correct GraphQL query
               const copilotQuery = `
-                query($owner: String!, $repo: String!) {
-                  repository(owner: $owner, name: $repo) {
-                    suggestedActors(loginNames: "copilot", capabilities: [CAN_BE_ASSIGNED], first: 1) {
-                      nodes {
-                        id
-                        login
-                      }
-                    }
+                query($login: String!) {
+                  user(login: $login) {
+                    id
+                    login
                   }
                 }
               `;
 
               const copilotResponse = await github.graphql(copilotQuery, {
-                owner: context.repo.owner,
-                repo: context.repo.repo
+                login: "copilot"
               });
 
-              const copilotActors = copilotResponse.repository.suggestedActors.nodes;
+              const copilotUser = copilotResponse.user;
               
-              if (copilotActors && copilotActors.length > 0) {
-                const copilotId = copilotActors[0].id;
+              if (copilotUser && copilotUser.id) {
+                const copilotId = copilotUser.id;
                 console.log(`Copilot user ID: ${copilotId}`);
 
                 // Assign Copilot to the issue
@@ -139,7 +134,7 @@ jobs:
 
                 console.log(`Successfully assigned Copilot to issue #${createdIssue.data.number}`);
               } else {
-                console.log('Copilot user not found or not available for assignment in this repository');
+                console.log('Copilot user not found');
               }
             } catch (error) {
               console.log(`Failed to assign Copilot to issue: ${error.message}`);
