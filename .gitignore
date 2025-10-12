@@ -1,0 +1,14 @@
+dist
+node_modules
+*.tgz
+.DS_Store
+
+# Test coverage
+coverage
+*.lcov
+
+# Temporary files
+/tmp
+
+# Generated documentation (published to gh-pages)
+docs
