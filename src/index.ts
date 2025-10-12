@@ -44,6 +44,7 @@ export const queryClient = new QueryClient({
  * @example
  * ```typescript
  * import { useOpenApi } from '@qualisero/openapi-endpoint'
+ * // See documentation on how to generate types and operations automatically:
  * import { openApiOperations, type OpenApiOperations } from './generated/api-operations'
  * import axios from 'axios'
  *
