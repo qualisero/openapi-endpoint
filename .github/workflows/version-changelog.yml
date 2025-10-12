@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Create version and changelog update issue
         uses: actions/github-script@v7
-        env:
-          COPILOT_AGENT_ID: ${{ vars.COPILOT_AGENT_ID }}
         with:
           script: |
             const issueBody = `## Version and Changelog Update Required
@@ -74,9 +72,76 @@ jobs:
               labels: ['version-update', 'changelog', 'automated']
             };
 
-            // Disabled until we manage to get the proper Id
-            // if (copilotAgentId) {
-            //   issueData.assignees = [copilotAgentId];
-            // }
+            // Create the issue first
+            const createdIssue = await github.rest.issues.create(issueData);
+            console.log(`Created issue #${createdIssue.data.number}`);
 
-            await github.rest.issues.create(issueData);
+            // Now assign Copilot to the issue using GraphQL API
+            try {
+              // Get the issue ID using GraphQL
+              const issueQuery = `
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      id
+                    }
+                  }
+                }
+              `;
+
+              const issueResponse = await github.graphql(issueQuery, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                number: createdIssue.data.number
+              });
+
+              const issueId = issueResponse.repository.issue.id;
+              console.log(`Issue GraphQL ID: ${issueId}`);
+
+              // Get Copilot user ID
+              const copilotQuery = `
+                query($owner: String!, $repo: String!) {
+                  repository(owner: $owner, name: $repo) {
+                    suggestedActors(loginNames: "copilot", capabilities: [CAN_BE_ASSIGNED], first: 1) {
+                      nodes {
+                        id
+                        login
+                      }
+                    }
+                  }
+                }
+              `;
+
+              const copilotResponse = await github.graphql(copilotQuery, {
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+
+              const copilotActors = copilotResponse.repository.suggestedActors.nodes;
+              
+              if (copilotActors && copilotActors.length > 0) {
+                const copilotId = copilotActors[0].id;
+                console.log(`Copilot user ID: ${copilotId}`);
+
+                // Assign Copilot to the issue
+                const assignMutation = `
+                  mutation($issueId: ID!, $assigneeIds: [ID!]!) {
+                    addAssigneesToAssignable(input: {assignableId: $issueId, assigneeIds: $assigneeIds}) {
+                      clientMutationId
+                    }
+                  }
+                `;
+
+                await github.graphql(assignMutation, {
+                  issueId: issueId,
+                  assigneeIds: [copilotId]
+                });
+
+                console.log(`Successfully assigned Copilot to issue #${createdIssue.data.number}`);
+              } else {
+                console.log('Copilot user not found or not available for assignment in this repository');
+              }
+            } catch (error) {
+              console.log(`Failed to assign Copilot to issue: ${error.message}`);
+              console.log('Issue created successfully but Copilot assignment failed');
+            }
