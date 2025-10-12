@@ -18,7 +18,7 @@ export type { OpenApiConfig, OpenApiInstance } from './types'
 export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 /** @internal */
 export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
-
+export type { GetResponseData } from './types'
 /**
  * Default QueryClient instance with pre-configured options.
  *
