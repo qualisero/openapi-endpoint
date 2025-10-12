@@ -1,6 +1,6 @@
 {
   "name": "@qualisero/openapi-endpoint",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/qualisero/openapi-endpoint.git"
@@ -37,7 +37,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "docs": "jsdoc -c jsdoc.json",
+    "docs": "typedoc",
     "docs:publish": "npm run docs && gh-pages -d docs",
     "prepublishOnly": "npm run build && npm run check"
   },
@@ -67,15 +67,14 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "@vue/test-utils": "^2.4.6",
-    "better-docs": "^2.7.3",
     "eslint": "^9.37.0",
     "eslint-plugin-prettier": "^5.5.4",
     "gh-pages": "^6.3.0",
     "globals": "^16.4.0",
-    "jsdoc": "^4.0.5",
     "jsdom": "^27.0.0",
     "openapi-typescript": "^7.9.1",
     "prettier": "^3.6.2",
+    "typedoc": "^0.28.14",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },

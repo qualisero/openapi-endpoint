@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-10-11
+
+### Added
+
+- Advanced usage examples in README demonstrating automatic operation type detection with `api.useEndpoint`
+- Comprehensive cache management and refetching control documentation with practical examples
+- Reactive parameter handling examples showing query chaining and conditional enabling
+- JSDoc documentation generation with GitHub Pages deployment (`npm run docs`, `npm run docs:publish`)
+- Comprehensive test suite for advanced usage patterns (187 total tests)
+
+### Changed
+
+- Enhanced README with detailed "Advanced Usage" section covering real-world scenarios
+- Improved development workflow with JSDoc generation integrated into documentation updates
+- Updated ESLint configuration to exclude generated documentation files
+
+### Fixed
+
+- Cache management logic in mutations - corrected `dontUpdateCache` and `dontInvalidate` flag handling
+
 ## [0.5.0] - 2025-10-11
 
 ### Added

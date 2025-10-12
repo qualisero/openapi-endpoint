@@ -19,6 +19,12 @@
       "@/*": ["src/*"]
     }
   },
+  "typedocOptions": {
+    "entryPoints": ["./src/index.ts"],
+    "out": "./docs/",
+    "name": "Vue OpenAPI Query Documentation",
+    "hideGenerator": true
+  },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
