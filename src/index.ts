@@ -14,7 +14,9 @@ import {
 } from './types'
 import { getHelpers } from './openapi-helpers'
 export type { OpenApiConfig, OpenApiInstance } from './types'
+/** @internal */
 export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
+/** @internal */
 export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
 
 /**
@@ -37,7 +39,7 @@ export const queryClient = new QueryClient({
  *
  * @template Ops - The operations type, typically generated from your OpenAPI spec
  * @param config - Configuration object containing operations metadata and axios instance
- * @returns API instance with useQuery, useMutation, useEndpoint, and debug methods
+ * @returns {OpenApiInstance<Ops>} API instance with useQuery, useMutation, useEndpoint, and debug methods
  *
  * @example
  * ```typescript
