@@ -50,7 +50,15 @@ describe('CLI Integration Tests', () => {
         }
       }
 
-      expect(operations.sort()).toEqual(['createPet', 'deletePet', 'getPet', 'listPets', 'listUserPets', 'updatePet'])
+      expect(operations.sort()).toEqual([
+        'createPet',
+        'deletePet',
+        'getPet',
+        'listPets',
+        'listUserPets',
+        'updatePet',
+        'uploadPetPic',
+      ])
     })
 
     it('should validate operation methods and paths', () => {

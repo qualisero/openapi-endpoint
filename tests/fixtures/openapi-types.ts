@@ -41,6 +41,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/pets/{petId}/upload': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload a picture for a pet */
+    post: operations['uploadPetPic']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/users/{userId}/pets': {
     parameters: {
       query?: never
@@ -74,6 +91,10 @@ export interface components {
       tag?: string
       /** @enum {string} */
       status?: 'available' | 'pending' | 'sold'
+    }
+    SingleFile: {
+      /** Format: binary */
+      file: string
     }
   }
   responses: never
@@ -191,6 +212,54 @@ export interface operations {
     responses: {
       /** @description Pet deleted successfully */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+    }
+  }
+  uploadPetPic: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        petId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['SingleFile']
+      }
+    }
+    responses: {
+      /** @description Picture uploaded successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Pet']
+        }
+      }
+      /** @description Unprocessable content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Default error response */
+      default: {
         headers: {
           [name: string]: unknown
         }

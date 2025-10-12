@@ -164,6 +164,74 @@
         }
       }
     },
+    "/pets/{petId}/upload": {
+      "post": {
+        "operationId": "uploadPetPic",
+        "summary": "Upload a picture for a pet",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SingleFile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Picture uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{userId}/pets": {
       "get": {
         "operationId": "listUserPets",
@@ -230,6 +298,16 @@
           "status": {
             "type": "string",
             "enum": ["available", "pending", "sold"]
+          }
+        }
+      },
+      "SingleFile": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary"
           }
         }
       }

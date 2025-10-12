@@ -41,6 +41,10 @@ const operationsBase = {
     path: '/pets/{petId}',
     method: HttpMethod.PUT,
   },
+  uploadPetPic: {
+    path: '/pets/{petId}/upload',
+    method: HttpMethod.POST,
+  },
 } as const
 
 // Merge with operations type to maintain OpenAPI type information
@@ -56,6 +60,7 @@ export const OperationId = {
   listPets: 'listPets' as const,
   listUserPets: 'listUserPets' as const,
   updatePet: 'updatePet' as const,
+  uploadPetPic: 'uploadPetPic' as const,
 } satisfies Record<keyof typeof operationsBase, keyof typeof operationsBase>
 
 // Export the type for TypeScript inference
