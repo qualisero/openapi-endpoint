@@ -23,7 +23,37 @@
     "entryPoints": ["./src/index.ts"],
     "out": "./docs/",
     "name": "Vue OpenAPI Query Documentation",
-    "hideGenerator": true
+    "hideGenerator": true,
+    "excludeInternal": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeNotDocumented": false,
+    "sort": ["source-order"],
+    "categorizeByGroup": false,
+    "defaultCategory": "Other",
+    "categoryOrder": ["Functions", "Interfaces", "Type Aliases", "Variables", "Other"],
+    "kindSortOrder": ["Variable", "Function", "Interface", "TypeAlias"],
+    "validation": {
+      "invalidLink": true,
+      "notExported": false
+    },
+    "treatWarningsAsErrors": false,
+    "intentionallyNotExported": [
+      "QQueryOptions",
+      "QMutationOptions",
+      "EndpointQueryReturn",
+      "EndpointMutationReturn",
+      "OperationInfo",
+      "useEndpointQuery",
+      "useEndpointMutation",
+      "Operations",
+      "GetPathParameters",
+      "GetResponseData",
+      "GetRequestBody",
+      "QMutationVars",
+      "IsQueryOperation",
+      "OpenApiHelpers"
+    ]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
