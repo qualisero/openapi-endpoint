@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-10-13
+
+### Added
+
+- Multipart/form-data support for file upload endpoints
+- Type-safe file upload operations alongside existing JSON API support
+- `FormData` as valid input type for multipart endpoints with `Writable<Body> | FormData` typing
+- Comprehensive test suite for multipart functionality with 11 new test cases
+
+### Changed
+
+- Enhanced `GetRequestBody` type to handle both `application/json` and `multipart/form-data` content types
+- Extended toy OpenAPI specification with `uploadPetPic` endpoint demonstrating multipart usage
+
 ## [0.6.0] - 2025-10-11
 
 ### Added

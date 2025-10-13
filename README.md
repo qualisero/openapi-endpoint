@@ -1,6 +1,6 @@
 # Vue OpenAPI Query
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=0.6.1)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=0.7.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero/openapi-endpoint)](https://bundlephobia.com/package/@qualisero/openapi-endpoint)
@@ -135,6 +135,70 @@ const petListQuery = api.useQuery(OperationId.listPets)
 const createPetWithRefetch = api.useMutation(OperationId.createPet, {
   refetchEndpoints: [petListQuery], // Manually refetch these endpoints
 })
+```
+
+### File Upload Support with Multipart/Form-Data
+
+The library supports file uploads through endpoints that accept `multipart/form-data` content type. For these endpoints, you can pass either a `FormData` object or the schema-defined object structure:
+
+```typescript
+// Example file upload endpoint usage
+async function uploadPetPicture(petId: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId })
+
+  return uploadMutation.mutateAsync({
+    data: formData,
+    axiosOptions: {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  })
+}
+
+// Alternative: using the object structure (if your API supports binary strings)
+async function uploadPetPictureAsString(petId: string, binaryData: string) {
+  const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId })
+
+  return uploadMutation.mutateAsync({
+    data: {
+      file: binaryData, // Binary data as string
+    },
+  })
+}
+
+// Complete example with error handling and cache invalidation
+async function handleFileUpload(event: Event, petId: string) {
+  const files = (event.target as HTMLInputElement).files
+  if (!files || files.length === 0) return
+
+  const file = files[0]
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const uploadMutation = api.useMutation(
+    OperationId.uploadPetPic,
+    { petId },
+    {
+      invalidateOperations: [OperationId.getPet, OperationId.listPets],
+      onSuccess: (data) => {
+        console.log('Upload successful:', data)
+      },
+      onError: (error) => {
+        console.error('Upload failed:', error)
+      },
+    },
+  )
+
+  try {
+    await uploadMutation.mutateAsync({ data: formData })
+  } catch (error) {
+    console.error('Upload error:', error)
+  }
+}
 ```
 
 ### Reactive Enabling/Disabling Based on Path Parameters
