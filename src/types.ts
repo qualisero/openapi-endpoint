@@ -111,6 +111,7 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
+  axiosOptions?: AxiosRequestConfig
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
