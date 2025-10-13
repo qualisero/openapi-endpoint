@@ -143,7 +143,11 @@ export type GetRequestBody<Ops extends Operations<Ops>, Op extends keyof Ops> =
     requestBody: { content: { 'application/json': infer Body } }
   }
     ? Writable<Body>
-    : never
+    : GetOperation<Ops, Op> extends {
+          requestBody: { content: { 'multipart/form-data': infer Body } }
+        }
+      ? Writable<Body> | FormData
+      : never
 
 // Utility: Make readonly properties required (non-optional)
 type RequireReadonly<T> = {
