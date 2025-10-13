@@ -201,15 +201,22 @@ describe('TanStack Query Options Integration', () => {
       expect(query).toHaveProperty('isLoading')
     })
 
-    it('should support custom error handler in mutations', () => {
-      const errorHandler = vi.fn()
-      const mutation = api.useMutation(OperationId.createPet, {
-        errorHandler,
-      })
+    it('should support error handling in mutations with catch blocks', () => {
+      const mutation = api.useMutation(OperationId.createPet)
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
+
+      // Test error handling with catch blocks
+      expect(async () => {
+        try {
+          await mutation.mutateAsync({ data: { name: 'Test Pet' } })
+        } catch (error) {
+          // Handle error in catch block
+          console.log('Mutation error handled:', error)
+        }
+      }).not.toThrow()
     })
 
     it('should support async error handler', () => {

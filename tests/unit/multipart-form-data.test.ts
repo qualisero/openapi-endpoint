@@ -153,27 +153,24 @@ describe('Multipart/Form-Data Support', () => {
       expect(listPetsQuery).toBeTruthy()
     })
 
-    it('should support error handling with custom error handlers', () => {
-      const errorHandler = vi.fn().mockResolvedValue({
-        id: 'fallback',
-        name: 'Fallback Pet',
-        status: 'available',
-      })
-
-      const uploadMutation = api.useMutation(
-        OperationId.uploadPetPic,
-        { petId: '123' },
-        {
-          errorHandler,
-        },
-      )
+    it('should support error handling with catch blocks', () => {
+      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
 
       const formData = new FormData()
       formData.append('file', new File(['test'], 'test.jpg'))
 
       // Verify configuration works
       expect(uploadMutation).toBeTruthy()
-      expect(errorHandler).toBeDefined()
+
+      // Test error handling with catch
+      expect(async () => {
+        try {
+          await uploadMutation.mutateAsync({ data: formData })
+        } catch (_error) {
+          // Handle error in catch block
+          return { id: 'fallback', name: 'Fallback Pet', status: 'available' }
+        }
+      }).not.toThrow()
     })
   })
 

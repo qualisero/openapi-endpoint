@@ -1,4 +1,4 @@
-import { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios'
+import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
 import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
@@ -112,12 +112,11 @@ export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = M
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
   axiosOptions?: AxiosRequestConfig
-  errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
   UseMutationOptions<
-    GetResponseData<Ops, Op>,
+    AxiosResponse<GetResponseData<Ops, Op>>,
     Error,
     GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
   >,
@@ -125,7 +124,6 @@ export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> 
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfig
-    errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
