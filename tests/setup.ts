@@ -47,7 +47,7 @@ vi.mock('@tanstack/vue-query', () => ({
   })),
   useMutation: vi.fn(() => ({
     mutate: vi.fn(),
-    mutateAsync: vi.fn(),
+    mutateAsync: vi.fn(() => Promise.resolve({})),
     data: { value: null },
     isLoading: { value: false },
     error: { value: null },

@@ -44,6 +44,8 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  *   - `mutate` and `mutateAsync`: Functions to trigger the mutation, taking an object with:
  *     - `data`: The request body data for the mutation.
  *     - `pathParams`: Optional additional path parameters for the mutation.
+ *     - `axiosOptions`: Optional axios configuration overrides for this specific mutation call.
+ *     - `errorHandler`: Optional error handler that overrides the setup-time error handler for this specific mutation call.
  *    - `dontUpdateCache`, `dontInvalidate`, `invalidateOperations`, `refetchEndpoints`: Same as options, but can be set per-mutation.
  *   - All other properties and methods from the underlying Vue Query mutation object.
  */
@@ -88,7 +90,12 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
       mutationFn: async (
         vars: GetRequestBody<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>,
       ) => {
-        const { data, pathParams: pathParamsFromMutate } = vars as QMutationVars<Ops, Op> & { data?: unknown }
+        const {
+          data,
+          pathParams: pathParamsFromMutate,
+          axiosOptions: axiosOptionsFromMutate,
+          errorHandler: errorHandlerFromMutate,
+        } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
         // TODO: use typing to ensure all required path params are provided
@@ -108,11 +115,14 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
             url: resolvedPath.value,
             ...(data !== undefined && { data }),
             ...axiosOptions,
+            ...axiosOptionsFromMutate,
           })
           return response.data
         } catch (error: unknown) {
-          if (errorHandler && isAxiosError(error)) {
-            const result = await errorHandler(error)
+          // Use errorHandler from mutate call if provided, otherwise use setup errorHandler
+          const activeErrorHandler = errorHandlerFromMutate || errorHandler
+          if (activeErrorHandler && isAxiosError(error)) {
+            const result = await activeErrorHandler(error)
             if (result !== undefined) {
               return result
             }
