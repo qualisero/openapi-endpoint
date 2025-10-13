@@ -35,7 +35,7 @@ jobs:
             - For breaking changes: increment major version (e.g., 0.4.0 → 1.0.0)
             - Update the version in \`package.json\` before committing any code changes
             - This ensures proper release tracking and dependency management
-            - Updated the `?refresh=` query param on the README badge with latest timestamp (to force a refresh)
+            - Updated the \`?refresh=\` query param on the README badge with latest timestamp (to force a refresh)
 
             ### Changelog Management Guidelines
 
