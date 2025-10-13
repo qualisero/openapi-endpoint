@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-10-13
+
+### Added
+
+- Per-mutation axios options and error handler overrides for `mutate` and `mutateAsync` calls
+- Support for passing `axiosOptions` directly to mutation calls with proper merging of setup and per-call options
+- Support for passing `errorHandler` directly to mutation calls that overrides setup-time error handlers
+- Enhanced `QMutationVars` type with optional `axiosOptions` and `errorHandler` fields for type-safe overrides
+
+### Changed
+
+- Extended mutation implementation to merge setup-time and per-call axios configuration options
+- Updated JSDoc documentation to reflect new per-mutation override capabilities
+
 ## [0.7.0] - 2025-10-13
 
 ### Added
