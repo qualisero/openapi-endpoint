@@ -166,7 +166,7 @@ describe('Multipart/Form-Data Support', () => {
       expect(async () => {
         try {
           await uploadMutation.mutateAsync({ data: formData })
-        } catch (_error) {
+        } catch {
           // Handle error in catch block
           return { id: 'fallback', name: 'Fallback Pet', status: 'available' }
         }
