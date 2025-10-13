@@ -46,7 +46,15 @@ describe('CLI codegen functionality', () => {
       const openapiContent = JSON.stringify(toyOpenApiSpec)
       const result = parseOperationsFromSpec(openapiContent)
 
-      expect(result.operationIds).toEqual(['createPet', 'deletePet', 'getPet', 'listPets', 'listUserPets', 'updatePet'])
+      expect(result.operationIds).toEqual([
+        'createPet',
+        'deletePet',
+        'getPet',
+        'listPets',
+        'listUserPets',
+        'updatePet',
+        'uploadPetPic',
+      ])
     })
 
     it('should create operation info map with correct structure', () => {
@@ -60,6 +68,7 @@ describe('CLI codegen functionality', () => {
         updatePet: { path: '/pets/{petId}', method: 'PUT' },
         deletePet: { path: '/pets/{petId}', method: 'DELETE' },
         listUserPets: { path: '/users/{userId}/pets', method: 'GET' },
+        uploadPetPic: { path: '/pets/{petId}/upload', method: 'POST' },
       })
     })
 
