@@ -112,6 +112,7 @@ export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = M
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
   axiosOptions?: AxiosRequestConfig
+  errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<

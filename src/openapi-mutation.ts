@@ -45,6 +45,7 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  *     - `data`: The request body data for the mutation.
  *     - `pathParams`: Optional additional path parameters for the mutation.
  *     - `axiosOptions`: Optional axios configuration overrides for this specific mutation call.
+ *     - `errorHandler`: Optional error handler that overrides the setup-time error handler for this specific mutation call.
  *    - `dontUpdateCache`, `dontInvalidate`, `invalidateOperations`, `refetchEndpoints`: Same as options, but can be set per-mutation.
  *   - All other properties and methods from the underlying Vue Query mutation object.
  */
@@ -93,6 +94,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           data,
           pathParams: pathParamsFromMutate,
           axiosOptions: axiosOptionsFromMutate,
+          errorHandler: errorHandlerFromMutate,
         } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
@@ -117,8 +119,10 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           })
           return response.data
         } catch (error: unknown) {
-          if (errorHandler && isAxiosError(error)) {
-            const result = await errorHandler(error)
+          // Use errorHandler from mutate call if provided, otherwise use setup errorHandler
+          const activeErrorHandler = errorHandlerFromMutate || errorHandler
+          if (activeErrorHandler && isAxiosError(error)) {
+            const result = await activeErrorHandler(error)
             if (result !== undefined) {
               return result
             }
