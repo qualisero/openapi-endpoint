@@ -293,115 +293,69 @@ describe('Axios Options Integration', () => {
       }).not.toThrow()
     })
 
-    it('should allow errorHandler override in mutate call', () => {
-      const setupErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-setup',
-        name: 'setup',
-        status: 'available' as const,
-      }))
-      const overrideErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-override',
-        name: 'override',
-        status: 'available' as const,
-      }))
-
-      const mutation = api.useMutation(OperationId.createPet, {
-        errorHandler: setupErrorHandler,
-      })
+    it('should handle errors in mutate call with catch', () => {
+      const mutation = api.useMutation(OperationId.createPet)
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
 
-      // Test that mutation can be called with errorHandler override
+      // Test that mutation can be called normally
       expect(() => {
         mutation.mutate({
           data: { name: 'Fluffy' },
-          errorHandler: overrideErrorHandler,
         })
       }).not.toThrow()
     })
 
-    it('should allow errorHandler override in mutateAsync call', async () => {
-      const setupErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-setup',
-        name: 'setup',
-        status: 'available' as const,
-      }))
-      const overrideErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-override',
-        name: 'override',
-        status: 'available' as const,
-      }))
-
-      const mutation = api.useMutation(OperationId.createPet, {
-        errorHandler: setupErrorHandler,
-      })
+    it('should handle errors in mutateAsync call with catch', async () => {
+      const mutation = api.useMutation(OperationId.createPet)
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
 
-      // Test that mutateAsync can be called with errorHandler override
+      // Test that mutateAsync can be called and handle errors with catch
       await expect(
-        mutation.mutateAsync({
-          data: { name: 'Fluffy' },
-          errorHandler: overrideErrorHandler,
-        }),
+        mutation
+          .mutateAsync({
+            data: { name: 'Fluffy' },
+          })
+          .catch((error) => {
+            // Handle error in catch block instead of errorHandler
+            console.log('Caught error:', error)
+            return { id: 'fallback', name: 'fallback' }
+          }),
       ).resolves.toBeDefined()
     })
 
-    it('should support errorHandler in mutate without setup errorHandler', () => {
-      const mutateErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-mutate',
-        name: 'mutate-only',
-        status: 'available' as const,
-      }))
+    it('should handle errors in mutate without setup errorHandler', () => {
       const mutation = api.useMutation(OperationId.createPet)
 
       expect(() => {
         mutation.mutate({
           data: { name: 'Fluffy' },
-          errorHandler: mutateErrorHandler,
         })
       }).not.toThrow()
     })
 
-    it('should handle errorHandler with path parameters in mutate call', () => {
-      const errorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-params',
-        name: 'with-params',
-        status: 'available' as const,
-      }))
+    it('should handle mutation with path parameters', () => {
       const mutation = api.useMutation(OperationId.updatePet, { petId: '123' })
 
       expect(() => {
         mutation.mutate({
           data: { name: 'Updated Pet' },
           pathParams: { petId: '456' }, // Override path params
-          errorHandler,
         })
       }).not.toThrow()
     })
 
-    it('should handle combined axios options and errorHandler overrides', () => {
-      const setupErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-setup',
-        name: 'setup',
-        status: 'available' as const,
-      }))
-      const overrideErrorHandler = vi.fn((_error: any) => ({
-        id: 'recovered-override',
-        name: 'override',
-        status: 'available' as const,
-      }))
-
+    it('should handle combined axios options and error handling', () => {
       const mutation = api.useMutation(OperationId.createPet, {
         axiosOptions: {
           timeout: 5000,
           headers: { 'X-Setup': 'value' },
         },
-        errorHandler: setupErrorHandler,
       })
 
       expect(() => {
@@ -411,7 +365,6 @@ describe('Axios Options Integration', () => {
             timeout: 10000,
             headers: { 'X-Override': 'value' },
           },
-          errorHandler: overrideErrorHandler,
         })
       }).not.toThrow()
     })

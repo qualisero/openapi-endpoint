@@ -12,7 +12,7 @@ import {
 } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import { type OpenApiHelpers } from './openapi-helpers'
-import { isAxiosError } from 'axios'
+import { type AxiosResponse } from 'axios'
 
 export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
   typeof useEndpointMutation<Ops, Op>
@@ -45,7 +45,6 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
  *     - `data`: The request body data for the mutation.
  *     - `pathParams`: Optional additional path parameters for the mutation.
  *     - `axiosOptions`: Optional axios configuration overrides for this specific mutation call.
- *     - `errorHandler`: Optional error handler that overrides the setup-time error handler for this specific mutation call.
  *    - `dontUpdateCache`, `dontInvalidate`, `invalidateOperations`, `refetchEndpoints`: Same as options, but can be set per-mutation.
  *   - All other properties and methods from the underlying Vue Query mutation object.
  */
@@ -72,7 +71,6 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     dontUpdateCache,
     invalidateOperations,
     refetchEndpoints,
-    errorHandler,
     ...useMutationOptions
   } = options
   const extraPathParams = ref({}) as Ref<GetPathParameters<Ops, Op>>
@@ -94,7 +92,6 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           data,
           pathParams: pathParamsFromMutate,
           axiosOptions: axiosOptionsFromMutate,
-          errorHandler: errorHandlerFromMutate,
         } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
@@ -109,33 +106,16 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         // Cancel any ongoing queries for this path (prevent race conditions with refresh)
         await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
 
-        try {
-          const response = await h.axios({
-            method: method.toLowerCase(),
-            url: resolvedPath.value,
-            ...(data !== undefined && { data }),
-            ...axiosOptions,
-            ...axiosOptionsFromMutate,
-          })
-          return response.data
-        } catch (error: unknown) {
-          // Use errorHandler from mutate call if provided, otherwise use setup errorHandler
-          const activeErrorHandler = errorHandlerFromMutate || errorHandler
-          if (activeErrorHandler && isAxiosError(error)) {
-            const result = await activeErrorHandler(error)
-            if (result !== undefined) {
-              return result
-            }
-            // If errorHandler returns undefined and doesn't throw,
-            // we consider this a "recovered" state and return undefined
-            // TanStack Query will handle this as a successful mutation with no data
-            return undefined as GetResponseData<Ops, Op>
-          } else {
-            throw error
-          }
-        }
+        return h.axios({
+          method: method.toLowerCase(),
+          url: resolvedPath.value,
+          ...(data !== undefined && { data }),
+          ...axiosOptions,
+          ...axiosOptionsFromMutate,
+        })
       },
-      onSuccess: async (data, vars, _context) => {
+      onSuccess: async (response, vars, _context) => {
+        const data = response.data
         const {
           dontInvalidate: dontInvalidateMutate,
           dontUpdateCache: dontUpdateCacheMutate,
@@ -214,7 +194,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
 
   return {
     ...mutation,
-    data: mutation.data as ComputedRef<GetResponseData<Ops, Op> | undefined>,
+    data: mutation.data as ComputedRef<AxiosResponse<GetResponseData<Ops, Op>> | undefined>,
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
     extraPathParams,
   }
