@@ -1,5 +1,5 @@
 import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import { UseMutationOptions, type UseQueryOptions, QueryClient } from '@tanstack/vue-query'
+import { UseMutationOptions, type UseQueryOptions } from '@tanstack/vue-query'
 import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
@@ -8,6 +8,34 @@ import type { EndpointMutationReturn } from './openapi-mutation'
 export type { EndpointQueryReturn, EndpointMutationReturn }
 
 export type OperationId = string
+
+/**
+ * Interface defining the minimal QueryClient methods required by this library.
+ *
+ * This interface ensures compatibility with different versions of @tanstack/vue-query
+ * by only requiring the specific methods that are actually used internally.
+ * This prevents version compatibility issues where internal implementation details
+ * (like private properties) might differ between versions.
+ */
+export interface QueryClientLike {
+  /**
+   * Cancel running queries that match the provided filters.
+   * Used to prevent race conditions when mutations affect data.
+   */
+  cancelQueries(filters: { queryKey: unknown[]; exact?: boolean }): Promise<void>
+
+  /**
+   * Set query data for a specific query key.
+   * Used for optimistic updates after successful mutations.
+   */
+  setQueryData(queryKey: unknown[], data: unknown): void
+
+  /**
+   * Invalidate queries that match the provided filters.
+   * Used to trigger refetches of related data after mutations.
+   */
+  invalidateQueries(filters: { queryKey: unknown[]; exact?: boolean }): Promise<void>
+}
 
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
 
@@ -52,8 +80,11 @@ export interface OpenApiConfig<Ops extends Operations<Ops>> {
   /**
    * Optional TanStack Query client instance.
    * If not provided, a default QueryClient with sensible defaults will be used.
+   *
+   * Note: This accepts any QueryClient-like object that implements the required methods,
+   * ensuring compatibility across different versions of @tanstack/vue-query.
    */
-  queryClient?: QueryClient
+  queryClient?: QueryClientLike
 }
 
 export enum HttpMethod {
