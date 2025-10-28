@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2025-10-28
+
+### Added
+
+- Exposed `pathParams` property in endpoint returns for debugging and introspection of current path parameter values
+- Comprehensive test suite for reactive path parameters with 8 new test cases covering all pathParams types
+
+### Fixed
+
+- Reactive path parameters for function-based pathParams - functions passed as pathParams now properly track reactive dependencies
+- Consistent reactive patterns across query and mutation composables for improved reliability
+
+### Changed
+
+- Enhanced `getParamsOptionsFrom` utility to properly recognize functions as pathParams instead of options
+- Improved reactivity handling with consistent `toValue()` usage within computed functions
+
 ## [0.9.0] - 2025-10-13
 
 ### Changed
