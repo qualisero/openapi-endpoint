@@ -1,5 +1,4 @@
 import type { MaybeRefOrGetter } from 'vue'
-import type { AxiosRequestConfig } from 'axios'
 
 import { useEndpoint } from './openapi-endpoint'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
@@ -47,9 +46,7 @@ export { type EndpointMutationReturn, useEndpointMutation } from './openapi-muta
  * const createPet = api.useMutation('createPet', {})
  * ```
  */
-export function useOpenApi<Ops extends Operations<Ops>, AxiosConfig = AxiosRequestConfig>(
-  config: OpenApiConfig<Ops, AxiosConfig>,
-) {
+export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   return {
     /**
      * Debug utility to inspect operation metadata.
@@ -93,9 +90,9 @@ export function useOpenApi<Ops extends Operations<Ops>, AxiosConfig = AxiosReque
     useQuery: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? QQueryOptions<Ops, Op, AxiosConfig>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op, AxiosConfig>,
-      optionsOrNull?: QQueryOptions<Ops, Op, AxiosConfig>,
+        ? QQueryOptions<Ops, Op>
+        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+      optionsOrNull?: QQueryOptions<Ops, Op>,
     ): EndpointQueryReturn<Ops, Op> {
       const helpers = getHelpers<Ops, Op>(config)
 
@@ -136,9 +133,9 @@ export function useOpenApi<Ops extends Operations<Ops>, AxiosConfig = AxiosReque
     useMutation: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? QMutationOptions<Ops, Op, AxiosConfig>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op, AxiosConfig>,
-      optionsOrNull?: QMutationOptions<Ops, Op, AxiosConfig>,
+        ? QMutationOptions<Ops, Op>
+        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+      optionsOrNull?: QMutationOptions<Ops, Op>,
     ) {
       const helpers = getHelpers<Ops, Op>(config)
 
@@ -174,16 +171,12 @@ export function useOpenApi<Ops extends Operations<Ops>, AxiosConfig = AxiosReque
       operationId: Op,
       pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
         ? IsQueryOperation<Ops, Op> extends true
-          ? QQueryOptions<Ops, Op, AxiosConfig>
-          : QMutationOptions<Ops, Op, AxiosConfig>
+          ? QQueryOptions<Ops, Op>
+          : QMutationOptions<Ops, Op>
         :
             | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-            | (IsQueryOperation<Ops, Op> extends true
-                ? QQueryOptions<Ops, Op, AxiosConfig>
-                : QMutationOptions<Ops, Op, AxiosConfig>),
-      optionsOrNull?: IsQueryOperation<Ops, Op> extends true
-        ? QQueryOptions<Ops, Op, AxiosConfig>
-        : QMutationOptions<Ops, Op, AxiosConfig>,
+            | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
+      optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
     ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
       const helpers = getHelpers<Ops, Op>(config)
 
