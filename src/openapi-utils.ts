@@ -85,7 +85,7 @@ export function getParamsOptionsFrom<
   if (optionsOrNull === undefined) {
     const pathParamsOrOptionsValue = toValue(pathParamsOrOptions)
     if (
-      typeof pathParamsOrOptions === 'object' &&
+      (typeof pathParamsOrOptions === 'object' || typeof pathParamsOrOptions === 'function') &&
       pathParamsOrOptions !== null &&
       pathParamsOrOptionsValue &&
       typeof pathParamsOrOptionsValue === 'object' &&

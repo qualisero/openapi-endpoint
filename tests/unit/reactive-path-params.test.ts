@@ -125,6 +125,47 @@ describe('Reactive Path Parameters', () => {
     })
   })
 
+  describe('function-based pathParams (demonstrating the fix)', () => {
+    it('should correctly handle pathParams types and updates', () => {
+      // Test with a simple object first
+      const simpleParams = { userId: 'simple123' }
+      const endpoint1 = api.useEndpoint(OperationId.listUserPets, simpleParams)
+
+      expect(endpoint1.pathParams.value).toEqual({ userId: 'simple123' })
+      expect(endpoint1.isEnabled.value).toBe(true)
+
+      // Test with a ref that gets updated
+      const refParams = ref({ userId: 'initial' })
+      const endpoint2 = api.useEndpoint(OperationId.listUserPets, refParams)
+
+      expect(endpoint2.pathParams.value).toEqual({ userId: 'initial' })
+      expect(endpoint2.isEnabled.value).toBe(true)
+
+      // Update the ref - this should work with proper reactivity
+      refParams.value = { userId: 'updated' }
+
+      // The pathParams should reflect the change
+      expect(endpoint2.pathParams.value).toEqual({ userId: 'updated' })
+      expect(endpoint2.isEnabled.value).toBe(true)
+
+      // Test with a function that references a reactive value
+      const sourceRef = ref('functional')
+      const endpoint3 = api.useEndpoint(OperationId.listUserPets, () => ({
+        userId: sourceRef.value,
+      }))
+
+      expect(endpoint3.pathParams.value).toEqual({ userId: 'functional' })
+      expect(endpoint3.isEnabled.value).toBe(true)
+
+      // Update the source ref
+      sourceRef.value = 'changed'
+
+      // This should work with the fix
+      expect(endpoint3.pathParams.value).toEqual({ userId: 'changed' })
+      expect(endpoint3.isEnabled.value).toBe(true)
+    })
+  })
+
   describe('structural verification', () => {
     it('should provide the correct structure for all endpoint types', () => {
       // Test query endpoint structure

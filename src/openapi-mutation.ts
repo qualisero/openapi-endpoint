@@ -76,7 +76,12 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   const extraPathParams = ref({}) as Ref<GetPathParameters<Ops, Op>>
 
   // Compute the resolved path - same pattern as query
-  const basePathParams = computed(() => toValue(pathParams))
+  // This ensures that when pathParams is a function, it gets called within the computed
+  // so Vue can track dependencies of variables referenced inside the function
+  const basePathParams = computed(() => {
+    const result = toValue(pathParams)
+    return result
+  })
   const allPathParams = computed(() => ({
     ...basePathParams.value,
     ...extraPathParams.value,
