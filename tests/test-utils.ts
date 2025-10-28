@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi, expect } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from './setup'
@@ -6,7 +6,7 @@ import { OperationId, openApiOperations, type OpenApiOperations } from './fixtur
 
 /**
  * Shared Test Utilities and Fixtures
- * 
+ *
  * This file provides common setup patterns and utilities used across multiple test files
  * to reduce duplication and ensure consistency.
  */
@@ -19,14 +19,14 @@ export function createTestApiInstance(): {
   mockConfig: OpenApiConfig<OpenApiOperations>
 } {
   vi.clearAllMocks()
-  
+
   const mockConfig: OpenApiConfig<OpenApiOperations> = {
     operations: openApiOperations,
     axios: mockAxios,
   }
-  
+
   const api = useOpenApi(mockConfig)
-  
+
   return { api, mockConfig }
 }
 
@@ -40,7 +40,7 @@ export const testFixtures = {
     breed: 'Labrador',
     age: 3,
   },
-  
+
   // Sample form data
   createFormData: () => {
     const formData = new FormData()
@@ -48,7 +48,7 @@ export const testFixtures = {
     formData.append('file', new Blob(['test content'], { type: 'text/plain' }), 'test.txt')
     return formData
   },
-  
+
   // Common headers
   headers: {
     auth: {
@@ -65,7 +65,7 @@ export const testFixtures = {
       'X-Source': 'unit-test',
     },
   },
-  
+
   // Common axios options
   axiosOptions: {
     timeout: {
@@ -80,13 +80,13 @@ export const testFixtures = {
       high: 5,
     },
   },
-  
+
   // Common TanStack Query options
   queryOptions: {
     staleTime: {
-      short: 10000,    // 10 seconds
-      medium: 60000,   // 1 minute
-      long: 300000,    // 5 minutes
+      short: 10000, // 10 seconds
+      medium: 60000, // 1 minute
+      long: 300000, // 5 minutes
     },
     retry: {
       none: 0,
@@ -110,7 +110,7 @@ export const testPatterns = {
     expect(query).toHaveProperty('queryKey')
     expect(query).toHaveProperty('isEnabled')
   },
-  
+
   /**
    * Asserts that a mutation result has the expected properties
    */
@@ -124,7 +124,7 @@ export const testPatterns = {
     expect(typeof mutation.mutate).toBe('function')
     expect(typeof mutation.mutateAsync).toBe('function')
   },
-  
+
   /**
    * Asserts that an endpoint automatically detected as query has query properties
    */
@@ -135,7 +135,7 @@ export const testPatterns = {
     expect(endpoint).not.toHaveProperty('mutate')
     expect(endpoint).not.toHaveProperty('mutateAsync')
   },
-  
+
   /**
    * Asserts that an endpoint automatically detected as mutation has mutation properties
    */
@@ -146,14 +146,14 @@ export const testPatterns = {
     expect(endpoint).toHaveProperty('error')
     expect(endpoint).toHaveProperty('isEnabled')
   },
-  
+
   /**
    * Tests that a function doesn't throw when called
    */
   assertNoThrow: (fn: () => void) => {
     expect(fn).not.toThrow()
   },
-  
+
   /**
    * Tests that an async function resolves without throwing
    */
@@ -197,7 +197,7 @@ export const testScenarios = {
     testPatterns.assertQueryResult(query)
     return query
   },
-  
+
   /**
    * Query with path parameters test scenario
    */
@@ -207,7 +207,7 @@ export const testScenarios = {
     expect(query.queryKey.value).toEqual(['pets', petId])
     return query
   },
-  
+
   /**
    * Standard mutation test scenario
    */
@@ -216,7 +216,7 @@ export const testScenarios = {
     testPatterns.assertMutationResult(mutation)
     return mutation
   },
-  
+
   /**
    * Mutation with path parameters test scenario
    */
@@ -226,7 +226,7 @@ export const testScenarios = {
     expect(mutation.isEnabled.value).toBe(true)
     return mutation
   },
-  
+
   /**
    * useEndpoint with GET operation (should become query)
    */
@@ -235,7 +235,7 @@ export const testScenarios = {
     testPatterns.assertQueryEndpoint(endpoint)
     return endpoint
   },
-  
+
   /**
    * useEndpoint with POST operation (should become mutation)
    */
@@ -270,18 +270,18 @@ export const axiosConfigExamples = {
     timeout: testFixtures.axiosOptions.timeout.medium,
     headers: testFixtures.headers.custom,
   },
-  
+
   authentication: {
     headers: testFixtures.headers.auth,
     withCredentials: true,
   },
-  
+
   upload: {
     timeout: testFixtures.axiosOptions.timeout.long,
     headers: testFixtures.headers.contentType.multipart,
     onUploadProgress: createMockFunctions().onUploadProgress,
   },
-  
+
   advanced: {
     timeout: testFixtures.axiosOptions.timeout.medium,
     maxContentLength: 2000,

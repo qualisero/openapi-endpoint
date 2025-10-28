@@ -6,10 +6,10 @@ import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtu
 
 /**
  * Consolidated Axios Configuration Tests
- * 
+ *
  * This file consolidates all axios-related configuration testing:
  * - Basic axios options integration
- * - Advanced axios configurations  
+ * - Advanced axios configurations
  * - Custom properties support
  * - Request/response transformations
  * - Authentication and security
@@ -290,15 +290,19 @@ describe('Axios Configuration Integration', () => {
         return true
       }
 
-      const query = api.useQuery(OperationId.getPet, { petId: '123' }, {
-        axiosOptions: {
-          manualErrorHandling: customErrorHandler,
-          customMetadata: {
-            requestId: 'req-123',
-            source: 'unit-test',
+      const query = api.useQuery(
+        OperationId.getPet,
+        { petId: '123' },
+        {
+          axiosOptions: {
+            manualErrorHandling: customErrorHandler,
+            customMetadata: {
+              requestId: 'req-123',
+              source: 'unit-test',
+            },
           },
         },
-      })
+      )
 
       expect(query).toHaveProperty('data')
     })

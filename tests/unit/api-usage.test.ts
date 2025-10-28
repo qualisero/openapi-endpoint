@@ -8,7 +8,7 @@ import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtu
 
 /**
  * API Usage Patterns and Examples
- * 
+ *
  * This file consolidates all API usage patterns, from basic to advanced:
  * - Main composable API (useOpenApi)
  * - Query and mutation usage patterns
@@ -439,7 +439,7 @@ describe('API Usage Patterns', () => {
       // Note: In test environment, we can't fully simulate Vue's reactivity
       // but we can verify the endpoint structure is correct
       expect(myEndpoint).toBeTruthy()
-      
+
       // Verify it's a query endpoint since listUserPets is GET
       expect(myEndpoint).toHaveProperty('data')
       expect(myEndpoint).not.toHaveProperty('mutateAsync')
@@ -636,13 +636,13 @@ describe('API Usage Patterns', () => {
 
       // Create pet mutation with comprehensive options
       const createPetMutation = api.useMutation(OperationId.createPet, {
-        onSuccess: async (newPet, variables) => {
+        onSuccess: async (newPet, _variables) => {
           // Invalidate user's pets list
           await userPetsQuery.refetch()
-          
+
           // Select the newly created pet
-          if (newPet?.id) {
-            selectedPet.value = newPet.id
+          if (newPet?.data?.id) {
+            selectedPet.value = newPet.data.id
           }
         },
         onError: (error) => {
@@ -660,7 +660,6 @@ describe('API Usage Patterns', () => {
           [OperationId.listUserPets]: { userId: currentUser.value.id },
           [OperationId.listPets]: {},
         },
-        refetchEndpoints: [petDetailsQuery],
         onSuccess: (updatedPet) => {
           console.log('Pet updated successfully:', updatedPet)
         },

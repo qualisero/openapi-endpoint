@@ -369,96 +369,87 @@ describe('Bug Fixes and Issue Reproductions', () => {
   })
 
   /**
-   * Feature: Multipart Form Data Support
+   * Issue: Multipart Form Data Support
    *
    * Problem: Need proper support for multipart/form-data requests with file uploads.
    *
    * Solution: Added support for FormData handling and proper content-type headers.
    */
   describe('Multipart Form Data Support (Feature Request)', () => {
-    it('should support multipart/form-data with specific upload endpoints', () => {
-      // Test with upload-specific endpoint
-      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
-
-      const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
+    it('should handle FormData objects in mutation data', () => {
       const formData = new FormData()
-      formData.append('file', mockFile)
+      formData.append('name', 'Test Pet')
+      formData.append('file', new Blob(['test'], { type: 'text/plain' }), 'test.txt')
+
+      const mutation = api.useMutation(OperationId.createPet)
 
       expect(() => {
-        uploadMutation.mutateAsync({
-          data: formData, // FormData is appropriate for uploadPetPic
-        })
-      }).not.toThrow()
-
-      expect(uploadMutation).toHaveProperty('mutate')
-      expect(uploadMutation).toHaveProperty('mutateAsync')
-    })
-
-    it('should support custom headers with multipart uploads', () => {
-      const uploadMutation = api.useMutation(
-        OperationId.uploadPetPic,
-        { petId: '123' },
-        {
+        mutation.mutate({
+          data: formData,
           axiosOptions: {
             headers: {
               'Content-Type': 'multipart/form-data',
-              'X-Custom-Header': 'custom-value',
             },
           },
-        },
-      )
-
-      const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
-      const formData = new FormData()
-      formData.append('file', mockFile)
-
-      expect(() => {
-        uploadMutation.mutateAsync({
-          data: formData, // FormData is appropriate for uploadPetPic
         })
       }).not.toThrow()
     })
 
-    it('should support type safety for multipart/form-data schemas', () => {
-      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
+    it('should automatically set content-type for FormData', () => {
+      const formData = new FormData()
+      formData.append('name', 'Test Pet')
 
-      // Should accept FormData for upload endpoints
+      const mutation = api.useMutation(OperationId.createPet, {
+        axiosOptions: {
+          // Content-Type should be automatically set by axios for FormData
+        },
+      })
+
       expect(() => {
-        uploadMutation.mutateAsync({
-          data: new FormData(),
-        })
+        mutation.mutate({ data: formData })
       }).not.toThrow()
+    })
 
-      // Should also accept object matching the schema
+    it('should support file uploads with progress tracking', () => {
+      const formData = new FormData()
+      formData.append('file', new Blob(['test content'], { type: 'text/plain' }))
+
+      const onUploadProgress = vi.fn()
+
+      const mutation = api.useMutation(OperationId.createPet, {
+        axiosOptions: {
+          onUploadProgress,
+        },
+      })
+
       expect(() => {
-        uploadMutation.mutateAsync({
-          data: {
-            file: 'binary-data-string', // As per OpenAPI spec, file is string with format: binary
+        mutation.mutate({ data: formData })
+      }).not.toThrow()
+    })
+
+    it('should handle mixed form data with additional axios options', () => {
+      const formData = new FormData()
+      formData.append('name', 'Test Pet')
+      formData.append('description', 'A test pet for upload')
+
+      const mutation = api.useMutation(OperationId.createPet)
+
+      expect(() => {
+        mutation.mutate({
+          data: formData,
+          axiosOptions: {
+            timeout: 30000, // Longer timeout for file uploads
+            onUploadProgress: (progressEvent) => {
+              console.log('Upload progress:', progressEvent)
+            },
           },
         })
       }).not.toThrow()
-    })
-
-    it('should integrate with cache invalidation after upload', () => {
-      const listPetsQuery = api.useQuery(OperationId.listPets)
-      const uploadMutation = api.useMutation(
-        OperationId.uploadPetPic,
-        { petId: '123' },
-        {
-          invalidateOperations: [OperationId.listPets],
-        },
-      )
-
-      const formData = new FormData()
-      formData.append('file', new File(['test'], 'test.jpg'))
-
-      expect(uploadMutation).toBeTruthy()
-      expect(listPetsQuery).toBeTruthy()
     })
   })
 
   /**
-   * Enhancement: Error Handling Improvements
+   * Issue: Error Handling Improvements
    *
    * Problem: Need better error handling patterns and custom error handlers.
    *
@@ -544,6 +535,166 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
       expect(api).toHaveProperty('useEndpoint')
+    })
+  })
+
+  /**
+   * Feature: Multipart Form Data Support
+   *
+   * Problem: Need proper support for multipart/form-data requests with file uploads.
+   *
+   * Solution: Added support for FormData handling and proper content-type headers.
+   */
+  describe('Multipart Form Data Support (Feature Request)', () => {
+    it('should handle FormData objects in mutation data', () => {
+      const formData = new FormData()
+      formData.append('name', 'Test Pet')
+      formData.append('file', new Blob(['test'], { type: 'text/plain' }), 'test.txt')
+
+      const mutation = api.useMutation(OperationId.createPet)
+
+      expect(() => {
+        mutation.mutate({
+          data: formData,
+          axiosOptions: {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        })
+      }).not.toThrow()
+    })
+
+    it('should automatically set content-type for FormData', () => {
+      const formData = new FormData()
+      formData.append('name', 'Test Pet')
+
+      const mutation = api.useMutation(OperationId.createPet, {
+        axiosOptions: {
+          // Content-Type should be automatically set by axios for FormData
+        },
+      })
+
+      expect(() => {
+        mutation.mutate({ data: formData })
+      }).not.toThrow()
+    })
+
+    it('should support file uploads with progress tracking', () => {
+      const formData = new FormData()
+      formData.append('file', new Blob(['test content'], { type: 'text/plain' }))
+
+      const onUploadProgress = vi.fn()
+
+      const mutation = api.useMutation(OperationId.createPet, {
+        axiosOptions: {
+          onUploadProgress,
+        },
+      })
+
+      expect(() => {
+        mutation.mutate({ data: formData })
+      }).not.toThrow()
+    })
+
+    it('should handle mixed form data with additional axios options', () => {
+      const formData = new FormData()
+      formData.append('name', 'Test Pet')
+      formData.append('description', 'A test pet for upload')
+
+      const mutation = api.useMutation(OperationId.createPet)
+
+      expect(() => {
+        mutation.mutate({
+          data: formData,
+          axiosOptions: {
+            timeout: 30000, // Longer timeout for file uploads
+            onUploadProgress: (progressEvent) => {
+              console.log('Upload progress:', progressEvent)
+            },
+          },
+        })
+      }).not.toThrow()
+    })
+
+    it('should support multipart/form-data with specific upload endpoints', () => {
+      // Test with upload-specific endpoint if available
+      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
+
+      const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
+      const formData = new FormData()
+      formData.append('file', mockFile)
+
+      expect(() => {
+        uploadMutation.mutateAsync({
+          data: formData,
+        })
+      }).not.toThrow()
+
+      expect(uploadMutation).toHaveProperty('mutate')
+      expect(uploadMutation).toHaveProperty('mutateAsync')
+    })
+
+    it('should support custom headers with multipart uploads', () => {
+      const uploadMutation = api.useMutation(
+        OperationId.uploadPetPic,
+        { petId: '123' },
+        {
+          axiosOptions: {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'X-Custom-Header': 'custom-value',
+            },
+          },
+        },
+      )
+
+      const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
+      const formData = new FormData()
+      formData.append('file', mockFile)
+
+      expect(() => {
+        uploadMutation.mutateAsync({
+          data: formData,
+        })
+      }).not.toThrow()
+    })
+
+    it('should support type safety for multipart/form-data schemas', () => {
+      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
+
+      // Should accept FormData
+      expect(() => {
+        uploadMutation.mutateAsync({
+          data: new FormData(),
+        })
+      }).not.toThrow()
+
+      // Should also accept object matching the schema
+      expect(() => {
+        uploadMutation.mutateAsync({
+          data: {
+            file: 'binary-data-string', // As per OpenAPI spec, file is string with format: binary
+          },
+        })
+      }).not.toThrow()
+    })
+
+    it('should integrate with cache invalidation after upload', () => {
+      const listPetsQuery = api.useQuery(OperationId.listPets)
+      const uploadMutation = api.useMutation(
+        OperationId.uploadPetPic,
+        { petId: '123' },
+        {
+          invalidateOperations: [OperationId.listPets],
+        },
+      )
+
+      const formData = new FormData()
+      formData.append('file', new File(['test'], 'test.jpg'))
+
+      expect(uploadMutation).toBeTruthy()
+      expect(listPetsQuery).toBeTruthy()
     })
   })
 })
