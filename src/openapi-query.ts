@@ -49,7 +49,14 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
   )
   const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
 
-  const resolvedPath = computed(() => resolvePath(path, pathParams))
+  // Make path parameters reactive by ensuring toValue is called inside computed
+  // This ensures that when pathParams is a function, it gets called within the computed
+  // so Vue can track dependencies of variables referenced inside the function
+  const allPathParams = computed(() => {
+    const result = toValue(pathParams)
+    return result
+  })
+  const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
 
   // Check if path is fully resolved for enabling the query
@@ -134,5 +141,6 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     isEnabled,
     queryKey,
     onLoad,
+    pathParams: allPathParams,
   }
 }
