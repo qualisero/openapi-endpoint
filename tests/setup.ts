@@ -24,12 +24,31 @@ vi.mock('axios', () => ({
   create: vi.fn(() => mockAxiosInstance),
 }))
 
-vi.mock('vue', () => ({
-  computed: vi.fn((fn) => ({ value: fn() })),
-  ref: vi.fn((value) => ({ value })),
-  toValue: vi.fn((value) => (typeof value === 'function' ? value() : value)),
-  watch: vi.fn(),
-}))
+vi.mock('vue', () => {
+  // Create a more realistic mock for Vue reactivity
+  const createReactiveRef = (initialValue: any) => {
+    let value = initialValue
+    const reactiveRef = {
+      get value() { return value },
+      set value(newValue) { value = newValue }
+    }
+    return reactiveRef
+  }
+
+  const createComputed = (fn: () => any) => {
+    // For testing purposes, create a computed that recalculates on access
+    return {
+      get value() { return fn() }
+    }
+  }
+
+  return {
+    computed: vi.fn(createComputed),
+    ref: vi.fn(createReactiveRef),
+    toValue: vi.fn((value) => (typeof value === 'function' ? value() : value?.value ?? value)),
+    watch: vi.fn(),
+  }
+})
 
 vi.mock('@tanstack/vue-query', () => ({
   QueryClient: vi.fn(() => ({
