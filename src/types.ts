@@ -4,6 +4,15 @@ import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
 
+/**
+ * Extended Axios request configuration that allows custom properties.
+ *
+ * This type extends the standard AxiosRequestConfig to support custom properties
+ * that users might add through module augmentation. It ensures compatibility with
+ * both standard axios options and user-defined custom properties.
+ */
+export type AxiosRequestConfigExtended = AxiosRequestConfig & Record<string, unknown>
+
 /** @internal */
 export type { EndpointQueryReturn, EndpointMutationReturn }
 
@@ -47,6 +56,7 @@ export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod 
  * from your OpenAPI specification) and an Axios instance for making HTTP requests.
  *
  * @template Ops - The operations type, typically generated from your OpenAPI specification
+ * @template AxiosConfig - The axios request configuration type (defaults to AxiosRequestConfig)
  *
  * @example
  * ```typescript
@@ -54,6 +64,7 @@ export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod 
  * import { openApiOperations, type OpenApiOperations } from './generated/api-operations'
  * import axios from 'axios'
  *
+ * // Basic usage with default axios config
  * const config: OpenApiConfig<OpenApiOperations> = {
  *   operations: openApiOperations,
  *   axios: axios.create({
@@ -61,6 +72,12 @@ export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod 
  *     headers: { 'Authorization': 'Bearer token' }
  *   }),
  *   queryClient: customQueryClient // optional
+ * }
+ *
+ * // With custom axios config type (for module augmentation)
+ * const configWithCustomAxios: OpenApiConfig<OpenApiOperations, MyCustomAxiosRequestConfig> = {
+ *   operations: openApiOperations,
+ *   axios: customAxiosInstance
  * }
  * ```
  */
@@ -127,7 +144,7 @@ export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = O
 > & {
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
-  axiosOptions?: AxiosRequestConfig
+  axiosOptions?: AxiosRequestConfigExtended
   errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
@@ -142,7 +159,7 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
-  axiosOptions?: AxiosRequestConfig
+  axiosOptions?: AxiosRequestConfigExtended
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
@@ -154,7 +171,7 @@ export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> 
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
-    axiosOptions?: AxiosRequestConfig
+    axiosOptions?: AxiosRequestConfigExtended
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
@@ -203,6 +220,7 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
  * on your OpenAPI specification.
  *
  * @template Ops - The operations type from your OpenAPI specification
+ * @template AxiosConfig - The axios request configuration type (defaults to AxiosRequestConfig)
  *
  * @example
  * ```typescript
