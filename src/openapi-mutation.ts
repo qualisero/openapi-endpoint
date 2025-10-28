@@ -1,5 +1,5 @@
 import { computed, ref, toValue, type ComputedRef, type Ref, type MaybeRefOrGetter } from 'vue'
-import { useMutation } from '@tanstack/vue-query'
+import { useMutation, QueryClient } from '@tanstack/vue-query'
 
 import {
   type GetPathParameters,
@@ -189,7 +189,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
       },
       ...useMutationOptions,
     },
-    h.queryClient,
+    h.queryClient as QueryClient,
   )
 
   return {

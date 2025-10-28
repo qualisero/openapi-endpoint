@@ -1,5 +1,17 @@
-import { HttpMethod, type OperationInfo, OpenApiConfig, Operations } from './types'
-import { queryClient as defaultQueryClient } from './index'
+import { HttpMethod, type OperationInfo, OpenApiConfig, Operations, QueryClientLike } from './types'
+import { QueryClient } from '@tanstack/vue-query'
+
+/**
+ * Default QueryClient instance with pre-configured options.
+ *
+ * This client is used by default when no custom QueryClient is provided to useOpenApi.
+ * It includes sensible defaults like 5-minute stale time for queries.
+ */
+const defaultQueryClient: QueryClientLike = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 1000 * 60 * 5 },
+  },
+})
 
 // Helper returning the operationId prefix given an http method
 function getMethodPrefix(method: HttpMethod): string | null {
@@ -95,3 +107,11 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
 }
 
 export type OpenApiHelpers<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<typeof getHelpers<Ops, Op>>
+
+/**
+ * Default QueryClient instance with pre-configured options.
+ *
+ * This client is used by default when no custom QueryClient is provided to useOpenApi.
+ * It includes sensible defaults like 5-minute stale time for queries.
+ */
+export { defaultQueryClient as queryClient }
