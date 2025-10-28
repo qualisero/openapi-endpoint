@@ -4,6 +4,15 @@ import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
 
+/**
+ * Extended Axios request configuration that allows custom properties.
+ *
+ * This type extends the standard AxiosRequestConfig to support custom properties
+ * that users might add through module augmentation. It ensures compatibility with
+ * both standard axios options and user-defined custom properties.
+ */
+export type AxiosRequestConfigExtended = AxiosRequestConfig & Record<string, unknown>
+
 /** @internal */
 export type { EndpointQueryReturn, EndpointMutationReturn }
 
@@ -96,7 +105,7 @@ export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = O
 > & {
   enabled?: MaybeRefOrGetter<boolean>
   onLoad?: (data: GetResponseData<Ops, Op>) => void
-  axiosOptions?: AxiosRequestConfig
+  axiosOptions?: AxiosRequestConfigExtended
   errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
 }
 
@@ -111,7 +120,7 @@ type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
-  axiosOptions?: AxiosRequestConfig
+  axiosOptions?: AxiosRequestConfigExtended
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
@@ -123,7 +132,7 @@ export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> 
   'mutationFn' | 'mutationKey'
 > &
   MutationOnSuccessOptions<Ops> & {
-    axiosOptions?: AxiosRequestConfig
+    axiosOptions?: AxiosRequestConfigExtended
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
