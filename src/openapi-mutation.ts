@@ -75,9 +75,10 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   } = options
   const extraPathParams = ref({}) as Ref<GetPathParameters<Ops, Op>>
 
-  // Compute the resolved path
+  // Compute the resolved path - same pattern as query
+  const basePathParams = computed(() => toValue(pathParams))
   const allPathParams = computed(() => ({
-    ...toValue(pathParams),
+    ...basePathParams.value,
     ...extraPathParams.value,
   }))
   const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
