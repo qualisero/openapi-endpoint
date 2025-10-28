@@ -197,5 +197,6 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     data: mutation.data as ComputedRef<AxiosResponse<GetResponseData<Ops, Op>> | undefined>,
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
     extraPathParams,
+    pathParams: allPathParams,
   }
 }

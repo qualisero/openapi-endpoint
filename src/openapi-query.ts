@@ -49,7 +49,9 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
   )
   const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
 
-  const resolvedPath = computed(() => resolvePath(path, pathParams))
+  // Make path parameters reactive by ensuring toValue is called inside computed
+  const allPathParams = computed(() => toValue(pathParams))
+  const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
 
   // Check if path is fully resolved for enabling the query
@@ -134,5 +136,6 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     isEnabled,
     queryKey,
     onLoad,
+    pathParams: allPathParams,
   }
 }

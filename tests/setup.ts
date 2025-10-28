@@ -29,8 +29,12 @@ vi.mock('vue', () => {
   const createReactiveRef = (initialValue: any) => {
     let value = initialValue
     const reactiveRef = {
-      get value() { return value },
-      set value(newValue) { value = newValue }
+      get value() {
+        return value
+      },
+      set value(newValue) {
+        value = newValue
+      },
     }
     return reactiveRef
   }
@@ -38,14 +42,26 @@ vi.mock('vue', () => {
   const createComputed = (fn: () => any) => {
     // For testing purposes, create a computed that recalculates on access
     return {
-      get value() { return fn() }
+      get value() {
+        return fn()
+      },
     }
+  }
+
+  const toValueImpl = (value: any): any => {
+    if (typeof value === 'function') {
+      return value()
+    }
+    if (value && typeof value === 'object' && 'value' in value) {
+      return value.value
+    }
+    return value
   }
 
   return {
     computed: vi.fn(createComputed),
     ref: vi.fn(createReactiveRef),
-    toValue: vi.fn((value) => (typeof value === 'function' ? value() : value?.value ?? value)),
+    toValue: vi.fn(toValueImpl),
     watch: vi.fn(),
   }
 })
