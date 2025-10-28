@@ -48,9 +48,9 @@ describe('Issue Reproduction: Typing error when augmenting axiosOptions', () => 
 
     const currentUser = api.useQuery(OperationId.listPets, {
       onLoad: vi.fn(),
-      axiosOptions: { 
+      axiosOptions: {
         manualErrorHandling: errorHandler,
-        handledByAxios: false 
+        handledByAxios: false,
       },
     })
 
@@ -63,9 +63,9 @@ describe('Issue Reproduction: Typing error when augmenting axiosOptions', () => 
     // Test both properties mentioned in the user's augmented types
     const currentUser = api.useQuery(OperationId.listPets, {
       onLoad: vi.fn(),
-      axiosOptions: { 
+      axiosOptions: {
         manualErrorHandling: true,
-        handledByAxios: false 
+        handledByAxios: false,
       },
     })
 
@@ -77,9 +77,9 @@ describe('Issue Reproduction: Typing error when augmenting axiosOptions', () => 
   it('should work with mutations as well', () => {
     // Ensure the fix works for mutations too
     const createPet = api.useMutation(OperationId.createPet, {
-      axiosOptions: { 
+      axiosOptions: {
         manualErrorHandling: true,
-        handledByAxios: false 
+        handledByAxios: false,
       },
     })
 
@@ -95,9 +95,9 @@ describe('Issue Reproduction: Typing error when augmenting axiosOptions', () => 
     expect(() => {
       createPet.mutate({
         data: { name: 'Test Pet' },
-        axiosOptions: { 
+        axiosOptions: {
           manualErrorHandling: true,
-          handledByAxios: false 
+          handledByAxios: false,
         },
       })
     }).not.toThrow()
@@ -107,16 +107,16 @@ describe('Issue Reproduction: Typing error when augmenting axiosOptions', () => 
     // Ensure standard axios properties still work with custom ones
     const currentUser = api.useQuery(OperationId.listPets, {
       onLoad: vi.fn(),
-      axiosOptions: { 
+      axiosOptions: {
         // Standard axios properties
         timeout: 5000,
         headers: {
-          'Authorization': 'Bearer token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer token',
+          'Content-Type': 'application/json',
         },
         // Custom augmented properties
         manualErrorHandling: true,
-        handledByAxios: false 
+        handledByAxios: false,
       },
     })
 
