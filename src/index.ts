@@ -1,5 +1,4 @@
 import type { MaybeRefOrGetter } from 'vue'
-import { QueryClient } from '@tanstack/vue-query'
 
 import { useEndpoint } from './openapi-endpoint'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
@@ -13,22 +12,12 @@ import {
   IsQueryOperation,
 } from './types'
 import { getHelpers } from './openapi-helpers'
-export type { OpenApiConfig, OpenApiInstance, GetResponseData } from './types'
+export type { OpenApiConfig, OpenApiInstance, GetResponseData, QueryClientLike } from './types'
+export { queryClient } from './openapi-helpers'
 /** @internal */
 export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
 /** @internal */
 export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
-/**
- * Default QueryClient instance with pre-configured options.
- *
- * This client is used by default when no custom QueryClient is provided to useOpenApi.
- * It includes sensible defaults like 5-minute stale time for queries.
- */
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 1000 * 60 * 5 },
-  },
-})
 
 /**
  * Creates a type-safe OpenAPI client for Vue applications.

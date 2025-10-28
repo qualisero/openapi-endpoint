@@ -1,5 +1,5 @@
 import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, QueryClient } from '@tanstack/vue-query'
 import { Operations, type GetPathParameters, type GetResponseData, type QQueryOptions } from './types'
 import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
 import { isAxiosError } from 'axios'
@@ -103,7 +103,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
       },
       ...useQueryOptions,
     },
-    h.queryClient,
+    h.queryClient as QueryClient,
   )
 
   // onLoad callback is called once, as soon as data is available (immediately or when loading finishes)
