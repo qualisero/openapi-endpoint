@@ -31,12 +31,12 @@ describe('QueryClient Compatibility', () => {
 
     it('should work with a QueryClient that has additional properties', () => {
       // Simulate a QueryClient from a different version with extra properties
-      const extendedQueryClient: QueryClientLike & { someExtraProperty?: string; '#private'?: unknown } = {
+      const extendedQueryClient: QueryClientLike & { someExtraProperty?: string; __private?: unknown } = {
         cancelQueries: vi.fn(() => Promise.resolve()),
         setQueryData: vi.fn(),
         invalidateQueries: vi.fn(() => Promise.resolve()),
         someExtraProperty: 'extra value',
-        '#private': { internalState: true }, // Simulate the private property that caused the original issue
+        __private: { internalState: true }, // Simulate the private property that caused the original issue
       }
 
       const config: OpenApiConfig<OpenApiOperations> = {
@@ -119,7 +119,7 @@ describe('QueryClient Compatibility', () => {
         isMutating: false,
 
         // The problematic private property from the error message
-        '#private': {
+        __private: {
           hydration: true,
           // ... other internal state
         },
