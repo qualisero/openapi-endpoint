@@ -111,7 +111,7 @@ function changeItemsPerPage(newValue: number) {
 <template>
   <div>
     <input v-model="searchTerm" placeholder="Search pets..." />
-    
+
     <select v-model="statusFilter">
       <option :value="undefined">All statuses</option>
       <option value="available">Available</option>
@@ -122,16 +122,14 @@ function changeItemsPerPage(newValue: number) {
     <div v-if="petsQuery.isLoading.value">Loading...</div>
     <div v-else-if="petsQuery.error.value">Error: {{ petsQuery.error.value.message }}</div>
     <div v-else>
-      <div v-for="pet in petsQuery.data.value" :key="pet.id">
-        {{ pet.name }} - {{ pet.status }}
-      </div>
+      <div v-for="pet in petsQuery.data.value" :key="pet.id">{{ pet.name }} - {{ pet.status }}</div>
     </div>
 
     <div class="pagination">
       <button @click="previousPage" :disabled="currentPage === 1">Previous</button>
       <span>Page {{ currentPage }}</span>
       <button @click="nextPage">Next</button>
-      
+
       <select v-model="itemsPerPage" @change="changeItemsPerPage">
         <option :value="10">10 per page</option>
         <option :value="25">25 per page</option>
@@ -160,7 +158,7 @@ const userPetsQuery = api.useQuery(
       includeArchived: includeArchived.value,
       sortBy: sortBy.value,
     })), // Query params
-  }
+  },
 )
 // Results in: GET /users/user-123/pets?includeArchived=false&sortBy=date
 ```
@@ -213,6 +211,7 @@ const invalidQuery = api.useQuery(OperationId.listPets, {
 ### From axiosOptions.params
 
 Before:
+
 ```typescript
 const colorFilter = ref('white')
 
@@ -224,6 +223,7 @@ const petsQuery = api.useQuery(OperationId.listPets, {
 ```
 
 After:
+
 ```typescript
 const colorFilter = ref('white')
 

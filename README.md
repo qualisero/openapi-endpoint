@@ -127,12 +127,13 @@ const userPetsQuery = api.useQuery(
     queryParams: computed(() => ({
       includeArchived: includeArchived.value,
     })),
-  }
+  },
 )
 // Results in: GET /users/user-123/pets?includeArchived=false
 ```
 
 **Key Features:**
+
 - **Type-safe**: Query parameters are typed based on your OpenAPI specification
 - **Reactive**: Supports `ref`, `computed`, and function-based values
 - **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
