@@ -89,6 +89,57 @@ await createPetMutation.mutateAsync({
 
 ## Advanced Usage
 
+### Reactive Query Parameters
+
+The library supports type-safe, reactive query parameters that automatically trigger refetches when their values change:
+
+```typescript
+import { ref, computed } from 'vue'
+import { api, OperationId } from './api/init'
+
+// Static query parameters
+const { data: pets } = api.useQuery(OperationId.listPets, {
+  queryParams: { limit: 10 },
+})
+// Results in: GET /pets?limit=10
+
+// Reactive query parameters with computed
+const limit = ref(10)
+const status = ref<'available' | 'pending' | 'sold'>('available')
+
+const petsQuery = api.useQuery(OperationId.listPets, {
+  queryParams: computed(() => ({
+    limit: limit.value,
+    status: status.value,
+  })),
+})
+
+// When limit or status changes, query automatically refetches
+limit.value = 20
+status.value = 'pending'
+// Query refetches with: GET /pets?limit=20&status=pending
+
+// Combine with path parameters
+const userPetsQuery = api.useQuery(
+  OperationId.listUserPets,
+  computed(() => ({ userId: userId.value })),
+  {
+    queryParams: computed(() => ({
+      includeArchived: includeArchived.value,
+    })),
+  }
+)
+// Results in: GET /users/user-123/pets?includeArchived=false
+```
+
+**Key Features:**
+- **Type-safe**: Query parameters are typed based on your OpenAPI specification
+- **Reactive**: Supports `ref`, `computed`, and function-based values
+- **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
+- **Backward compatible**: Works alongside existing `axiosOptions.params`
+
+For detailed examples, see [Reactive Query Parameters Guide](./docs/reactive-query-params-example.md).
+
 ### Automatic Operation Type Detection with `api.useEndpoint`
 
 The `api.useEndpoint` method automatically detects whether an operation is a query (GET/HEAD/OPTIONS) or mutation (POST/PUT/PATCH/DELETE) based on the HTTP method defined in your OpenAPI specification:
