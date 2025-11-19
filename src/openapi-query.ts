@@ -47,7 +47,14 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     pathParamsOrOptions,
     optionsOrNull,
   )
-  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, ...useQueryOptions } = options
+  const {
+    enabled: enabledInit,
+    onLoad: onLoadInit,
+    axiosOptions,
+    errorHandler,
+    queryParams,
+    ...useQueryOptions
+  } = options
 
   // Make path parameters reactive by ensuring toValue is called inside computed
   // This ensures that when pathParams is a function, it gets called within the computed
@@ -57,7 +64,22 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     return result
   })
   const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
-  const queryKey = computed(() => generateQueryKey(resolvedPath.value))
+
+  // Make query parameters reactive
+  const allQueryParams = computed(() => {
+    const result = toValue(queryParams)
+    return result
+  })
+
+  // Include query params in the query key so changes trigger refetch
+  const queryKey = computed(() => {
+    const baseKey = generateQueryKey(resolvedPath.value)
+    const qParams = allQueryParams.value
+    if (qParams && Object.keys(qParams).length > 0) {
+      return [...baseKey, qParams]
+    }
+    return baseKey
+  })
 
   // Check if path is fully resolved for enabling the query
   const isEnabled = computed(() => {
@@ -74,6 +96,10 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
             method: method.toLowerCase(),
             url: resolvedPath.value,
             ...axiosOptions,
+            params: {
+              ...(axiosOptions?.params || {}),
+              ...(allQueryParams.value || {}),
+            },
           })
           return response.data
         } catch (error: unknown) {

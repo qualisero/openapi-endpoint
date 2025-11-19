@@ -71,6 +71,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     dontUpdateCache,
     invalidateOperations,
     refetchEndpoints,
+    queryParams,
     ...useMutationOptions
   } = options
   const extraPathParams = ref({}) as Ref<GetPathParameters<Ops, Op>>
@@ -89,6 +90,12 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
   const queryKey = computed(() => generateQueryKey(resolvedPath.value))
 
+  // Make query parameters reactive
+  const allQueryParams = computed(() => {
+    const result = toValue(queryParams)
+    return result
+  })
+
   const mutation = useMutation(
     {
       mutationFn: async (
@@ -98,6 +105,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           data,
           pathParams: pathParamsFromMutate,
           axiosOptions: axiosOptionsFromMutate,
+          queryParams: queryParamsFromMutate,
         } = vars as QMutationVars<Ops, Op> & { data?: unknown }
         extraPathParams.value = pathParamsFromMutate || ({} as GetPathParameters<Ops, Op>)
 
@@ -118,6 +126,11 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           ...(data !== undefined && { data }),
           ...axiosOptions,
           ...axiosOptionsFromMutate,
+          params: {
+            ...(axiosOptions?.params || {}),
+            ...(allQueryParams.value || {}),
+            ...(queryParamsFromMutate || {}),
+          },
         })
       },
       onSuccess: async (response, vars, _context) => {
