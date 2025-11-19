@@ -138,7 +138,7 @@ const userPetsQuery = api.useQuery(
 - **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
 - **Backward compatible**: Works alongside existing `axiosOptions.params`
 
-For detailed examples, see [Reactive Query Parameters Guide](./docs/reactive-query-params-example.md).
+For detailed examples, see [Reactive Query Parameters Guide](./REACTIVE_QUERY_PARAMS.md).
 
 ### Automatic Operation Type Detection with `api.useEndpoint`
 
