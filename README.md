@@ -139,8 +139,6 @@ const userPetsQuery = api.useQuery(
 - **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
 - **Backward compatible**: Works alongside existing `axiosOptions.params`
 
-For detailed examples, see [Reactive Query Parameters Guide](./REACTIVE_QUERY_PARAMS.md).
-
 ### Automatic Operation Type Detection with `api.useEndpoint`
 
 The `api.useEndpoint` method automatically detects whether an operation is a query (GET/HEAD/OPTIONS) or mutation (POST/PUT/PATCH/DELETE) based on the HTTP method defined in your OpenAPI specification:
