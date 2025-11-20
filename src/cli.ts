@@ -82,12 +82,25 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
 }
 
 /**
+ * Converts a snake_case string to PascalCase.
+ *
+ * @param str - The snake_case string (e.g., 'give_treats')
+ * @returns PascalCase string (e.g., 'GiveTreats')
+ */
+function snakeToPascalCase(str: string): string {
+  return str
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('')
+}
+
+/**
  * Generates an operationId based on the HTTP method and path.
  * Uses heuristics to create meaningful operation names.
  *
  * @param pathUrl - The OpenAPI path (e.g., '/pets/{petId}')
  * @param method - The HTTP method (e.g., 'get', 'post')
- * @param commonPrefix - Optional common prefix to strip from path (e.g., '/api')
+ * @param prefixToStrip - Optional prefix to strip from path (e.g., '/api')
  * @returns A generated operationId (e.g., 'getPet', 'listPets', 'createPet')
  */
 function generateOperationId(pathUrl: string, method: string, prefixToStrip: string = ''): string {
@@ -105,12 +118,17 @@ function generateOperationId(pathUrl: string, method: string, prefixToStrip: str
     .split('/')
     .filter((segment) => segment.length > 0)
 
-  // Remove path parameters (e.g., {petId}) and convert to camelCase
+  // Remove path parameters (e.g., {petId}) and convert to PascalCase
+  // Also convert snake_case segments to PascalCase (e.g., 'give_treats' -> 'GiveTreats')
   const entityParts: string[] = []
   for (const segment of pathSegments) {
     if (!segment.startsWith('{') && !segment.endsWith('}')) {
-      // Capitalize first letter of each segment
-      entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+      // Convert snake_case to PascalCase, or just capitalize if no underscores
+      if (segment.includes('_')) {
+        entityParts.push(snakeToPascalCase(segment))
+      } else {
+        entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+      }
     }
   }
 

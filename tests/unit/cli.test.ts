@@ -126,6 +126,14 @@ describe('CLI codegen functionality', () => {
   })
 
   describe('generateOperationId', () => {
+    // Helper to convert snake_case to PascalCase
+    const snakeToPascalCase = (str: string): string => {
+      return str
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join('')
+    }
+
     // Test the operationId generation logic
     const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
       const methodLower = method.toLowerCase()
@@ -142,12 +150,17 @@ describe('CLI codegen functionality', () => {
         .split('/')
         .filter((segment) => segment.length > 0)
 
-      // Remove path parameters (e.g., {petId}) and convert to camelCase
+      // Remove path parameters (e.g., {petId}) and convert to PascalCase
+      // Also convert snake_case segments to PascalCase (e.g., 'give_treats' -> 'GiveTreats')
       const entityParts: string[] = []
       for (const segment of pathSegments) {
         if (!segment.startsWith('{') && !segment.endsWith('}')) {
-          // Capitalize first letter of each segment
-          entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+          // Convert snake_case to PascalCase, or just capitalize if no underscores
+          if (segment.includes('_')) {
+            entityParts.push(snakeToPascalCase(segment))
+          } else {
+            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+          }
         }
       }
 
@@ -254,6 +267,18 @@ describe('CLI codegen functionality', () => {
       expect(generateOperationId('', 'get')).toBe('list')
     })
 
+    it('should convert snake_case to camelCase in path segments', () => {
+      expect(generateOperationId('/pet/give_treats', 'post')).toBe('createPetGiveTreats')
+      expect(generateOperationId('/api/pet/give_treats', 'post', '/api')).toBe('createPetGiveTreats')
+      expect(generateOperationId('/user_profile/{userId}', 'get')).toBe('getUserProfile')
+      expect(generateOperationId('/admin_settings/update_config', 'put')).toBe('updateAdminSettingsUpdateConfig')
+    })
+
+    it('should handle mixed case and snake_case segments', () => {
+      expect(generateOperationId('/pets/special_treats', 'get')).toBe('listPetsSpecialTreats')
+      expect(generateOperationId('/pet/{petId}/give_treats', 'post')).toBe('postPetGiveTreats')
+    })
+
     it('should strip /v1 prefix when provided', () => {
       expect(generateOperationId('/v1/pets', 'get', '/v1')).toBe('listPets')
       expect(generateOperationId('/v1/pets/{petId}', 'get', '/v1')).toBe('getPets')
@@ -265,6 +290,13 @@ describe('CLI codegen functionality', () => {
   })
 
   describe('addMissingOperationIds', () => {
+    const snakeToPascalCase = (str: string): string => {
+      return str
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join('')
+    }
+
     const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
       const methodLower = method.toLowerCase()
 
@@ -282,7 +314,12 @@ describe('CLI codegen functionality', () => {
       const entityParts: string[] = []
       for (const segment of pathSegments) {
         if (!segment.startsWith('{') && !segment.endsWith('}')) {
-          entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+          // Convert snake_case to PascalCase, or just capitalize if no underscores
+          if (segment.includes('_')) {
+            entityParts.push(snakeToPascalCase(segment))
+          } else {
+            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+          }
         }
       }
 
