@@ -130,6 +130,7 @@ describe('CLI codegen functionality', () => {
     const snakeToPascalCase = (str: string): string => {
       return str
         .split('_')
+        .filter((part) => part.length > 0)
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join('')
     }
@@ -144,33 +145,25 @@ describe('CLI codegen functionality', () => {
         effectivePath = path.substring(prefixToStrip.length)
       }
 
-      // Remove leading/trailing slashes and split path into segments
-      const pathSegments = effectivePath
+      // Remove leading/trailing slashes, replace slashes with underscores
+      // Filter out path parameters (e.g., {petId})
+      const cleanPath = effectivePath
         .replace(/^\/+|\/+$/g, '')
         .split('/')
-        .filter((segment) => segment.length > 0)
+        .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
+        .join('_')
 
-      // Remove path parameters (e.g., {petId}) and convert to PascalCase
-      // Also convert snake_case segments to PascalCase (e.g., 'give_treats' -> 'GiveTreats')
-      const entityParts: string[] = []
-      for (const segment of pathSegments) {
-        if (!segment.startsWith('{') && !segment.endsWith('}')) {
-          // Convert snake_case to PascalCase, or just capitalize if no underscores
-          if (segment.includes('_')) {
-            entityParts.push(snakeToPascalCase(segment))
-          } else {
-            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
-          }
-        }
-      }
-
-      // Join entity parts to form entity name (e.g., ['Pets', 'Owners'] -> 'PetsOwners')
-      const entityName = entityParts.join('')
+      // Convert the entire path (now with underscores) to PascalCase
+      const entityName = snakeToPascalCase(cleanPath)
 
       // Determine prefix based on method and whether it's a collection or single resource
       let prefix = ''
 
       // Check if path ends with a parameter (single resource) or not (collection)
+      const pathSegments = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0)
       const lastSegment = pathSegments[pathSegments.length - 1] || ''
       const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
 
@@ -306,24 +299,22 @@ describe('CLI codegen functionality', () => {
         effectivePath = path.substring(prefixToStrip.length)
       }
 
+      // Remove leading/trailing slashes, replace slashes with underscores
+      // Filter out path parameters (e.g., {petId})
+      const cleanPath = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
+        .join('_')
+
+      // Convert the entire path (now with underscores) to PascalCase
+      const entityName = snakeToPascalCase(cleanPath)
+
+      // Determine prefix based on method and whether it's a collection or single resource
       const pathSegments = effectivePath
         .replace(/^\/+|\/+$/g, '')
         .split('/')
         .filter((segment) => segment.length > 0)
-
-      const entityParts: string[] = []
-      for (const segment of pathSegments) {
-        if (!segment.startsWith('{') && !segment.endsWith('}')) {
-          // Convert snake_case to PascalCase, or just capitalize if no underscores
-          if (segment.includes('_')) {
-            entityParts.push(snakeToPascalCase(segment))
-          } else {
-            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
-          }
-        }
-      }
-
-      const entityName = entityParts.join('')
       const lastSegment = pathSegments[pathSegments.length - 1] || ''
       const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
 
