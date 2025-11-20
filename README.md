@@ -302,6 +302,22 @@ const userPetsQuery = api.useQuery(
 )
 ```
 
+### Reactive Query Parameters with Refs
+
+```typescript
+import { ref } from 'vue'
+
+// Use reactive query parameters
+const limit = ref(10)
+const petsQuery = api.useQuery(OperationId.listPets, {
+  queryParams: { limit: limit.value },
+})
+
+// When limit changes, the query automatically refetches
+limit.value = 20 // Query refetches with new parameter
+// Results in: GET /pets?limit=20
+```
+
 ## API Documentation
 
 Full API documentation is available at [https://qualisero.github.io/openapi-endpoint/](https://qualisero.github.io/openapi-endpoint/). The documentation includes detailed information about all methods, types, and configuration options.
