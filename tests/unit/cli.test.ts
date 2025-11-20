@@ -127,11 +127,17 @@ describe('CLI codegen functionality', () => {
 
   describe('generateOperationId', () => {
     // Test the operationId generation logic
-    const generateOperationId = (path: string, method: string): string => {
+    const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
       const methodLower = method.toLowerCase()
 
+      // Strip prefix if provided and path starts with it
+      let effectivePath = path
+      if (prefixToStrip && path.startsWith(prefixToStrip)) {
+        effectivePath = path.substring(prefixToStrip.length)
+      }
+
       // Remove leading/trailing slashes and split path into segments
-      const pathSegments = path
+      const pathSegments = effectivePath
         .replace(/^\/+|\/+$/g, '')
         .split('/')
         .filter((segment) => segment.length > 0)
@@ -193,20 +199,24 @@ describe('CLI codegen functionality', () => {
       return prefix + entityName
     }
 
-    it('should generate getPet for GET /api/pet/{pet_id}', () => {
+    it('should generate getPet for GET /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'get', '/api')).toBe('getPet')
+    })
+
+    it('should generate updatePet for PATCH /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'patch', '/api')).toBe('updatePet')
+    })
+
+    it('should generate updatePet for PUT /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'put', '/api')).toBe('updatePet')
+    })
+
+    it('should generate postPetAdopt for POST /api/pet/{pet_id}/adopt with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}/adopt', 'post', '/api')).toBe('postPetAdopt')
+    })
+
+    it('should generate getApiPet for GET /api/pet/{pet_id} without prefix stripping', () => {
       expect(generateOperationId('/api/pet/{pet_id}', 'get')).toBe('getApiPet')
-    })
-
-    it('should generate updatePet for PATCH /api/pet/{pet_id}', () => {
-      expect(generateOperationId('/api/pet/{pet_id}', 'patch')).toBe('updateApiPet')
-    })
-
-    it('should generate updatePet for PUT /api/pet/{pet_id}', () => {
-      expect(generateOperationId('/api/pet/{pet_id}', 'put')).toBe('updateApiPet')
-    })
-
-    it('should generate postPetAdopt for POST /api/pet/{pet_id}/adopt', () => {
-      expect(generateOperationId('/api/pet/{pet_id}/adopt', 'post')).toBe('postApiPetAdopt')
     })
 
     it('should generate listOwners for GET /owners', () => {
@@ -243,56 +253,75 @@ describe('CLI codegen functionality', () => {
       expect(generateOperationId('/', 'get')).toBe('list')
       expect(generateOperationId('', 'get')).toBe('list')
     })
+
+    it('should strip /v1 prefix when provided', () => {
+      expect(generateOperationId('/v1/pets', 'get', '/v1')).toBe('listPets')
+      expect(generateOperationId('/v1/pets/{petId}', 'get', '/v1')).toBe('getPets')
+    })
+
+    it('should strip /api/v1 prefix when provided', () => {
+      expect(generateOperationId('/api/v1/pets', 'get', '/api/v1')).toBe('listPets')
+    })
   })
 
   describe('addMissingOperationIds', () => {
-    const addMissingOperationIds = (openApiSpec: { paths?: Record<string, unknown> }): void => {
-      if (!openApiSpec.paths) {
-        return
+    const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
+      const methodLower = method.toLowerCase()
+
+      // Strip prefix if provided and path starts with it
+      let effectivePath = path
+      if (prefixToStrip && path.startsWith(prefixToStrip)) {
+        effectivePath = path.substring(prefixToStrip.length)
       }
 
-      const generateOperationId = (path: string, method: string): string => {
-        const methodLower = method.toLowerCase()
-        const pathSegments = path
-          .replace(/^\/+|\/+$/g, '')
-          .split('/')
-          .filter((segment) => segment.length > 0)
+      const pathSegments = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0)
 
-        const entityParts: string[] = []
-        for (const segment of pathSegments) {
-          if (!segment.startsWith('{') && !segment.endsWith('}')) {
-            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+      const entityParts: string[] = []
+      for (const segment of pathSegments) {
+        if (!segment.startsWith('{') && !segment.endsWith('}')) {
+          entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+        }
+      }
+
+      const entityName = entityParts.join('')
+      const lastSegment = pathSegments[pathSegments.length - 1] || ''
+      const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+      let prefix = ''
+      switch (methodLower) {
+        case 'get':
+          prefix = isCollection ? 'list' : 'get'
+          break
+        case 'post':
+          if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+            prefix = 'post'
+          } else {
+            prefix = 'create'
           }
-        }
+          break
+        case 'put':
+        case 'patch':
+          prefix = 'update'
+          break
+        case 'delete':
+          prefix = 'delete'
+          break
+        default:
+          prefix = methodLower
+      }
 
-        const entityName = entityParts.join('')
-        const lastSegment = pathSegments[pathSegments.length - 1] || ''
-        const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+      return prefix + entityName
+    }
 
-        let prefix = ''
-        switch (methodLower) {
-          case 'get':
-            prefix = isCollection ? 'list' : 'get'
-            break
-          case 'post':
-            if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
-              prefix = 'post'
-            } else {
-              prefix = 'create'
-            }
-            break
-          case 'put':
-          case 'patch':
-            prefix = 'update'
-            break
-          case 'delete':
-            prefix = 'delete'
-            break
-          default:
-            prefix = methodLower
-        }
-
-        return prefix + entityName
+    const addMissingOperationIds = (
+      openApiSpec: { paths?: Record<string, unknown> },
+      prefixToStrip: string = '/api',
+    ): void => {
+      if (!openApiSpec.paths) {
+        return
       }
 
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
@@ -304,13 +333,13 @@ describe('CLI codegen functionality', () => {
           }
 
           if (!operation.operationId) {
-            operation.operationId = generateOperationId(pathUrl, method)
+            operation.operationId = generateOperationId(pathUrl, method, prefixToStrip)
           }
         })
       })
     }
 
-    it('should add operationId to operations without one', () => {
+    it('should add operationId to operations without one (no prefix)', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'Test' },
@@ -325,7 +354,8 @@ describe('CLI codegen functionality', () => {
         },
       }
 
-      addMissingOperationIds(spec)
+      // Pass empty string to not strip any prefix
+      addMissingOperationIds(spec, '')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
@@ -333,6 +363,37 @@ describe('CLI codegen functionality', () => {
       expect((spec.paths['/pets/{petId}'] as any).get.operationId).toBe('getPets')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets/{petId}'] as any).put.operationId).toBe('updatePets')
+    })
+
+    it('should strip /api prefix when generating operationIds (default behavior)', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/api/pets': {
+            get: { summary: 'List pets' },
+          },
+          '/api/pets/{petId}': {
+            get: { summary: 'Get pet' },
+            patch: { summary: 'Update pet' },
+          },
+          '/api/pets/{petId}/adopt': {
+            post: { summary: 'Adopt pet' },
+          },
+        },
+      }
+
+      // Use default prefix '/api'
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}'] as any).get.operationId).toBe('getPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}'] as any).patch.operationId).toBe('updatePets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}/adopt'] as any).post.operationId).toBe('postPetsAdopt')
     })
 
     it('should not overwrite existing operationIds', () => {
@@ -373,7 +434,8 @@ describe('CLI codegen functionality', () => {
         },
       }
 
-      addMissingOperationIds(spec)
+      // Use empty string to not strip prefix
+      addMissingOperationIds(spec, '')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')

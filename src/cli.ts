@@ -87,13 +87,20 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
  *
  * @param pathUrl - The OpenAPI path (e.g., '/pets/{petId}')
  * @param method - The HTTP method (e.g., 'get', 'post')
+ * @param commonPrefix - Optional common prefix to strip from path (e.g., '/api')
  * @returns A generated operationId (e.g., 'getPet', 'listPets', 'createPet')
  */
-function generateOperationId(pathUrl: string, method: string): string {
+function generateOperationId(pathUrl: string, method: string, prefixToStrip: string = ''): string {
   const methodLower = method.toLowerCase()
 
+  // Strip prefix if provided and path starts with it
+  let effectivePath = pathUrl
+  if (prefixToStrip && pathUrl.startsWith(prefixToStrip)) {
+    effectivePath = pathUrl.substring(prefixToStrip.length)
+  }
+
   // Remove leading/trailing slashes and split path into segments
-  const pathSegments = pathUrl
+  const pathSegments = effectivePath
     .replace(/^\/+|\/+$/g, '')
     .split('/')
     .filter((segment) => segment.length > 0)
@@ -160,10 +167,16 @@ function generateOperationId(pathUrl: string, method: string): string {
  * Modifies the OpenAPI spec in place.
  *
  * @param openApiSpec - The OpenAPI specification object
+ * @param prefixToStrip - Optional prefix to strip from paths (defaults to '/api')
  */
-function addMissingOperationIds(openApiSpec: OpenAPISpec): void {
+function addMissingOperationIds(openApiSpec: OpenAPISpec, prefixToStrip: string = '/api'): void {
   if (!openApiSpec.paths) {
     return
+  }
+
+  // Log the prefix that will be stripped
+  if (prefixToStrip) {
+    console.log(`🔍 Path prefix '${prefixToStrip}' will be stripped from operation IDs`)
   }
 
   Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
@@ -176,8 +189,8 @@ function addMissingOperationIds(openApiSpec: OpenAPISpec): void {
 
       const op = operation as OpenAPIOperation
       if (!op.operationId) {
-        // Generate operationId
-        const generatedId = generateOperationId(pathUrl, method)
+        // Generate operationId with prefix stripped
+        const generatedId = generateOperationId(pathUrl, method, prefixToStrip)
         op.operationId = generatedId
         console.log(`🏷️  Generated operationId '${generatedId}' for ${method.toUpperCase()} ${pathUrl}`)
       }
