@@ -146,6 +146,7 @@ export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = O
   onLoad?: (data: GetResponseData<Ops, Op>) => void
   axiosOptions?: AxiosRequestConfigExtended
   errorHandler?: (error: AxiosError) => GetResponseData<Ops, Op> | void | Promise<GetResponseData<Ops, Op> | void>
+  queryParams?: MaybeRefOrGetter<GetQueryParameters<Ops, Op>>
 }
 
 type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
@@ -160,6 +161,7 @@ export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = M
   data?: GetRequestBody<Ops, Op>
   pathParams?: GetPathParameters<Ops, Op>
   axiosOptions?: AxiosRequestConfigExtended
+  queryParams?: GetQueryParameters<Ops, Op>
 }
 /** @internal */
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
@@ -172,12 +174,21 @@ export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> 
 > &
   MutationOnSuccessOptions<Ops> & {
     axiosOptions?: AxiosRequestConfigExtended
+    queryParams?: MaybeRefOrGetter<GetQueryParameters<Ops, Op>>
   }
 
 export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
 }
   ? { [K in keyof PathParams]: PathParams[K] | undefined }
+  : Record<string, never>
+
+export type GetQueryParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
+  parameters: { query?: infer QueryParams }
+}
+  ? QueryParams extends Record<string, unknown>
+    ? { [K in keyof QueryParams]?: QueryParams[K] }
+    : Record<string, never>
   : Record<string, never>
 
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B
