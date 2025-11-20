@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2025-11-20
+
+### Added
+
+- Reactive query parameters with automatic refetch support - query parameters can now be reactive using `ref`, `computed`, or function-based values
+- Type-safe query parameters extracted from OpenAPI specification via new `GetQueryParameters` type
+- `queryParams` option for `useQuery`, `useMutation`, and `useEndpoint` methods with full reactivity support
+- Automatic TanStack Query key generation that includes query params to trigger refetch on changes
+- Comprehensive test suite with 383 lines of tests covering reactive query parameters functionality
+- Documentation and examples for reactive query parameters in README
+
+### Changed
+
+- Query parameters are now included in TanStack Query keys for automatic cache invalidation and refetch
+- Enhanced type definitions with `GetQueryParameters` type for compile-time query parameter validation
+
 ## [0.10.1] - 2025-10-28
 
 ### Fixed
