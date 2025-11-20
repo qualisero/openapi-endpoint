@@ -186,7 +186,7 @@ export type GetPathParameters<Ops extends Operations<Ops>, Op extends keyof Ops>
 export type GetQueryParameters<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { query?: infer QueryParams }
 }
-  ? QueryParams extends Record<string, any>
+  ? QueryParams extends Record<string, unknown>
     ? { [K in keyof QueryParams]?: QueryParams[K] }
     : Record<string, never>
   : Record<string, never>
