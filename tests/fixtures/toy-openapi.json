@@ -472,6 +472,40 @@
           }
         }
       }
+    },
+    "/api/config.json": {
+      "get": {
+        "summary": "Get config file (tests file extension handling)",
+        "responses": {
+          "200": {
+            "description": "Config file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data.v1.json": {
+      "get": {
+        "summary": "Get data file with periods (tests period handling)",
+        "responses": {
+          "200": {
+            "description": "Data file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

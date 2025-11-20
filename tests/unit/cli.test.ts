@@ -135,6 +135,14 @@ describe('CLI codegen functionality', () => {
         .join('')
     }
 
+    // Helper to check if path has file extension
+    const hasFileExtension = (pathUrl: string): boolean => {
+      const segments = pathUrl.split('/').filter((s) => s.length > 0 && !s.startsWith('{'))
+      if (segments.length === 0) return false
+      const lastSegment = segments[segments.length - 1]
+      return /\.\w+$/.test(lastSegment)
+    }
+
     // Test the operationId generation logic
     const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
       const methodLower = method.toLowerCase()
@@ -145,13 +153,14 @@ describe('CLI codegen functionality', () => {
         effectivePath = path.substring(prefixToStrip.length)
       }
 
-      // Remove leading/trailing slashes, replace slashes with underscores
+      // Remove leading/trailing slashes, replace slashes and periods with underscores
       // Filter out path parameters (e.g., {petId})
       const cleanPath = effectivePath
         .replace(/^\/+|\/+$/g, '')
         .split('/')
         .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
         .join('_')
+        .replace(/\./g, '_') // Replace periods with underscores
 
       // Convert the entire path (now with underscores) to PascalCase
       const entityName = snakeToPascalCase(cleanPath)
@@ -169,8 +178,12 @@ describe('CLI codegen functionality', () => {
 
       switch (methodLower) {
         case 'get':
-          // GET on collection -> list, GET on resource -> get
-          prefix = isCollection ? 'list' : 'get'
+          // GET on file extension -> get, GET on collection -> list, GET on resource -> get
+          if (hasFileExtension(effectivePath)) {
+            prefix = 'get'
+          } else {
+            prefix = isCollection ? 'list' : 'get'
+          }
           break
         case 'post':
           // POST usually creates, but check if it's a nested action
@@ -280,14 +293,34 @@ describe('CLI codegen functionality', () => {
     it('should strip /api/v1 prefix when provided', () => {
       expect(generateOperationId('/api/v1/pets', 'get', '/api/v1')).toBe('listPets')
     })
+
+    it('should use get prefix for file extensions instead of list', () => {
+      expect(generateOperationId('/config.json', 'get')).toBe('getConfigJson')
+      expect(generateOperationId('/api/config.json', 'get', '/api')).toBe('getConfigJson')
+      expect(generateOperationId('/data.v1.json', 'get')).toBe('getDataV1Json')
+      expect(generateOperationId('/api/export.xml', 'get', '/api')).toBe('getExportXml')
+    })
+
+    it('should replace periods with underscores in paths', () => {
+      expect(generateOperationId('/data.v1.json', 'get')).toBe('getDataV1Json')
+      expect(generateOperationId('/api/config.production.yml', 'get', '/api')).toBe('getConfigProductionYml')
+    })
   })
 
   describe('addMissingOperationIds', () => {
     const snakeToPascalCase = (str: string): string => {
       return str
         .split('_')
+        .filter((part) => part.length > 0)
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join('')
+    }
+
+    const hasFileExtension = (pathUrl: string): boolean => {
+      const segments = pathUrl.split('/').filter((s) => s.length > 0 && !s.startsWith('{'))
+      if (segments.length === 0) return false
+      const lastSegment = segments[segments.length - 1]
+      return /\.\w+$/.test(lastSegment)
     }
 
     const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
@@ -299,13 +332,14 @@ describe('CLI codegen functionality', () => {
         effectivePath = path.substring(prefixToStrip.length)
       }
 
-      // Remove leading/trailing slashes, replace slashes with underscores
+      // Remove leading/trailing slashes, replace slashes and periods with underscores
       // Filter out path parameters (e.g., {petId})
       const cleanPath = effectivePath
         .replace(/^\/+|\/+$/g, '')
         .split('/')
         .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
         .join('_')
+        .replace(/\./g, '_') // Replace periods with underscores
 
       // Convert the entire path (now with underscores) to PascalCase
       const entityName = snakeToPascalCase(cleanPath)
@@ -321,7 +355,12 @@ describe('CLI codegen functionality', () => {
       let prefix = ''
       switch (methodLower) {
         case 'get':
-          prefix = isCollection ? 'list' : 'get'
+          // GET on file extension -> get, GET on collection -> list, GET on resource -> get
+          if (hasFileExtension(effectivePath)) {
+            prefix = 'get'
+          } else {
+            prefix = isCollection ? 'list' : 'get'
+          }
           break
         case 'post':
           if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
