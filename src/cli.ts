@@ -81,6 +81,110 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
   }
 }
 
+/**
+ * Generates an operationId based on the HTTP method and path.
+ * Uses heuristics to create meaningful operation names.
+ *
+ * @param pathUrl - The OpenAPI path (e.g., '/pets/{petId}')
+ * @param method - The HTTP method (e.g., 'get', 'post')
+ * @returns A generated operationId (e.g., 'getPet', 'listPets', 'createPet')
+ */
+function generateOperationId(pathUrl: string, method: string): string {
+  const methodLower = method.toLowerCase()
+
+  // Remove leading/trailing slashes and split path into segments
+  const pathSegments = pathUrl
+    .replace(/^\/+|\/+$/g, '')
+    .split('/')
+    .filter((segment) => segment.length > 0)
+
+  // Remove path parameters (e.g., {petId}) and convert to camelCase
+  const entityParts: string[] = []
+  for (const segment of pathSegments) {
+    if (!segment.startsWith('{') && !segment.endsWith('}')) {
+      // Capitalize first letter of each segment
+      entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+    }
+  }
+
+  // Join entity parts to form entity name (e.g., ['Pets', 'Owners'] -> 'PetsOwners')
+  const entityName = entityParts.join('')
+
+  // Determine prefix based on method and whether it's a collection or single resource
+  let prefix = ''
+
+  // Check if path ends with a parameter (single resource) or not (collection)
+  const lastSegment = pathSegments[pathSegments.length - 1] || ''
+  const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+  switch (methodLower) {
+    case 'get':
+      // GET on collection -> list, GET on resource -> get
+      prefix = isCollection ? 'list' : 'get'
+      break
+    case 'post':
+      // POST usually creates, but check if it's a nested action
+      if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+        // Nested action like /pets/{petId}/adopt -> postPetAdopt
+        prefix = 'post'
+      } else {
+        prefix = 'create'
+      }
+      break
+    case 'put':
+    case 'patch':
+      prefix = 'update'
+      break
+    case 'delete':
+      prefix = 'delete'
+      break
+    case 'head':
+      prefix = 'head'
+      break
+    case 'options':
+      prefix = 'options'
+      break
+    case 'trace':
+      prefix = 'trace'
+      break
+    default:
+      prefix = methodLower
+  }
+
+  // Combine prefix and entity name
+  return prefix + entityName
+}
+
+/**
+ * Adds operationId to operations that don't have one.
+ * Modifies the OpenAPI spec in place.
+ *
+ * @param openApiSpec - The OpenAPI specification object
+ */
+function addMissingOperationIds(openApiSpec: OpenAPISpec): void {
+  if (!openApiSpec.paths) {
+    return
+  }
+
+  Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
+    Object.entries(pathItem).forEach(([method, operation]) => {
+      // Skip non-HTTP methods (like parameters)
+      const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+      if (!httpMethods.includes(method.toLowerCase())) {
+        return
+      }
+
+      const op = operation as OpenAPIOperation
+      if (!op.operationId) {
+        // Generate operationId
+        const generatedId = generateOperationId(pathUrl, method)
+        op.operationId = generatedId
+        console.log(`🏷️  Generated operationId '${generatedId}' for ${method.toUpperCase()} ${pathUrl}`)
+      }
+    })
+  })
+}
+
 function parseOperationsFromSpec(openapiContent: string): {
   operationIds: string[]
   operationInfoMap: Record<string, OperationInfo>
@@ -226,7 +330,12 @@ async function main(): Promise<void> {
     }
 
     // Fetch OpenAPI spec content
-    const openapiContent = await fetchOpenAPISpec(openapiInput)
+    let openapiContent = await fetchOpenAPISpec(openapiInput)
+
+    // Parse spec and add missing operationIds
+    const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
+    addMissingOperationIds(openApiSpec)
+    openapiContent = JSON.stringify(openApiSpec, null, 2)
 
     // Generate both files
     await Promise.all([generateTypes(openapiContent, outputDir), generateApiOperations(openapiContent, outputDir)])

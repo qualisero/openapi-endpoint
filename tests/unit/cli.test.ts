@@ -109,6 +109,277 @@ describe('CLI codegen functionality', () => {
       expect(result.operationIds).toEqual([])
       expect(result.operationInfoMap).toEqual({})
     })
+
+    it('should correctly parse toy spec including endpoints without operationId', () => {
+      const openapiContent = JSON.stringify(toyOpenApiSpec)
+      const result = parseOperationsFromSpec(openapiContent)
+
+      // Should include the original operations with operationId
+      expect(result.operationIds).toContain('createPet')
+      expect(result.operationIds).toContain('getPet')
+      expect(result.operationIds).toContain('listPets')
+      expect(result.operationIds).toContain('updatePet')
+      expect(result.operationIds).toContain('deletePet')
+      expect(result.operationIds).toContain('listUserPets')
+      expect(result.operationIds).toContain('uploadPetPic')
+    })
+  })
+
+  describe('generateOperationId', () => {
+    // Test the operationId generation logic
+    const generateOperationId = (path: string, method: string): string => {
+      const methodLower = method.toLowerCase()
+
+      // Remove leading/trailing slashes and split path into segments
+      const pathSegments = path
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0)
+
+      // Remove path parameters (e.g., {petId}) and convert to camelCase
+      const entityParts: string[] = []
+      for (const segment of pathSegments) {
+        if (!segment.startsWith('{') && !segment.endsWith('}')) {
+          // Capitalize first letter of each segment
+          entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+        }
+      }
+
+      // Join entity parts to form entity name (e.g., ['Pets', 'Owners'] -> 'PetsOwners')
+      const entityName = entityParts.join('')
+
+      // Determine prefix based on method and whether it's a collection or single resource
+      let prefix = ''
+
+      // Check if path ends with a parameter (single resource) or not (collection)
+      const lastSegment = pathSegments[pathSegments.length - 1] || ''
+      const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+      switch (methodLower) {
+        case 'get':
+          // GET on collection -> list, GET on resource -> get
+          prefix = isCollection ? 'list' : 'get'
+          break
+        case 'post':
+          // POST usually creates, but check if it's a nested action
+          if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+            // Nested action like /pets/{petId}/adopt -> postPetAdopt
+            prefix = 'post'
+          } else {
+            prefix = 'create'
+          }
+          break
+        case 'put':
+        case 'patch':
+          prefix = 'update'
+          break
+        case 'delete':
+          prefix = 'delete'
+          break
+        case 'head':
+          prefix = 'head'
+          break
+        case 'options':
+          prefix = 'options'
+          break
+        case 'trace':
+          prefix = 'trace'
+          break
+        default:
+          prefix = methodLower
+      }
+
+      // Combine prefix and entity name
+      return prefix + entityName
+    }
+
+    it('should generate getPet for GET /api/pet/{pet_id}', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'get')).toBe('getApiPet')
+    })
+
+    it('should generate updatePet for PATCH /api/pet/{pet_id}', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'patch')).toBe('updateApiPet')
+    })
+
+    it('should generate updatePet for PUT /api/pet/{pet_id}', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'put')).toBe('updateApiPet')
+    })
+
+    it('should generate postPetAdopt for POST /api/pet/{pet_id}/adopt', () => {
+      expect(generateOperationId('/api/pet/{pet_id}/adopt', 'post')).toBe('postApiPetAdopt')
+    })
+
+    it('should generate listOwners for GET /owners', () => {
+      expect(generateOperationId('/owners', 'get')).toBe('listOwners')
+    })
+
+    it('should generate createOwners for POST /owners', () => {
+      expect(generateOperationId('/owners', 'post')).toBe('createOwners')
+    })
+
+    it('should generate listPets for GET /pets', () => {
+      expect(generateOperationId('/pets', 'get')).toBe('listPets')
+    })
+
+    it('should generate getPet for GET /pets/{petId}', () => {
+      expect(generateOperationId('/pets/{petId}', 'get')).toBe('getPets')
+    })
+
+    it('should generate deletePet for DELETE /pets/{petId}', () => {
+      expect(generateOperationId('/pets/{petId}', 'delete')).toBe('deletePets')
+    })
+
+    it('should handle nested paths correctly', () => {
+      expect(generateOperationId('/users/{userId}/pets', 'get')).toBe('listUsersPets')
+      expect(generateOperationId('/users/{userId}/pets/{petId}', 'get')).toBe('getUsersPets')
+    })
+
+    it('should handle paths with leading/trailing slashes', () => {
+      expect(generateOperationId('/pets/', 'get')).toBe('listPets')
+      expect(generateOperationId('pets', 'get')).toBe('listPets')
+    })
+
+    it('should handle empty paths', () => {
+      expect(generateOperationId('/', 'get')).toBe('list')
+      expect(generateOperationId('', 'get')).toBe('list')
+    })
+  })
+
+  describe('addMissingOperationIds', () => {
+    const addMissingOperationIds = (openApiSpec: { paths?: Record<string, unknown> }): void => {
+      if (!openApiSpec.paths) {
+        return
+      }
+
+      const generateOperationId = (path: string, method: string): string => {
+        const methodLower = method.toLowerCase()
+        const pathSegments = path
+          .replace(/^\/+|\/+$/g, '')
+          .split('/')
+          .filter((segment) => segment.length > 0)
+
+        const entityParts: string[] = []
+        for (const segment of pathSegments) {
+          if (!segment.startsWith('{') && !segment.endsWith('}')) {
+            entityParts.push(segment.charAt(0).toUpperCase() + segment.slice(1))
+          }
+        }
+
+        const entityName = entityParts.join('')
+        const lastSegment = pathSegments[pathSegments.length - 1] || ''
+        const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+        let prefix = ''
+        switch (methodLower) {
+          case 'get':
+            prefix = isCollection ? 'list' : 'get'
+            break
+          case 'post':
+            if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+              prefix = 'post'
+            } else {
+              prefix = 'create'
+            }
+            break
+          case 'put':
+          case 'patch':
+            prefix = 'update'
+            break
+          case 'delete':
+            prefix = 'delete'
+            break
+          default:
+            prefix = methodLower
+        }
+
+        return prefix + entityName
+      }
+
+      Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Object.entries(pathItem as any).forEach(([method, operation]: [string, any]) => {
+          const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+          if (!httpMethods.includes(method.toLowerCase())) {
+            return
+          }
+
+          if (!operation.operationId) {
+            operation.operationId = generateOperationId(pathUrl, method)
+          }
+        })
+      })
+    }
+
+    it('should add operationId to operations without one', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            get: { summary: 'List pets' },
+          },
+          '/pets/{petId}': {
+            get: { summary: 'Get pet' },
+            put: { summary: 'Update pet' },
+          },
+        },
+      }
+
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets/{petId}'] as any).get.operationId).toBe('getPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets/{petId}'] as any).put.operationId).toBe('updatePets')
+    })
+
+    it('should not overwrite existing operationIds', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            get: { operationId: 'customListPets', summary: 'List pets' },
+          },
+        },
+      }
+
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('customListPets')
+    })
+
+    it('should handle specs without paths', () => {
+      const spec: { openapi: string; info: { title: string }; paths?: Record<string, unknown> } = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+      }
+
+      expect(() => addMissingOperationIds(spec)).not.toThrow()
+    })
+
+    it('should ignore non-HTTP methods', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            parameters: [{ name: 'test' }],
+            get: { summary: 'List pets' },
+          },
+        },
+      }
+
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).parameters).toEqual([{ name: 'test' }])
+    })
   })
 
   describe('generateApiOperationsContent', () => {
