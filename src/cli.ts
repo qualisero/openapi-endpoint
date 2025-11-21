@@ -97,20 +97,6 @@ function snakeToPascalCase(str: string): string {
 }
 
 /**
- * Checks if a path ends with a file extension.
- *
- * @param pathUrl - The path to check
- * @returns true if the path ends with a file extension (e.g., .json, .xml)
- */
-function hasFileExtension(pathUrl: string): boolean {
-  // Match common file extensions at the end of the path (before path parameters)
-  const segments = pathUrl.split('/').filter((s) => s.length > 0 && !s.startsWith('{'))
-  if (segments.length === 0) return false
-  const lastSegment = segments[segments.length - 1]
-  return /\.\w+$/.test(lastSegment)
-}
-
-/**
  * Generates an operationId based on the HTTP method and path.
  * Uses heuristics to create meaningful operation names.
  *
@@ -119,7 +105,12 @@ function hasFileExtension(pathUrl: string): boolean {
  * @param prefixToStrip - Optional prefix to strip from path (e.g., '/api')
  * @returns A generated operationId (e.g., 'getPet', 'listPets', 'createPet')
  */
-function generateOperationId(pathUrl: string, method: string, prefixToStrip: string = ''): string {
+function generateOperationId(
+  pathUrl: string,
+  method: string,
+  prefixToStrip: string = '',
+  existingIds: Set<string>,
+): string {
   const methodLower = method.toLowerCase()
 
   // Strip prefix if provided and path starts with it
@@ -130,44 +121,30 @@ function generateOperationId(pathUrl: string, method: string, prefixToStrip: str
 
   // Remove leading/trailing slashes, replace slashes and periods with underscores
   // Filter out path parameters (e.g., {petId})
-  const cleanPath = effectivePath
-    .replace(/^\/+|\/+$/g, '')
-    .split('/')
-    .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
-    .join('_')
-    .replace(/\./g, '_') // Replace periods with underscores
+  // split by '/' or '.'
+  const pathSegments = effectivePath.split(/[/.]/)
 
-  // Convert the entire path (now with underscores) to PascalCase
-  const entityName = snakeToPascalCase(cleanPath)
+  const isParam = (segment: string) => segment.startsWith('{') && segment.endsWith('}')
+
+  const entityName = snakeToPascalCase(
+    pathSegments
+      .filter((s) => !isParam(s))
+      .join('_')
+      .replace(/[^a-zA-Z0-9]/g, '_'), // Replace non-alphanumeric characters with underscores
+  )
+
+  // A collection is when there is a trailing slash
+  const isCollection = pathUrl.endsWith('/')
 
   // Determine prefix based on method and whether it's a collection or single resource
   let prefix = ''
-
-  // Check if path ends with a parameter (single resource) or not (collection)
-  const pathSegments = effectivePath
-    .replace(/^\/+|\/+$/g, '')
-    .split('/')
-    .filter((segment) => segment.length > 0)
-  const lastSegment = pathSegments[pathSegments.length - 1] || ''
-  const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
-
   switch (methodLower) {
     case 'get':
       // GET on file extension -> get, GET on collection -> list, GET on resource -> get
-      if (hasFileExtension(effectivePath)) {
-        prefix = 'get'
-      } else {
-        prefix = isCollection ? 'list' : 'get'
-      }
+      prefix = isCollection ? 'list' : 'get'
       break
     case 'post':
-      // POST usually creates, but check if it's a nested action
-      if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
-        // Nested action like /pets/{petId}/adopt -> postPetAdopt
-        prefix = 'post'
-      } else {
-        prefix = 'create'
-      }
+      prefix = isCollection ? 'create' : 'post'
       break
     case 'put':
     case 'patch':
@@ -190,7 +167,39 @@ function generateOperationId(pathUrl: string, method: string, prefixToStrip: str
   }
 
   // Combine prefix and entity name
-  return prefix + entityName
+  let generatedId = prefix + entityName
+
+  // Handle collisions by appending path segments
+  if (existingIds.has(generatedId)) {
+    console.log(`⚠️  Collision detected: '${generatedId}' already used`)
+
+    // add parameters from the last to the first until not colliding
+    const params = pathSegments
+      .filter(isParam)
+      .map((s) => snakeToPascalCase(s.replace(/[{}]/g, '').replace(/[.:-]/g, '_')))
+
+    while (params.length > 0) {
+      generatedId += params.pop()
+      if (!existingIds.has(generatedId)) {
+        console.log(`   ➜ Resolved collision with: '${generatedId}'`)
+        break
+      }
+    }
+
+    if (existingIds.has(generatedId)) {
+      // If still colliding, append a counter
+      let counter = 2
+      let uniqueId = `${generatedId}${counter}`
+      while (existingIds.has(uniqueId)) {
+        counter++
+        uniqueId = `${generatedId}${counter}`
+      }
+      generatedId = uniqueId
+      console.log(`   ➜ Resolved collision with counter: '${generatedId}'`)
+    }
+  }
+
+  return generatedId
 }
 
 /**
@@ -212,84 +221,34 @@ function addMissingOperationIds(openApiSpec: OpenAPISpec, prefixToStrip: string 
   }
 
   // Track used operationIds to detect collisions
-  const usedOperationIds = new Map<string, { path: string; method: string }>()
+  const usedOperationIds = new Set<string>()
 
   // First pass: collect existing operationIds
-  Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
-    Object.entries(pathItem).forEach(([method, operation]) => {
+  Object.entries(openApiSpec.paths).forEach(([_, pathItem]) => {
+    Object.entries(pathItem).forEach(([method, op]) => {
       const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
       if (!httpMethods.includes(method.toLowerCase())) {
         return
       }
-
-      const op = operation as OpenAPIOperation
       if (op.operationId) {
-        usedOperationIds.set(op.operationId, { path: pathUrl, method })
+        usedOperationIds.add(op.operationId)
       }
     })
   })
 
   // Second pass: generate operationIds for missing ones
   Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
-    Object.entries(pathItem).forEach(([method, operation]) => {
+    Object.entries(pathItem).forEach(([method, op]) => {
       const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
       if (!httpMethods.includes(method.toLowerCase())) {
         return
       }
 
-      const op = operation as OpenAPIOperation
       if (!op.operationId) {
         // Generate operationId with prefix stripped
-        let generatedId = generateOperationId(pathUrl, method, prefixToStrip)
-
-        // Handle collisions by appending path segments
-        if (usedOperationIds.has(generatedId)) {
-          const existingEntry = usedOperationIds.get(generatedId)!
-          console.log(
-            `⚠️  Collision detected: '${generatedId}' already used by ${existingEntry.method.toUpperCase()} ${existingEntry.path}`,
-          )
-
-          // Try to disambiguate by adding removed segments back
-          let effectivePath = pathUrl
-          if (prefixToStrip && pathUrl.startsWith(prefixToStrip)) {
-            effectivePath = pathUrl.substring(prefixToStrip.length)
-          }
-
-          const allSegments = effectivePath
-            .replace(/^\/+|\/+$/g, '')
-            .split('/')
-            .filter((segment) => segment.length > 0)
-
-          // Find segments that were removed (path parameters)
-          const removedSegments = allSegments.filter((segment) => segment.startsWith('{') && segment.endsWith('}'))
-
-          // Try adding back removed segments one by one until unique
-          for (const segment of removedSegments) {
-            const segmentName = segment.replace(/[{}]/g, '')
-            const disambiguatedId = generatedId + snakeToPascalCase(segmentName)
-
-            if (!usedOperationIds.has(disambiguatedId)) {
-              generatedId = disambiguatedId
-              console.log(`   ➜ Resolved collision with: '${generatedId}'`)
-              break
-            }
-          }
-
-          // If still colliding, append a counter
-          if (usedOperationIds.has(generatedId)) {
-            let counter = 2
-            let uniqueId = `${generatedId}${counter}`
-            while (usedOperationIds.has(uniqueId)) {
-              counter++
-              uniqueId = `${generatedId}${counter}`
-            }
-            generatedId = uniqueId
-            console.log(`   ➜ Resolved collision with counter: '${generatedId}'`)
-          }
-        }
-
+        let generatedId = generateOperationId(pathUrl, method, prefixToStrip, usedOperationIds)
         op.operationId = generatedId
-        usedOperationIds.set(generatedId, { path: pathUrl, method })
+        usedOperationIds.add(generatedId)
         console.log(`🏷️  Generated operationId '${generatedId}' for ${method.toUpperCase()} ${pathUrl}`)
       }
     })
