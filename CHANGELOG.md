@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-11-22
+
+### Added
+
+- Auto-generation of operation IDs for OpenAPI endpoints without explicit operationIds
+- Intelligent operation ID generation with customizable path prefix stripping (default `/api`)
+- Snake_case to camelCase conversion within path segments for clean operation IDs
+- File extension detection for appropriate prefix selection (`get` for files vs `list` for collections)
+- Period-to-PascalCase conversion in operation ID generation
+- Automatic collision detection and resolution for duplicate operation IDs with path parameter disambiguation
+- Comprehensive test suite with 258 tests covering all operation ID generation scenarios
+
+### Changed
+
+- CLI code generation now preprocesses OpenAPI specs to add missing operation IDs before type generation
+- `openapi-typescript` moved from devDependencies to peerDependencies for better consumer compatibility
+
 ## [0.11.0] - 2025-11-20
 
 ### Added
