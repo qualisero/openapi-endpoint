@@ -81,6 +81,180 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
   }
 }
 
+/**
+ * Converts a snake_case string to PascalCase.
+ * Works with strings that have no underscores (just capitalizes them).
+ *
+ * @param str - The snake_case string (e.g., 'give_treats' or 'pets')
+ * @returns PascalCase string (e.g., 'GiveTreats' or 'Pets')
+ */
+function snakeToPascalCase(str: string): string {
+  return str
+    .split('_')
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('')
+}
+
+/**
+ * Generates an operationId based on the HTTP method and path.
+ * Uses heuristics to create meaningful operation names.
+ *
+ * @param pathUrl - The OpenAPI path (e.g., '/pets/{petId}')
+ * @param method - The HTTP method (e.g., 'get', 'post')
+ * @param prefixToStrip - Optional prefix to strip from path (e.g., '/api')
+ * @returns A generated operationId (e.g., 'getPet', 'listPets', 'createPet')
+ */
+function generateOperationId(
+  pathUrl: string,
+  method: string,
+  prefixToStrip: string = '',
+  existingIds: Set<string>,
+): string {
+  const methodLower = method.toLowerCase()
+
+  // Strip prefix if provided and path starts with it
+  let effectivePath = pathUrl
+  if (prefixToStrip && pathUrl.startsWith(prefixToStrip)) {
+    effectivePath = pathUrl.substring(prefixToStrip.length)
+  }
+
+  // Remove leading/trailing slashes, replace slashes and periods with underscores
+  // Filter out path parameters (e.g., {petId})
+  // split by '/' or '.'
+  const pathSegments = effectivePath.split(/[/.]/)
+
+  const isParam = (segment: string) => segment.startsWith('{') && segment.endsWith('}')
+
+  const entityName = snakeToPascalCase(
+    pathSegments
+      .filter((s) => !isParam(s))
+      .join('_')
+      .replace(/[^a-zA-Z0-9]/g, '_'), // Replace non-alphanumeric characters with underscores
+  )
+
+  // A collection is when there is a trailing slash
+  const isCollection = pathUrl.endsWith('/')
+
+  // Determine prefix based on method and whether it's a collection or single resource
+  let prefix = ''
+  switch (methodLower) {
+    case 'get':
+      // GET on file extension -> get, GET on collection -> list, GET on resource -> get
+      prefix = isCollection ? 'list' : 'get'
+      break
+    case 'post':
+      prefix = isCollection ? 'create' : 'post'
+      break
+    case 'put':
+    case 'patch':
+      prefix = 'update'
+      break
+    case 'delete':
+      prefix = 'delete'
+      break
+    case 'head':
+      prefix = 'head'
+      break
+    case 'options':
+      prefix = 'options'
+      break
+    case 'trace':
+      prefix = 'trace'
+      break
+    default:
+      prefix = methodLower
+  }
+
+  // Combine prefix and entity name
+  let generatedId = prefix + entityName
+
+  // Handle collisions by appending path segments
+  if (existingIds.has(generatedId)) {
+    console.log(`⚠️  Collision detected: '${generatedId}' already used`)
+
+    // add parameters from the last to the first until not colliding
+    const params = pathSegments
+      .filter(isParam)
+      .map((s) => snakeToPascalCase(s.replace(/[{}]/g, '').replace(/[.:-]/g, '_')))
+
+    while (params.length > 0) {
+      generatedId += params.pop()
+      if (!existingIds.has(generatedId)) {
+        console.log(`   ➜ Resolved collision with: '${generatedId}'`)
+        break
+      }
+    }
+
+    if (existingIds.has(generatedId)) {
+      // If still colliding, append a counter
+      let counter = 2
+      let uniqueId = `${generatedId}${counter}`
+      while (existingIds.has(uniqueId)) {
+        counter++
+        uniqueId = `${generatedId}${counter}`
+      }
+      generatedId = uniqueId
+      console.log(`   ➜ Resolved collision with counter: '${generatedId}'`)
+    }
+  }
+
+  return generatedId
+}
+
+/**
+ * Adds operationId to operations that don't have one.
+ * Modifies the OpenAPI spec in place.
+ * Handles collisions by appending disambiguating segments.
+ *
+ * @param openApiSpec - The OpenAPI specification object
+ * @param prefixToStrip - Optional prefix to strip from paths (defaults to '/api')
+ */
+function addMissingOperationIds(openApiSpec: OpenAPISpec, prefixToStrip: string = '/api'): void {
+  if (!openApiSpec.paths) {
+    return
+  }
+
+  // Log the prefix that will be stripped
+  if (prefixToStrip) {
+    console.log(`🔍 Path prefix '${prefixToStrip}' will be stripped from operation IDs`)
+  }
+
+  // Track used operationIds to detect collisions
+  const usedOperationIds = new Set<string>()
+
+  // First pass: collect existing operationIds
+  Object.entries(openApiSpec.paths).forEach(([_, pathItem]) => {
+    Object.entries(pathItem).forEach(([method, op]) => {
+      const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+      if (!httpMethods.includes(method.toLowerCase())) {
+        return
+      }
+      if (op.operationId) {
+        usedOperationIds.add(op.operationId)
+      }
+    })
+  })
+
+  // Second pass: generate operationIds for missing ones
+  Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
+    Object.entries(pathItem).forEach(([method, op]) => {
+      const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+      if (!httpMethods.includes(method.toLowerCase())) {
+        return
+      }
+
+      if (!op.operationId) {
+        // Generate operationId with prefix stripped
+        let generatedId = generateOperationId(pathUrl, method, prefixToStrip, usedOperationIds)
+        op.operationId = generatedId
+        usedOperationIds.add(generatedId)
+        console.log(`🏷️  Generated operationId '${generatedId}' for ${method.toUpperCase()} ${pathUrl}`)
+      }
+    })
+  })
+}
+
 function parseOperationsFromSpec(openapiContent: string): {
   operationIds: string[]
   operationInfoMap: Record<string, OperationInfo>
@@ -226,7 +400,12 @@ async function main(): Promise<void> {
     }
 
     // Fetch OpenAPI spec content
-    const openapiContent = await fetchOpenAPISpec(openapiInput)
+    let openapiContent = await fetchOpenAPISpec(openapiInput)
+
+    // Parse spec and add missing operationIds
+    const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
+    addMissingOperationIds(openApiSpec)
+    openapiContent = JSON.stringify(openApiSpec, null, 2)
 
     // Generate both files
     await Promise.all([generateTypes(openapiContent, outputDir), generateApiOperations(openapiContent, outputDir)])

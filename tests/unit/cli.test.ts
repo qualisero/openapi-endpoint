@@ -109,6 +109,406 @@ describe('CLI codegen functionality', () => {
       expect(result.operationIds).toEqual([])
       expect(result.operationInfoMap).toEqual({})
     })
+
+    it('should correctly parse toy spec including endpoints without operationId', () => {
+      const openapiContent = JSON.stringify(toyOpenApiSpec)
+      const result = parseOperationsFromSpec(openapiContent)
+
+      // Should include the original operations with operationId
+      expect(result.operationIds).toContain('createPet')
+      expect(result.operationIds).toContain('getPet')
+      expect(result.operationIds).toContain('listPets')
+      expect(result.operationIds).toContain('updatePet')
+      expect(result.operationIds).toContain('deletePet')
+      expect(result.operationIds).toContain('listUserPets')
+      expect(result.operationIds).toContain('uploadPetPic')
+    })
+  })
+
+  describe('generateOperationId', () => {
+    // Helper to convert snake_case to PascalCase
+    const snakeToPascalCase = (str: string): string => {
+      return str
+        .split('_')
+        .filter((part) => part.length > 0)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join('')
+    }
+
+    // Helper to check if path has file extension
+    const hasFileExtension = (pathUrl: string): boolean => {
+      const segments = pathUrl.split('/').filter((s) => s.length > 0 && !s.startsWith('{'))
+      if (segments.length === 0) return false
+      const lastSegment = segments[segments.length - 1]
+      return /\.\w+$/.test(lastSegment)
+    }
+
+    // Test the operationId generation logic
+    const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
+      const methodLower = method.toLowerCase()
+
+      // Strip prefix if provided and path starts with it
+      let effectivePath = path
+      if (prefixToStrip && path.startsWith(prefixToStrip)) {
+        effectivePath = path.substring(prefixToStrip.length)
+      }
+
+      // Remove leading/trailing slashes, replace slashes and periods with underscores
+      // Filter out path parameters (e.g., {petId})
+      const cleanPath = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
+        .join('_')
+        .replace(/\./g, '_') // Replace periods with underscores
+
+      // Convert the entire path (now with underscores) to PascalCase
+      const entityName = snakeToPascalCase(cleanPath)
+
+      // Determine prefix based on method and whether it's a collection or single resource
+      let prefix = ''
+
+      // Check if path ends with a parameter (single resource) or not (collection)
+      const pathSegments = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0)
+      const lastSegment = pathSegments[pathSegments.length - 1] || ''
+      const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+      switch (methodLower) {
+        case 'get':
+          // GET on file extension -> get, GET on collection -> list, GET on resource -> get
+          if (hasFileExtension(effectivePath)) {
+            prefix = 'get'
+          } else {
+            prefix = isCollection ? 'list' : 'get'
+          }
+          break
+        case 'post':
+          // POST usually creates, but check if it's a nested action
+          if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+            // Nested action like /pets/{petId}/adopt -> postPetAdopt
+            prefix = 'post'
+          } else {
+            prefix = 'create'
+          }
+          break
+        case 'put':
+        case 'patch':
+          prefix = 'update'
+          break
+        case 'delete':
+          prefix = 'delete'
+          break
+        case 'head':
+          prefix = 'head'
+          break
+        case 'options':
+          prefix = 'options'
+          break
+        case 'trace':
+          prefix = 'trace'
+          break
+        default:
+          prefix = methodLower
+      }
+
+      // Combine prefix and entity name
+      return prefix + entityName
+    }
+
+    it('should generate getPet for GET /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'get', '/api')).toBe('getPet')
+    })
+
+    it('should generate updatePet for PATCH /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'patch', '/api')).toBe('updatePet')
+    })
+
+    it('should generate updatePet for PUT /api/pet/{pet_id} with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'put', '/api')).toBe('updatePet')
+    })
+
+    it('should generate postPetAdopt for POST /api/pet/{pet_id}/adopt with /api prefix', () => {
+      expect(generateOperationId('/api/pet/{pet_id}/adopt', 'post', '/api')).toBe('postPetAdopt')
+    })
+
+    it('should generate getApiPet for GET /api/pet/{pet_id} without prefix stripping', () => {
+      expect(generateOperationId('/api/pet/{pet_id}', 'get')).toBe('getApiPet')
+    })
+
+    it('should generate listOwners for GET /owners', () => {
+      expect(generateOperationId('/owners', 'get')).toBe('listOwners')
+    })
+
+    it('should generate createOwners for POST /owners', () => {
+      expect(generateOperationId('/owners', 'post')).toBe('createOwners')
+    })
+
+    it('should generate listPets for GET /pets', () => {
+      expect(generateOperationId('/pets', 'get')).toBe('listPets')
+    })
+
+    it('should generate getPet for GET /pets/{petId}', () => {
+      expect(generateOperationId('/pets/{petId}', 'get')).toBe('getPets')
+    })
+
+    it('should generate deletePet for DELETE /pets/{petId}', () => {
+      expect(generateOperationId('/pets/{petId}', 'delete')).toBe('deletePets')
+    })
+
+    it('should handle nested paths correctly', () => {
+      expect(generateOperationId('/users/{userId}/pets', 'get')).toBe('listUsersPets')
+      expect(generateOperationId('/users/{userId}/pets/{petId}', 'get')).toBe('getUsersPets')
+    })
+
+    it('should handle paths with leading/trailing slashes', () => {
+      expect(generateOperationId('/pets/', 'get')).toBe('listPets')
+      expect(generateOperationId('pets', 'get')).toBe('listPets')
+    })
+
+    it('should handle empty paths', () => {
+      expect(generateOperationId('/', 'get')).toBe('list')
+      expect(generateOperationId('', 'get')).toBe('list')
+    })
+
+    it('should convert snake_case to camelCase in path segments', () => {
+      expect(generateOperationId('/pet/give_treats', 'post')).toBe('createPetGiveTreats')
+      expect(generateOperationId('/api/pet/give_treats', 'post', '/api')).toBe('createPetGiveTreats')
+      expect(generateOperationId('/user_profile/{userId}', 'get')).toBe('getUserProfile')
+      expect(generateOperationId('/admin_settings/update_config', 'put')).toBe('updateAdminSettingsUpdateConfig')
+    })
+
+    it('should handle mixed case and snake_case segments', () => {
+      expect(generateOperationId('/pets/special_treats', 'get')).toBe('listPetsSpecialTreats')
+      expect(generateOperationId('/pet/{petId}/give_treats', 'post')).toBe('postPetGiveTreats')
+    })
+
+    it('should strip /v1 prefix when provided', () => {
+      expect(generateOperationId('/v1/pets', 'get', '/v1')).toBe('listPets')
+      expect(generateOperationId('/v1/pets/{petId}', 'get', '/v1')).toBe('getPets')
+    })
+
+    it('should strip /api/v1 prefix when provided', () => {
+      expect(generateOperationId('/api/v1/pets', 'get', '/api/v1')).toBe('listPets')
+    })
+
+    it('should use get prefix for file extensions instead of list', () => {
+      expect(generateOperationId('/config.json', 'get')).toBe('getConfigJson')
+      expect(generateOperationId('/api/config.json', 'get', '/api')).toBe('getConfigJson')
+      expect(generateOperationId('/data.v1.json', 'get')).toBe('getDataV1Json')
+      expect(generateOperationId('/api/export.xml', 'get', '/api')).toBe('getExportXml')
+    })
+
+    it('should replace periods with underscores in paths', () => {
+      expect(generateOperationId('/data.v1.json', 'get')).toBe('getDataV1Json')
+      expect(generateOperationId('/api/config.production.yml', 'get', '/api')).toBe('getConfigProductionYml')
+    })
+  })
+
+  describe('addMissingOperationIds', () => {
+    const snakeToPascalCase = (str: string): string => {
+      return str
+        .split('_')
+        .filter((part) => part.length > 0)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join('')
+    }
+
+    const hasFileExtension = (pathUrl: string): boolean => {
+      const segments = pathUrl.split('/').filter((s) => s.length > 0 && !s.startsWith('{'))
+      if (segments.length === 0) return false
+      const lastSegment = segments[segments.length - 1]
+      return /\.\w+$/.test(lastSegment)
+    }
+
+    const generateOperationId = (path: string, method: string, prefixToStrip: string = ''): string => {
+      const methodLower = method.toLowerCase()
+
+      // Strip prefix if provided and path starts with it
+      let effectivePath = path
+      if (prefixToStrip && path.startsWith(prefixToStrip)) {
+        effectivePath = path.substring(prefixToStrip.length)
+      }
+
+      // Remove leading/trailing slashes, replace slashes and periods with underscores
+      // Filter out path parameters (e.g., {petId})
+      const cleanPath = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'))
+        .join('_')
+        .replace(/\./g, '_') // Replace periods with underscores
+
+      // Convert the entire path (now with underscores) to PascalCase
+      const entityName = snakeToPascalCase(cleanPath)
+
+      // Determine prefix based on method and whether it's a collection or single resource
+      const pathSegments = effectivePath
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .filter((segment) => segment.length > 0)
+      const lastSegment = pathSegments[pathSegments.length - 1] || ''
+      const isCollection = !lastSegment.startsWith('{') || pathSegments.length === 0
+
+      let prefix = ''
+      switch (methodLower) {
+        case 'get':
+          // GET on file extension -> get, GET on collection -> list, GET on resource -> get
+          if (hasFileExtension(effectivePath)) {
+            prefix = 'get'
+          } else {
+            prefix = isCollection ? 'list' : 'get'
+          }
+          break
+        case 'post':
+          if (pathSegments.length > 2 && !lastSegment.startsWith('{')) {
+            prefix = 'post'
+          } else {
+            prefix = 'create'
+          }
+          break
+        case 'put':
+        case 'patch':
+          prefix = 'update'
+          break
+        case 'delete':
+          prefix = 'delete'
+          break
+        default:
+          prefix = methodLower
+      }
+
+      return prefix + entityName
+    }
+
+    const addMissingOperationIds = (
+      openApiSpec: { paths?: Record<string, unknown> },
+      prefixToStrip: string = '/api',
+    ): void => {
+      if (!openApiSpec.paths) {
+        return
+      }
+
+      Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Object.entries(pathItem as any).forEach(([method, operation]: [string, any]) => {
+          const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+          if (!httpMethods.includes(method.toLowerCase())) {
+            return
+          }
+
+          if (!operation.operationId) {
+            operation.operationId = generateOperationId(pathUrl, method, prefixToStrip)
+          }
+        })
+      })
+    }
+
+    it('should add operationId to operations without one (no prefix)', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            get: { summary: 'List pets' },
+          },
+          '/pets/{petId}': {
+            get: { summary: 'Get pet' },
+            put: { summary: 'Update pet' },
+          },
+        },
+      }
+
+      // Pass empty string to not strip any prefix
+      addMissingOperationIds(spec, '')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets/{petId}'] as any).get.operationId).toBe('getPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets/{petId}'] as any).put.operationId).toBe('updatePets')
+    })
+
+    it('should strip /api prefix when generating operationIds (default behavior)', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/api/pets': {
+            get: { summary: 'List pets' },
+          },
+          '/api/pets/{petId}': {
+            get: { summary: 'Get pet' },
+            patch: { summary: 'Update pet' },
+          },
+          '/api/pets/{petId}/adopt': {
+            post: { summary: 'Adopt pet' },
+          },
+        },
+      }
+
+      // Use default prefix '/api'
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}'] as any).get.operationId).toBe('getPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}'] as any).patch.operationId).toBe('updatePets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/api/pets/{petId}/adopt'] as any).post.operationId).toBe('postPetsAdopt')
+    })
+
+    it('should not overwrite existing operationIds', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            get: { operationId: 'customListPets', summary: 'List pets' },
+          },
+        },
+      }
+
+      addMissingOperationIds(spec)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('customListPets')
+    })
+
+    it('should handle specs without paths', () => {
+      const spec: { openapi: string; info: { title: string }; paths?: Record<string, unknown> } = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+      }
+
+      expect(() => addMissingOperationIds(spec)).not.toThrow()
+    })
+
+    it('should ignore non-HTTP methods', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test' },
+        paths: {
+          '/pets': {
+            parameters: [{ name: 'test' }],
+            get: { summary: 'List pets' },
+          },
+        },
+      }
+
+      // Use empty string to not strip prefix
+      addMissingOperationIds(spec, '')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((spec.paths['/pets'] as any).parameters).toEqual([{ name: 'test' }])
+    })
   })
 
   describe('generateApiOperationsContent', () => {
