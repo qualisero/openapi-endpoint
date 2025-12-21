@@ -1,4 +1,4 @@
-# Vue OpenAPI Query
+# OpenApiEndpoint
 
 [![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=1763799820)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
@@ -39,7 +39,7 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 This will generate two files in your specified output directory:
 
 - `openapi-types.ts` - TypeScript type definitions for your API
-- `api-operations.ts` - Streamlined operation definitions combining metadata and types
+- `api-operations.ts` - Operation definitions combining metadata and types
 
 ## Usage
 
@@ -50,7 +50,7 @@ This will generate two files in your specified output directory:
 import { useOpenApi } from '@qualisero/openapi-endpoint'
 import axios from 'axios'
 
-// Import your generated operations (includes both metadata and types)
+// Import your auto-generated operations (includes both metadata and types)
 import { OperationId, openApiOperations, type OpenApiOperations } from './generated/api-operations'
 
 // Create axios instance
@@ -58,7 +58,7 @@ const axiosInstance = axios.create({
   baseURL: 'https://api.example.com',
 })
 
-// Initialize the package with the streamlined operations
+// Initialize the package with the auto-generated operations
 const api = useOpenApi<OpenApiOperations>({
   operations: openApiOperations,
   axios: axiosInstance,
