@@ -42,8 +42,14 @@ export interface QueryClientLike {
   /**
    * Invalidate queries that match the provided filters.
    * Used to trigger refetches of related data after mutations.
+   *
+   * @param filters - Filters can include queryKey, exact, and/or a predicate function
    */
-  invalidateQueries(filters: { queryKey: unknown[]; exact?: boolean }): Promise<void>
+  invalidateQueries(filters: {
+    queryKey?: unknown[]
+    exact?: boolean
+    predicate?: (query: { queryKey: readonly unknown[] }) => boolean
+  }): Promise<void>
 }
 
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
