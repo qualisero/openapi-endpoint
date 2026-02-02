@@ -162,7 +162,33 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
             const listResolvedPath = resolvePath(listPath, pathParams)
             if (isPathResolved(listResolvedPath)) {
               const listQueryKey = generateQueryKey(listResolvedPath)
-              await h.queryClient.invalidateQueries({ queryKey: listQueryKey, exact: true })
+
+              // Invalidate list queries by comparing normalized query keys.
+              // For queries with query parameters (objects), strip the last element before comparing.
+              // This matches:
+              //   - List queries without params: ["api", "user"]
+              //   - List queries with params: ["api", "user", {filter}] → normalized to ["api", "user"]
+              // But NOT single-item queries where last element is a primitive:
+              //   - Single-item: ["api", "user", "uuid"] → kept as ["api", "user", "uuid"]
+              await h.queryClient.invalidateQueries({
+                predicate: (query: { queryKey: readonly unknown[] }) => {
+                  const qKey = query.queryKey
+                  if (!qKey || qKey.length === 0) return false
+
+                  // Normalize query key: strip last element if it's an object (query params)
+                  const normalizedKey =
+                    typeof qKey[qKey.length - 1] === 'object' && qKey[qKey.length - 1] !== null
+                      ? qKey.slice(0, -1)
+                      : qKey
+
+                  // Compare with listQueryKey
+                  if (normalizedKey.length !== listQueryKey.length) return false
+                  for (let i = 0; i < listQueryKey.length; i++) {
+                    if (normalizedKey[i] !== listQueryKey[i]) return false
+                  }
+                  return true
+                },
+              })
             }
           }
         }
