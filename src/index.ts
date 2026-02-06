@@ -12,12 +12,26 @@ import {
   IsQueryOperation,
 } from './types'
 import { getHelpers } from './openapi-helpers'
-export type { OpenApiConfig, OpenApiInstance, GetResponseData, QueryClientLike, GetQueryParameters } from './types'
+export type {
+  OpenApiConfig,
+  OpenApiInstance,
+  GetResponseData,
+  QueryClientLike,
+  GetQueryParameters,
+  GetPathParameters,
+  GetRequestBody,
+} from './types'
+export type {
+  QQueryOptions,
+  QMutationOptions,
+  EndpointQueryReturn,
+  EndpointMutationReturn,
+} from './types-documentation'
 export { queryClient } from './openapi-helpers'
 /** @internal */
-export { type EndpointQueryReturn, useEndpointQuery } from './openapi-query'
+export { type useEndpointQuery } from './openapi-query'
 /** @internal */
-export { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
+export { type useEndpointMutation } from './openapi-mutation'
 
 /**
  * Creates a type-safe OpenAPI client for Vue applications.
@@ -25,6 +39,7 @@ export { type EndpointMutationReturn, useEndpointMutation } from './openapi-muta
  * This is the main entry point for the library. It provides reactive composables
  * for API operations with full TypeScript type safety based on your OpenAPI specification.
  *
+ * @group Setup
  * @template Ops - The operations type, typically generated from your OpenAPI spec
  * @param config - Configuration object containing operations metadata and axios instance
  * @returns {OpenApiInstance<Ops>} API instance with useQuery, useMutation, useEndpoint, and debug methods

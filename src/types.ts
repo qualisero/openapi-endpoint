@@ -25,6 +25,8 @@ export type OperationId = string
  * by only requiring the specific methods that are actually used internally.
  * This prevents version compatibility issues where internal implementation details
  * (like private properties) might differ between versions.
+ *
+ * @group Types
  */
 export interface QueryClientLike {
   /**
@@ -236,6 +238,7 @@ export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> 
  * providing type-safe access to queries, mutations, and generic endpoints based
  * on your OpenAPI specification.
  *
+ * @group Types
  * @template Ops - The operations type from your OpenAPI specification
  * @template AxiosConfig - The axios request configuration type (defaults to AxiosRequestConfig)
  *

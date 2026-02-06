@@ -12,3 +12,6 @@ coverage
 
 # Generated documentation (published to gh-pages)
 docs
+
+# Agent documentation and planning (not for publication)
+AGENT_DOCS
