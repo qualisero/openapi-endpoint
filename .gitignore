@@ -11,7 +11,9 @@ coverage
 /tmp
 
 # Generated documentation (published to gh-pages)
-docs
+docs/*
+!docs/manual
+!docs/manual/*.md
 
 # Agent documentation and planning (not for publication)
 AGENT_DOCS
