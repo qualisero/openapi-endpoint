@@ -32,19 +32,24 @@
     "sort": ["source-order"],
     "categorizeByGroup": true,
     "defaultCategory": "Other",
-    "categoryOrder": ["Guides", "Setup", "Queries", "Mutations", "Cache", "Types", "Functions", "Interfaces", "Variables"],
+    "categoryOrder": [
+      "Guides",
+      "Setup",
+      "Queries",
+      "Mutations",
+      "Cache",
+      "Types",
+      "Functions",
+      "Interfaces",
+      "Variables"
+    ],
     "kindSortOrder": ["Variable", "Function", "Interface", "TypeAlias"],
     "validation": {
       "invalidLink": true,
       "notExported": false
     },
     "treatWarningsAsErrors": false,
-    "intentionallyNotExported": [
-      "OperationInfo",
-      "useEndpointQuery",
-      "useEndpointMutation",
-      "OpenApiHelpers"
-    ],
+    "intentionallyNotExported": ["OperationInfo", "useEndpointQuery", "useEndpointMutation", "OpenApiHelpers"],
     "readme": "none"
   },
   "include": ["src/**/*"],
