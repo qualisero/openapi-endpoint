@@ -1,6 +1,15 @@
 name: Documentation
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'typedoc.json'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
   pull_request:
     types: [closed]
     branches: [main]
@@ -9,12 +18,13 @@ on:
       - 'package.json'
       - 'tsconfig.json'
       - 'typedoc.json'
+      - 'docs/**'
       - '.github/workflows/docs.yml'
 
 jobs:
   publish-docs:
-    # Only run if PR was merged and affects source code
-    if: github.event.pull_request.merged == true
+    # Run on push to main or when PR is merged
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: read

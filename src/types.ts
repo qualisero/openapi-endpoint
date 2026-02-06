@@ -16,6 +16,7 @@ export type AxiosRequestConfigExtended = AxiosRequestConfig & Record<string, unk
 /** @internal */
 export type { EndpointQueryReturn, EndpointMutationReturn }
 
+/** @internal */
 export type OperationId = string
 
 /**
@@ -54,6 +55,7 @@ export interface QueryClientLike {
   }): Promise<void>
 }
 
+/** @internal */
 export type Operations<Ops> = object & { [K in keyof Ops]: { method: HttpMethod } }
 
 /**
@@ -112,6 +114,7 @@ export interface OpenApiConfig<Ops extends Operations<Ops>> {
   queryClient?: QueryClientLike
 }
 
+/** @internal */
 export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
