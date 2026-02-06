@@ -10,6 +10,14 @@ import tsPlugin from '@typescript-eslint/eslint-plugin'
 
 import globals from 'globals'
 
+// Suppress specific warnings for test files
+const testFileOverrides = {
+  files: ['tests/**/*.ts', 'tests/**/*.tsx'],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
+  },
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageJsonPath = path.join(__dirname, 'package.json')
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
@@ -63,4 +71,8 @@ export default [
       'no-redeclare': 'off',
     },
   },
+
+  // Test file overrides (suppress 'any' warnings for tests)
+  // Must come after other configs to override them
+  testFileOverrides,
 ]
