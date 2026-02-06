@@ -38,19 +38,36 @@ jobs:
             echo "should-publish=false" >> $GITHUB_OUTPUT
           fi
 
-      - uses: actions/setup-node@v4
+      - name: Block pre-release versions
+        id: pre-release-check
         if: steps.version-check.outputs.should-publish == 'true'
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          # Check for pre-release identifiers (dev, alpha, beta, rc, etc.)
+          if [[ "$CURRENT_VERSION" =~ -dev$|-alpha$|-beta$|-rc$ ]]; then
+            echo "❌ Pre-release version detected: $CURRENT_VERSION"
+            echo "Pre-release versions are not published to npm registry."
+            echo "Please use a stable version for publication."
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Stable version: $CURRENT_VERSION"
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.pre-release-check.outputs.should-publish == 'true'
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
-        if: steps.version-check.outputs.should-publish == 'true'
+        if: steps.pre-release-check.outputs.should-publish == 'true'
 
       - run: npm run build
-        if: steps.version-check.outputs.should-publish == 'true'
+        if: steps.pre-release-check.outputs.should-publish == 'true'
 
       - run: npm publish --provenance --access public
-        if: steps.version-check.outputs.should-publish == 'true'
+        if: steps.pre-release-check.outputs.should-publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
