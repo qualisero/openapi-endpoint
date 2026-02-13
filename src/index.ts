@@ -45,7 +45,7 @@ export { type useEndpointMutation } from './openapi-mutation'
  * ```typescript
  * import { useOpenApi } from '@qualisero/openapi-endpoint'
  * // See documentation on how to generate types and operations automatically:
- * import { openApiOperations, type OpenApiOperations } from './generated/api-operations'
+ * import { openApiOperations, type OpenApiOperations, OperationId } from './generated/api-operations'
  * import axios from 'axios'
  *
  * const api = useOpenApi<OpenApiOperations>({
@@ -54,8 +54,8 @@ export { type useEndpointMutation } from './openapi-mutation'
  * })
  *
  * // Use in components
- * const { data, isLoading } = api.useQuery('listPets', {})
- * const createPet = api.useMutation('createPet', {})
+ * const { data, isLoading } = api.useQuery(OperationId.listPets, {})
+ * const createPet = api.useMutation(OperationId.createPet, {})
  * ```
  */
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
@@ -73,11 +73,11 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      * @example
      * ```typescript
      * // Verify type inference at compile time
-     * const isQuery: true = api._debugIsQueryOperation('getPet')
-     * const isMutation: false = api._debugIsQueryOperation('createPet')
+     * const isQuery: true = api._debugIsQueryOperation(OperationId.getPet)
+     * const isMutation: false = api._debugIsQueryOperation(OperationId.createPet)
      *
      * // Also logs operation info to console for runtime inspection
-     * api._debugIsQueryOperation('getPet') // logs: { path: '/pets/{petId}', method: 'GET' }
+     * api._debugIsQueryOperation(OperationId.getPet) // logs: { path: '/pets/{petId}', method: 'GET' }
      * ```
      */
     _debugIsQueryOperation: function <Op extends keyof Ops>(operationId: Op) {

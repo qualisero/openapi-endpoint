@@ -120,8 +120,9 @@ const api = useOpenApi<OpenApiOperations>({
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
-const { data: pets, isLoading, error } = api.useQuery('listPets')
+const { data: pets, isLoading, error } = api.useQuery(OperationId.listPets)
 
 if (error.value) {
   console.error('Failed to load pets:', error.value)
@@ -143,10 +144,11 @@ if (error.value) {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 const name = ref('')
 
-const createPet = api.useMutation('createPet', {
+const createPet = api.useMutation(OperationId.createPet, {
   onSuccess: () => {
     console.log('Pet created!')
     name.value = ''

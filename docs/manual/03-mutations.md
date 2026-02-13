@@ -12,9 +12,10 @@ Mutations are used for creating, updating, or deleting data on your API. They wr
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Simple mutation for creating data
-const createPet = api.useMutation('createPet', {
+const createPet = api.useMutation(OperationId.createPet, {
   onSuccess: (data) => {
     console.log('Pet created:', data)
   },
@@ -35,7 +36,7 @@ await createPet.mutateAsync({
 import { api } from './api/init'
 
 // Mutation with path parameters
-const updatePet = api.useMutation('updatePet', { petId: '123' })
+const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
 
 // Execute mutation
 await updatePet.mutateAsync({
@@ -72,7 +73,7 @@ The mutation object provides two methods for executing the mutation:
 Executes mutation imperatively (fire and forget):
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(OperationId.createPet)
 
 createPet.mutate({
   data: { name: 'Fluffy' },
@@ -85,7 +86,7 @@ createPet.mutate({
 Executes mutation and returns a promise:
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(OperationId.createPet)
 
 try {
   const result = await createPet.mutateAsync({
@@ -183,7 +184,7 @@ const updatePet = api.useMutation(
 The mutation object provides reactive state properties:
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(OperationId.createPet)
 
 console.log(createPet.isPending.value) // true while mutation is in progress
 console.log(createPet.isSuccess.value) // true if mutation succeeded
@@ -202,7 +203,7 @@ By default, mutations automatically:
 
 ```typescript
 // Automatic cache management (default)
-const createPet = api.useMutation('createPet', { petId: '123' })
+const createPet = api.useMutation(OperationId.createPet, { petId: '123' })
 
 // This will:
 // 1. Update cache for getPet/123 with returned data
@@ -243,7 +244,7 @@ const createPet = api.useMutation(
 ### Manually Refetch Endpoints
 
 ```typescript
-const petListQuery = api.useQuery('listPets')
+const petListQuery = api.useQuery(OperationId.listPets)
 const createPet = api.useMutation(
   'createPet',
   { petId: '123' },

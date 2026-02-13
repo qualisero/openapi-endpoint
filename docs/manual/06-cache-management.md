@@ -15,7 +15,10 @@ Queries automatically cache their results based on:
 - **Cache time** - How long data stays in memory
 
 ```typescript
-const { data: pets } = api.useQuery('listPets')
+import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const { data: pets } = api.useQuery(OperationId.listPets)
 
 // First call: fetches from API
 // Second call (with same params): returns cached data immediately
@@ -30,7 +33,7 @@ Mutations automatically:
 3. **Trigger refetch** - Stale queries automatically refetch
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(OperationId.createPet)
 
 await createPet.mutateAsync({
   data: { name: 'Fluffy', species: 'cat' },
@@ -112,7 +115,7 @@ const api = useOpenApi<OpenApiOperations>({
 ### Manual Refetch
 
 ```typescript
-const { data: pets, refetch } = api.useQuery('listPets')
+const { data: pets, refetch } = api.useQuery(OperationId.listPets)
 
 // Manually trigger refetch
 refetch()
@@ -209,8 +212,8 @@ const createPet = api.useMutation(
 ### Refetch Specific Endpoints
 
 ```typescript
-const petListQuery = api.useQuery('listPets')
-const userPetsQuery = api.useQuery('getUserPets', { userId: '123' })
+const petListQuery = api.useQuery(OperationId.listPets)
+const userPetsQuery = api.useQuery(OperationId.getUserPets, { userId: '123' })
 
 const createPet = api.useMutation(
   'createPet',
@@ -320,7 +323,7 @@ const handleMouseEnter = () => {
   queryClient.prefetchQuery({
     queryKey: ['getPet', '123'],
     queryFn: async () => {
-      const result = await api.useQuery('getPet', { petId: '123' })
+      const result = await api.useQuery(OperationId.getPet, { petId: '123' })
       return result.data.value
     },
     staleTime: 60 * 1000, // Fresh for 1 minute
@@ -335,7 +338,7 @@ import { api, queryClient } from './api/init'
 
 const page = ref(1)
 
-const { data: pets } = api.useQuery('listPets', {
+const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: computed(() => ({
     page: page.value,
     limit: 20,
@@ -350,7 +353,7 @@ const loadNextPage = () => {
   queryClient.prefetchQuery({
     queryKey: ['listPets', { page: nextPage, limit: 20 }],
     queryFn: async () => {
-      const result = await api.useQuery('listPets', {
+      const result = await api.useQuery(OperationId.listPets, {
         queryParams: { page: nextPage, limit: 20 },
       })
       return result.data.value

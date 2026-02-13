@@ -222,7 +222,7 @@ type OmitMaybeRef<T, K extends PropertyKey> =
  *
  * @example
  * ```typescript
- * const { data } = api.useQuery('listPets', {
+ * const { data } = api.useQuery(OperationId.listPets, {
  *   enabled: computed(() => isLoggedIn.value),
  *   staleTime: 5000,
  *   queryParams: { limit: 10, status: 'available' },
@@ -274,10 +274,10 @@ export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = M
  *
  * @example
  * ```typescript
- * const mutation = api.useMutation('createPet', {
+ * const mutation = api.useMutation(OperationId.createPet, {
  *   onSuccess: (data) => console.log('Created', data),
  *   dontInvalidate: false,  // default: auto-invalidate
- *   invalidateOperations: ['listPets']  // manual invalidation
+ *   invalidateOperations: [OperationId.listPets]  // manual invalidation
  * })
  * ```
  */
@@ -418,13 +418,13 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
    * @example
    * ```typescript
    * // Simple query without parameters
-   * const { data: pets, isLoading } = api.useQuery('listPets')
+   * const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
    *
    * // Query with path parameters
-   * const { data: pet } = api.useQuery('getPet', { petId: '123' })
+   * const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
    *
    * // Query with options
-   * const { data: pets } = api.useQuery('listPets', {
+   * const { data: pets } = api.useQuery(OperationId.listPets, {
    *   enabled: computed(() => shouldLoad.value),
    *   onLoad: (data) => console.log('Loaded:', data)
    * })
@@ -454,13 +454,13 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
    * @example
    * ```typescript
    * // Simple mutation without path parameters
-   * const createPet = api.useMutation('createPet', {
+   * const createPet = api.useMutation(OperationId.createPet, {
    *   onSuccess: (data) => console.log('Created:', data),
    *   onError: (error) => console.error('Failed:', error)
    * })
    *
    * // Mutation with path parameters
-   * const updatePet = api.useMutation('updatePet', { petId: '123' })
+   * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
    *
    * // Execute mutations
    * await createPet.mutateAsync({ data: { name: 'Fluffy', species: 'cat' } })

@@ -15,12 +15,13 @@ File uploads use the `multipart/form-data` content type, which allows sending bi
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 async function uploadAvatar(userId: string, file: File) {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.useMutation('uploadUserAvatar', { userId })
+  const uploadMutation = api.useMutation(OperationId.uploadUserAvatar, { userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -43,7 +44,7 @@ async function uploadDocument(userId: string, file: File, description: string) {
   formData.append('document', file)
   formData.append('description', description)
 
-  const uploadMutation = api.useMutation('uploadUserDocument', { userId })
+  const uploadMutation = api.useMutation(OperationId.uploadUserDocument, { userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -74,7 +75,7 @@ const uploadAvatar = async (userId: string, file: File) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const uploadMutation = api.useMutation('uploadUserAvatar', { userId })
+    const uploadMutation = api.useMutation(OperationId.uploadUserAvatar, { userId })
     await uploadMutation.mutateAsync({
       data: formData,
     })
@@ -175,7 +176,7 @@ async function uploadMultipleFiles(userId: string, files: File[]) {
     // formData.append('files', file)
   })
 
-  const uploadMutation = api.useMutation('uploadUserFiles', { userId })
+  const uploadMutation = api.useMutation(OperationId.uploadUserFiles, { userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -196,7 +197,7 @@ Some APIs accept binary data as string instead of FormData:
 import { api } from './api/init'
 
 async function uploadBinaryData(userId: string, binaryString: string) {
-  const uploadMutation = api.useMutation('uploadUserAvatar', { userId })
+  const uploadMutation = api.useMutation(OperationId.uploadUserAvatar, { userId })
 
   return uploadMutation.mutateAsync({
     data: {
@@ -220,7 +221,7 @@ reader.readAsBinaryString(file)
 ```typescript
 import { api } from './api/init'
 
-const { data: userProfile } = api.useQuery('getUserProfile', { userId: '123' })
+const { data: userProfile } = api.useQuery(OperationId.getUserProfile, { userId: '123' })
 
 const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()

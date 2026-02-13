@@ -18,16 +18,17 @@ Reactive parameters allow your API calls to automatically refetch when their dep
 ```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 const selectedPetId = ref<string | null>(null)
 
 const { data: pet } = api.useQuery(
-  'getPet',
+  OperationId.getPet,
   { petId: selectedPetId.value }, // Static value - won't refetch
 )
 
 const { data: reactivePet } = api.useQuery(
-  'getPet',
+  OperationId.getPet,
   computed(() => ({ petId: selectedPetId.value })), // Reactive!
 )
 
@@ -70,7 +71,7 @@ import { api } from './api/init'
 const searchTerm = ref('')
 const statusFilter = ref<'available' | 'pending' | 'sold'>('available')
 
-const { data: pets } = api.useQuery('listPets', {
+const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: computed(() => ({
     search: searchTerm.value,
     status: statusFilter.value,
@@ -91,7 +92,7 @@ import { api } from './api/init'
 const page = ref(1)
 const limit = ref(20)
 
-const { data: pets } = api.useQuery('listPets', {
+const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: computed(() => ({
     page: page.value,
     limit: limit.value,
@@ -118,7 +119,7 @@ import { computed } from 'vue'
 import { api } from './api/init'
 
 // First query
-const { data: user } = api.useQuery('getUser', { userId: '123' })
+const { data: user } = api.useQuery(OperationId.getUser, { userId: '123' })
 
 // Second query depends on first query's result
 const { data: userPets } = api.useQuery(
@@ -216,7 +217,7 @@ watch(searchTerm, (newValue) => {
   }, 300)
 })
 
-const { data: pets } = api.useQuery('listPets', {
+const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: computed(() => ({
     search: debouncedSearch.value,
   })),
@@ -238,7 +239,7 @@ const filters = ref({
   sortOrder: 'asc',
 })
 
-const { data: products } = api.useQuery('listProducts', {
+const { data: products } = api.useQuery(OperationId.listProducts, {
   queryParams: computed(() => {
     const params: Record<string, any> = {}
 

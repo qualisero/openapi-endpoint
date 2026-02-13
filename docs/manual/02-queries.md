@@ -12,9 +12,10 @@ Queries are used for fetching data from your API. They wrap TanStack Query's `us
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Simple query that fetches data on mount
-const { data: pets, isLoading, error, refetch } = api.useQuery('listPets')
+const { data: pets, isLoading, error, refetch } = api.useQuery(OperationId.listPets)
 
 console.log(pets.value) // Array of pets
 console.log(isLoading.value) // true while fetching
@@ -25,9 +26,10 @@ console.log(error.value) // Error object if request failed
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Query with required path parameter
-const { data: pet } = api.useQuery('getPet', { petId: '123' })
+const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
 
 console.log(pet.value) // Pet with id '123'
 ```
@@ -36,9 +38,10 @@ console.log(pet.value) // Pet with id '123'
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Query with query parameters
-const { data: pets } = api.useQuery('listPets', {
+const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: { limit: 10, status: 'available' },
 })
 
@@ -52,8 +55,10 @@ You can pass additional options to customize query behavior:
 ### Enabled/Disabled Queries
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pet } = api.useQuery(
-  'getPet',
+  OperationId.getPet,
   { petId: '123' },
   {
     enabled: computed(() => Boolean(selectedPetId.value)),
@@ -66,8 +71,10 @@ const { data: pet } = api.useQuery(
 ### Stale Time
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
     staleTime: 60 * 1000, // 1 minute
@@ -147,7 +154,7 @@ interface QueryResult {
 <script setup lang="ts">
 import { api } from './api/init'
 
-const { data: pets, isLoading, error } = api.useQuery('listPets')
+const { data: pets, isLoading, error } = api.useQuery(OperationId.listPets)
 </script>
 
 <template>
@@ -171,7 +178,7 @@ const { data: pets, isLoading, error } = api.useQuery('listPets')
 <script setup lang="ts">
 import { api } from './api/init'
 
-const { data: pets, refetch, isFetching } = api.useQuery('listPets')
+const { data: pets, refetch, isFetching } = api.useQuery(OperationId.listPets)
 
 const handleRefresh = () => {
   refetch()
@@ -190,7 +197,7 @@ const handleRefresh = () => {
 
 ```typescript
 // First query
-const { data: user } = api.useQuery('getUser', { userId: '123' })
+const { data: user } = api.useQuery(OperationId.getUser, { userId: '123' })
 
 // Second query depends on first query's result
 const { data: userPets } = api.useQuery(
