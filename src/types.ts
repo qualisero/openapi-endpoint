@@ -225,7 +225,7 @@ type OmitMaybeRef<T, K extends PropertyKey> =
  * const { data } = api.useQuery(OperationId.listPets, {
  *   enabled: computed(() => isLoggedIn.value),
  *   staleTime: 5000,
- *   queryParams: { limit: 10, status: 'available' },
+ *   queryParams: { limit: 10, status: PetStatus.Available },
  *   onLoad: (data) => console.log('Loaded:', data)
  * })
  * ```

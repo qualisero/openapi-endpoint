@@ -4,6 +4,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
 import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import { PetStatus } from '../fixtures/api-enums'
 
 /**
  * Tests for Reactive Query Parameters
@@ -128,7 +129,7 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should handle complex computed query params', () => {
-      const selectedStatus = ref<'available' | 'pending' | 'sold' | undefined>('available')
+      const selectedStatus = ref<PetStatus | undefined>(PetStatus.Available)
       const maxResults = ref(10)
 
       const queryParams = computed(() => ({

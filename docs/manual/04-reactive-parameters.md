@@ -67,9 +67,11 @@ includeArchived.value = true // Refetches with ?includeArchived=true
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+import { PetStatus } from './api/generated/api-enums'
 
 const searchTerm = ref('')
-const statusFilter = ref<'available' | 'pending' | 'sold'>('available')
+const statusFilter = ref<PetStatus>(PetStatus.Available)
 
 const { data: pets } = api.useQuery(OperationId.listPets, {
   queryParams: computed(() => ({
@@ -80,7 +82,7 @@ const { data: pets } = api.useQuery(OperationId.listPets, {
 
 // Query refetches when search or status changes
 searchTerm.value = 'fluffy' // Triggers refetch
-statusFilter.value = 'sold' // Triggers refetch
+statusFilter.value = PetStatus.Sold // Triggers refetch
 ```
 
 ### Pagination

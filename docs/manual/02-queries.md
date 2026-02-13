@@ -39,10 +39,11 @@ console.log(pet.value) // Pet with id '123'
 ```typescript
 import { api } from './api/init'
 import { OperationId } from './api/generated/api-operations'
+import { PetStatus } from './api/generated/api-enums'
 
-// Query with query parameters
+// Query with query parameters - use enum for type safety
 const { data: pets } = api.useQuery(OperationId.listPets, {
-  queryParams: { limit: 10, status: 'available' },
+  queryParams: { limit: 10, status: PetStatus.Available },
 })
 
 // Results in: GET /pets?limit=10&status=available

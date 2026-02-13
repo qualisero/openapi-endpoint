@@ -23,6 +23,7 @@ import {
   type ApiPathParams,
   type ApiQueryParams,
 } from '../fixtures/openapi-typed-operations'
+import { PetStatus } from '../fixtures/api-enums'
 
 describe('ApiResponse - Response Types (All Fields Required)', () => {
   it('should make readonly id REQUIRED in ApiResponse', () => {
@@ -32,7 +33,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
       id: 'readonly-uuid',
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     // No null check needed - all fields are required
@@ -50,7 +51,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
     const _missingTag: PetResponse = {
       id: 'uuid',
       name: 'Fluffy',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     // @ts-expect-error - Property 'status' is missing
@@ -65,11 +66,11 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
       id: 'uuid',
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     expect(valid.tag).toBe('friendly')
-    expect(valid.status).toBe('available')
+    expect(valid.status).toBe(PetStatus.Available)
   })
 
   it('should allow direct access to all fields without null check', () => {
@@ -79,27 +80,27 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
       id: 'uuid-123',
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     // All fields accessible without null checks
     const idLength: number = response.id.length
     const nameLength: number = response.name.length
     const tagLength: number = response.tag.length
-    const statusValue: 'available' | 'pending' | 'sold' = response.status
+    const statusValue: PetStatus = response.status
 
     expect(idLength).toBe(8)
     expect(nameLength).toBe(6)
     expect(tagLength).toBe(8)
-    expect(statusValue).toBe('available')
+    expect(statusValue).toBe(PetStatus.Available)
   })
 
   it('should work with list operations returning arrays', () => {
     type ListResponse = ApiResponse<OpType.listPets>
 
     const pets: ListResponse = [
-      { id: 'uuid-1', name: 'Fluffy', tag: 'friendly', status: 'available' },
-      { id: 'uuid-2', name: 'Spot', tag: 'playful', status: 'pending' },
+      { id: 'uuid-1', name: 'Fluffy', tag: 'friendly', status: PetStatus.Available },
+      { id: 'uuid-2', name: 'Spot', tag: 'playful', status: PetStatus.Pending },
     ]
 
     expect(pets[0].id).toBe('uuid-1')
@@ -126,11 +127,11 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
       id: 'uuid',
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     expect(full.tag).toBe('friendly')
-    expect(full.status).toBe('available')
+    expect(full.status).toBe(PetStatus.Available)
   })
 
   it('should still require readonly id', () => {
@@ -158,7 +159,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
     const _tag: string = pet.tag
 
     // @ts-expect-error - 'status' is possibly 'undefined'
-    const _status: 'available' | 'pending' | 'sold' = pet.status
+    const _status: PetStatus = pet.status
 
     // Correct: use optional chaining
     const tagLength = pet.tag?.length
@@ -172,16 +173,28 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   it('should accept enum values for status when provided', () => {
     type PetResponse = ApiResponseSafe<OpType.getPet>
 
-    const available: PetResponse = { id: '1', name: 'Pet', status: 'available' }
-    const pending: PetResponse = { id: '2', name: 'Pet', status: 'pending' }
-    const sold: PetResponse = { id: '3', name: 'Pet', status: 'sold' }
+    const available: PetResponse = { id: '1', name: 'Pet', status: PetStatus.Available }
+    const pending: PetResponse = { id: '2', name: 'Pet', status: PetStatus.Pending }
+    const sold: PetResponse = { id: '3', name: 'Pet', status: PetStatus.Adopted }
 
-    expect(available.status).toBe('available')
-    expect(pending.status).toBe('pending')
-    expect(sold.status).toBe('sold')
+    expect(available.status).toBe(PetStatus.Available)
+    expect(pending.status).toBe(PetStatus.Pending)
+    expect(sold.status).toBe(PetStatus.Adopted)
 
     // @ts-expect-error - status only accepts enum values
     const _invalid: PetResponse = { id: '4', name: 'Pet', status: 'invalid-status' }
+  })
+
+  it('should still accept string literals (backward compatibility)', () => {
+    type PetResponse = ApiResponseSafe<OpType.getPet>
+
+    // String literals still work for backward compatibility
+    const withStringLiteral: PetResponse = { id: '1', name: 'Pet', status: 'available' }
+    expect(withStringLiteral.status).toBe('available')
+
+    // But PetStatus enum is preferred for intellisense and type safety
+    const withEnum: PetResponse = { id: '2', name: 'Pet', status: PetStatus.Available }
+    expect(withEnum.status).toBe(PetStatus.Available)
   })
 })
 
@@ -206,7 +219,7 @@ describe('ApiRequest - Mutation Request Bodies', () => {
     const fullPet: CreateRequestBody = {
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     expect(fullPet.name).toBe('Fluffy')
@@ -223,7 +236,7 @@ describe('ApiRequest - Mutation Request Bodies', () => {
 
     const updateBody: UpdateRequestBody = {
       name: 'Updated Fluffy',
-      status: 'sold',
+      status: PetStatus.Adopted,
     }
 
     expect(updateBody.name).toBe('Updated Fluffy')
@@ -284,7 +297,7 @@ describe('OpType Namespace', () => {
       id: 'uuid',
       name: 'Fluffy',
       tag: 'friendly',
-      status: 'available',
+      status: PetStatus.Available,
     }
 
     expect(pet.id).toBe('uuid')
@@ -292,14 +305,14 @@ describe('OpType Namespace', () => {
 
   it('should work with both query and mutation operations', () => {
     type GetResponse = ApiResponse<OpType.getPet>
-    const getPet: GetResponse = { id: 'uuid', name: 'Pet', tag: 't', status: 'available' }
+    const getPet: GetResponse = { id: 'uuid', name: 'Pet', tag: 't', status: PetStatus.Available }
     expect(getPet.id).toBe('uuid')
 
     type CreateRequest = ApiRequest<OpType.createPet>
     type CreateResponse = ApiResponse<OpType.createPet>
 
     const createBody: CreateRequest = { name: 'New Pet' }
-    const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet', tag: 't', status: 'available' }
+    const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet', tag: 't', status: PetStatus.Available }
 
     expect(createBody.name).toBe('New Pet')
     expect(createResponse.id).toBe('new-uuid')
@@ -357,7 +370,7 @@ describe('Integration with useOpenApi', () => {
       const id: string = result.data.value.id
       const name: string = result.data.value.name
       const tag: string = result.data.value.tag
-      const status: 'available' | 'pending' | 'sold' = result.data.value.status
+      const status: PetStatus = result.data.value.status
 
       // @ts-expect-error - Cannot assign to 'id' because it is read-only
       result.data.value.id = 'modified'

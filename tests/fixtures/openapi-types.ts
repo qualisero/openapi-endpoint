@@ -378,13 +378,13 @@ export interface components {
       name: string
       tag?: string
       /** @enum {string} */
-      status?: 'available' | 'pending' | 'sold'
+      status?: 'available' | 'pending' | 'adopted'
     }
     NewPet: {
       name: string
       tag?: string
       /** @enum {string} */
-      status?: 'available' | 'pending' | 'sold'
+      status?: 'available' | 'pending' | 'adopted'
     }
     SingleFile: {
       /** Format: binary */

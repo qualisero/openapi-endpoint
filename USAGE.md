@@ -29,9 +29,11 @@ const { data, refetch } = api.useQuery(
   computed(() => ({ petId: petId.value })),
 )
 
-// With query params
+// With query params - use enum for type safety
+import { PetStatus } from './generated/api-enums'
+
 const { data } = api.useQuery(OperationId.listPets, {
-  queryParams: { limit: 10, status: 'available' },
+  queryParams: { limit: 10, status: PetStatus.Available },
 })
 
 // With options
@@ -173,7 +175,7 @@ Use `ApiResponseSafe` when your backend may omit optional fields in responses:
 ```typescript
 // Default: ApiResponse (assumes reliable backend)
 type Response = ApiResponse<OpType.getPet>
-const pet: Response = { id: '1', name: 'Fluffy', tag: 'friendly', status: 'available' }
+const pet: Response = { id: '1', name: 'Fluffy', tag: 'friendly', status: PetStatus.Available }
 const tag: string = pet.tag // OK - guaranteed to exist
 
 // Opt-out: ApiResponseSafe (for unreliable backends)
