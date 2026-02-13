@@ -85,6 +85,39 @@ describe('ApiResponse - Response Types', () => {
     expect(fullPet.status).toBe('available')
   })
 
+  it('should keep status optional and accept enum values', () => {
+    type PetResponse = ApiResponse<OpType.getPet>
+
+    // status is optional - can be omitted
+    const withoutStatus: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+    }
+    expect(withoutStatus.status).toBeUndefined()
+
+    // status accepts enum values when provided
+    const available: PetResponse = { id: '1', name: 'Pet', status: 'available' }
+    const pending: PetResponse = { id: '2', name: 'Pet', status: 'pending' }
+    const sold: PetResponse = { id: '3', name: 'Pet', status: 'sold' }
+
+    expect(available.status).toBe('available')
+    expect(pending.status).toBe('pending')
+    expect(sold.status).toBe('sold')
+
+    // @ts-expect-error - status only accepts enum values
+    const _invalid: PetResponse = { id: '4', name: 'Pet', status: 'invalid-status' }
+
+    // Accessing optional status requires null check or optional chaining
+    const pet: PetResponse = { id: '5', name: 'Pet' }
+
+    // @ts-expect-error - 'status' is possibly 'undefined'
+    const _statusValue: 'available' | 'pending' | 'sold' = pet.status
+
+    // Correct usage with optional chaining
+    const statusLength = pet.status?.length
+    expect(statusLength).toBeUndefined()
+  })
+
   it('should work with list operations returning arrays', () => {
     type ListResponse = ApiResponse<OpType.listPets>
 
