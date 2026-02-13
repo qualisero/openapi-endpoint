@@ -4,6 +4,7 @@
 import type { operations } from './openapi-types'
 import type {
   ApiResponse as ApiResponseBase,
+  ApiResponseSafe as ApiResponseSafeBase,
   ApiRequest as ApiRequestBase,
   ApiPathParams as ApiPathParamsBase,
   ApiQueryParams as ApiQueryParamsBase,
@@ -78,10 +79,19 @@ export type OperationId = keyof OpenApiOperations
 
 /**
  * Response data type for an API operation.
+ * All fields are REQUIRED - no null checks needed.
  * @example
  *   type Response = ApiResponse<OpType.getPet>
  */
 export type ApiResponse<K extends OperationId> = ApiResponseBase<OpenApiOperations, K>
+
+/**
+ * Response data type with safe typing for unreliable backends.
+ * Only readonly properties are required; others may be undefined.
+ * @example
+ *   type Response = ApiResponseSafe<OpType.getPet>
+ */
+export type ApiResponseSafe<K extends OperationId> = ApiResponseSafeBase<OpenApiOperations, K>
 
 /**
  * Request body type for a mutation operation.

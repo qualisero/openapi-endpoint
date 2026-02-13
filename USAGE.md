@@ -102,17 +102,41 @@ interface EndpointMutationReturn {
 
 ```typescript
 import type {
-  ApiResponse, // Response data type
+  ApiResponse, // Response data type (all fields required)
+  ApiResponseSafe, // Response with optional fields (for unreliable backends)
   ApiRequest, // Request body type
   ApiPathParams, // Path parameters type
   ApiQueryParams, // Query parameters type
 } from './generated/api-operations'
 
-// Usage with OpType for type-safe access
-type PetResponse = ApiResponse<OpType.getPet> // { id: string, name: string, ... }
-type CreateBody = ApiRequest<OpType.createPet> // { name: string, species?: string }
+// ApiResponse - ALL fields required, no null checks needed
+type PetResponse = ApiResponse<OpType.getPet>
+// { readonly id: string, name: string, tag: string, status: 'available' | 'pending' | 'sold' }
+
+// ApiResponseSafe - only readonly fields required, others optional
+type PetResponseSafe = ApiResponseSafe<OpType.getPet>
+// { readonly id: string, name: string, tag?: string, status?: 'available' | 'pending' | 'sold' }
+
+// Other type helpers
+type CreateBody = ApiRequest<OpType.createPet> // { name: string, tag?: string, status?: ... }
 type GetParams = ApiPathParams<OpType.getPet> // { petId: string | undefined }
 type ListParams = ApiQueryParams<OpType.listPets> // { limit?: number, status?: string }
+```
+
+### When to use ApiResponseSafe
+
+Use `ApiResponseSafe` when your backend may omit optional fields in responses:
+
+```typescript
+// Default: ApiResponse (assumes reliable backend)
+type Response = ApiResponse<OpType.getPet>
+const pet: Response = { id: '1', name: 'Fluffy', tag: 'friendly', status: 'available' }
+const tag: string = pet.tag // OK - guaranteed to exist
+
+// Opt-out: ApiResponseSafe (for unreliable backends)
+type Response = ApiResponseSafe<OpType.getPet>
+const pet: Response = { id: '1', name: 'Fluffy' } // tag and status can be omitted
+const tag: string | undefined = pet.tag // May be undefined
 ```
 
 ## Constants

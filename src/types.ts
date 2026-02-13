@@ -153,14 +153,53 @@ export interface OperationInfo {
 /** @internal */
 export type GetOperation<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op]
 
+// Utility: Make ALL properties required (for ApiResponse)
+type RequireAll<T> = {
+  [K in keyof T]-?: T[K]
+}
+
+// Utility: Make readonly properties required, keep others as-is (for ApiResponseSafe)
+type RequireReadonly<T> = {
+  [K in keyof T as IsReadonly<T, K> extends true ? K : never]-?: T[K]
+} & {
+  [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
+}
+
 /**
  * Extract response data type from an operation.
+ *
+ * All fields are REQUIRED regardless of their `required` status in the OpenAPI schema.
+ * This assumes the server always returns complete objects for GET/list endpoints.
+ *
  * @example
  * ```typescript
  * type PetResponse = ApiResponse<OpenApiOperations, OpType.getPet>
+ * // { readonly id: string, name: string, tag: string, status: 'available' | ... }
+ * // All fields required - no null checks needed
  * ```
  */
 export type ApiResponse<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  GetOperation<Ops, Op> extends {
+    responses: { 200: { content: { 'application/json': infer Data } } }
+  }
+    ? RequireAll<Data>
+    : unknown
+
+/**
+ * Extract response data type with safe typing for unreliable backends.
+ *
+ * Only readonly properties are REQUIRED. Other properties preserve their
+ * optional status from the OpenAPI schema. Use this when the backend may
+ * omit optional fields in responses.
+ *
+ * @example
+ * ```typescript
+ * type PetResponse = ApiResponseSafe<OpenApiOperations, OpType.getPet>
+ * // { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
+ * // tag and status optional - null checks required
+ * ```
+ */
+export type ApiResponseSafe<Ops extends Operations<Ops>, Op extends keyof Ops> =
   GetOperation<Ops, Op> extends {
     responses: { 200: { content: { 'application/json': infer Data } } }
   }
@@ -311,15 +350,6 @@ export type ApiRequest<Ops extends Operations<Ops>, Op extends keyof Ops> =
         }
       ? Writable<Body> | FormData
       : never
-
-// Utility: Make readonly properties required (non-optional)
-type RequireReadonly<T> = {
-  // Required: all readonly properties (remove optional modifier)
-  [K in keyof T as IsReadonly<T, K> extends true ? K : never]-?: T[K]
-} & {
-  // Keep as-is: all non-readonly properties (preserve optional modifier)
-  [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
-}
 
 export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS

@@ -10,6 +10,7 @@ export type {
   OpenApiConfig,
   OpenApiInstance,
   ApiResponse,
+  ApiResponseSafe,
   ApiRequest,
   ApiPathParams,
   ApiQueryParams,

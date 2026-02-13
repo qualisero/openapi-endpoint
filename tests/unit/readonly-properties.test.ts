@@ -3,8 +3,9 @@
  *
  * Verifies that readonly properties (marked with "readOnly": true in OpenAPI spec)
  * are handled correctly:
- * 1. ApiResponse makes readonly properties REQUIRED (no null checks needed)
- * 2. ApiRequest EXCLUDES readonly properties (can't send server-generated fields)
+ * 1. ApiResponse makes ALL fields REQUIRED (no null checks needed)
+ * 2. ApiResponseSafe makes only readonly fields required (opt-out for unreliable backends)
+ * 3. ApiRequest EXCLUDES readonly properties (can't send server-generated fields)
  */
 
 import { describe, it, expect } from 'vitest'
@@ -17,21 +18,24 @@ import {
   openApiOperations,
   type OpenApiOperations,
   type ApiResponse,
+  type ApiResponseSafe,
   type ApiRequest,
   type ApiPathParams,
   type ApiQueryParams,
 } from '../fixtures/openapi-typed-operations'
 
-describe('ApiResponse - Response Types', () => {
+describe('ApiResponse - Response Types (All Fields Required)', () => {
   it('should make readonly id REQUIRED in ApiResponse', () => {
     type PetResponse = ApiResponse<OpType.getPet>
 
     const response: PetResponse = {
       id: 'readonly-uuid',
       name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
     }
 
-    // No null check needed - id is guaranteed to exist
+    // No null check needed - all fields are required
     const id: string = response.id
     expect(id).toBe('readonly-uuid')
 
@@ -39,63 +43,135 @@ describe('ApiResponse - Response Types', () => {
     response.id = 'modified'
   })
 
-  it('should error when readonly id is missing from ApiResponse', () => {
+  it('should make ALL fields required, including optional ones', () => {
     type PetResponse = ApiResponse<OpType.getPet>
 
-    // @ts-expect-error - Property 'id' is missing (RequireReadonly makes it required)
-    const _invalid: PetResponse = {
-      name: 'Fluffy',
-    }
-  })
-
-  it('should allow direct access to readonly id without null check', () => {
-    type PetResponse = ApiResponse<OpType.getPet>
-
-    const response: PetResponse = {
-      id: 'uuid-123',
-      name: 'Fluffy',
-    }
-
-    const idLength: number = response.id.length
-    const idUpper: string = response.id.toUpperCase()
-
-    expect(idLength).toBe(8)
-    expect(idUpper).toBe('UUID-123')
-  })
-
-  it('should handle optional non-readonly properties', () => {
-    type PetResponse = ApiResponse<OpType.getPet>
-
-    const minimalPet: PetResponse = {
+    // @ts-expect-error - Property 'tag' is missing
+    const _missingTag: PetResponse = {
       id: 'uuid',
       name: 'Fluffy',
+      status: 'available',
     }
 
-    expect(minimalPet.tag).toBeUndefined()
-    expect(minimalPet.status).toBeUndefined()
+    // @ts-expect-error - Property 'status' is missing
+    const _missingStatus: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+      tag: 'friendly',
+    }
 
-    const fullPet: PetResponse = {
+    // Valid: all fields present
+    const valid: PetResponse = {
       id: 'uuid',
       name: 'Fluffy',
       tag: 'friendly',
       status: 'available',
     }
 
-    expect(fullPet.tag).toBe('friendly')
-    expect(fullPet.status).toBe('available')
+    expect(valid.tag).toBe('friendly')
+    expect(valid.status).toBe('available')
   })
 
-  it('should keep status optional and accept enum values', () => {
+  it('should allow direct access to all fields without null check', () => {
     type PetResponse = ApiResponse<OpType.getPet>
 
-    // status is optional - can be omitted
-    const withoutStatus: PetResponse = {
+    const response: PetResponse = {
+      id: 'uuid-123',
+      name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
+    }
+
+    // All fields accessible without null checks
+    const idLength: number = response.id.length
+    const nameLength: number = response.name.length
+    const tagLength: number = response.tag.length
+    const statusValue: 'available' | 'pending' | 'sold' = response.status
+
+    expect(idLength).toBe(8)
+    expect(nameLength).toBe(6)
+    expect(tagLength).toBe(8)
+    expect(statusValue).toBe('available')
+  })
+
+  it('should work with list operations returning arrays', () => {
+    type ListResponse = ApiResponse<OpType.listPets>
+
+    const pets: ListResponse = [
+      { id: 'uuid-1', name: 'Fluffy', tag: 'friendly', status: 'available' },
+      { id: 'uuid-2', name: 'Spot', tag: 'playful', status: 'pending' },
+    ]
+
+    expect(pets[0].id).toBe('uuid-1')
+    expect(pets[1].tag).toBe('playful')
+  })
+})
+
+describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
+  it('should make only readonly id REQUIRED, others optional', () => {
+    type PetResponse = ApiResponseSafe<OpType.getPet>
+
+    // Valid: only readonly id and required name
+    const minimal: PetResponse = {
       id: 'uuid',
       name: 'Fluffy',
     }
-    expect(withoutStatus.status).toBeUndefined()
 
-    // status accepts enum values when provided
+    expect(minimal.id).toBe('uuid')
+    expect(minimal.tag).toBeUndefined()
+    expect(minimal.status).toBeUndefined()
+
+    // Valid: all fields
+    const full: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
+    }
+
+    expect(full.tag).toBe('friendly')
+    expect(full.status).toBe('available')
+  })
+
+  it('should still require readonly id', () => {
+    type PetResponse = ApiResponseSafe<OpType.getPet>
+
+    // @ts-expect-error - Property 'id' is missing (readonly is required)
+    const _noId: PetResponse = {
+      name: 'Fluffy',
+    }
+  })
+
+  it('should require null checks for optional fields', () => {
+    type PetResponse = ApiResponseSafe<OpType.getPet>
+
+    const pet: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+    }
+
+    // id is always present
+    const id: string = pet.id
+
+    // tag and status may be undefined
+    // @ts-expect-error - 'tag' is possibly 'undefined'
+    const _tag: string = pet.tag
+
+    // @ts-expect-error - 'status' is possibly 'undefined'
+    const _status: 'available' | 'pending' | 'sold' = pet.status
+
+    // Correct: use optional chaining
+    const tagLength = pet.tag?.length
+    const statusValue = pet.status
+
+    expect(id).toBe('uuid')
+    expect(tagLength).toBeUndefined()
+    expect(statusValue).toBeUndefined()
+  })
+
+  it('should accept enum values for status when provided', () => {
+    type PetResponse = ApiResponseSafe<OpType.getPet>
+
     const available: PetResponse = { id: '1', name: 'Pet', status: 'available' }
     const pending: PetResponse = { id: '2', name: 'Pet', status: 'pending' }
     const sold: PetResponse = { id: '3', name: 'Pet', status: 'sold' }
@@ -106,28 +182,6 @@ describe('ApiResponse - Response Types', () => {
 
     // @ts-expect-error - status only accepts enum values
     const _invalid: PetResponse = { id: '4', name: 'Pet', status: 'invalid-status' }
-
-    // Accessing optional status requires null check or optional chaining
-    const pet: PetResponse = { id: '5', name: 'Pet' }
-
-    // @ts-expect-error - 'status' is possibly 'undefined'
-    const _statusValue: 'available' | 'pending' | 'sold' = pet.status
-
-    // Correct usage with optional chaining
-    const statusLength = pet.status?.length
-    expect(statusLength).toBeUndefined()
-  })
-
-  it('should work with list operations returning arrays', () => {
-    type ListResponse = ApiResponse<OpType.listPets>
-
-    const pets: ListResponse = [
-      { id: 'uuid-1', name: 'Fluffy' },
-      { id: 'uuid-2', name: 'Spot' },
-    ]
-
-    expect(pets[0].id).toBe('uuid-1')
-    expect(pets[1].name).toBe('Spot')
   })
 })
 
@@ -229,6 +283,8 @@ describe('OpType Namespace', () => {
     const pet: CorrectResponse = {
       id: 'uuid',
       name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
     }
 
     expect(pet.id).toBe('uuid')
@@ -236,14 +292,14 @@ describe('OpType Namespace', () => {
 
   it('should work with both query and mutation operations', () => {
     type GetResponse = ApiResponse<OpType.getPet>
-    const getPet: GetResponse = { id: 'uuid', name: 'Pet' }
+    const getPet: GetResponse = { id: 'uuid', name: 'Pet', tag: 't', status: 'available' }
     expect(getPet.id).toBe('uuid')
 
     type CreateRequest = ApiRequest<OpType.createPet>
     type CreateResponse = ApiResponse<OpType.createPet>
 
     const createBody: CreateRequest = { name: 'New Pet' }
-    const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet' }
+    const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet', tag: 't', status: 'available' }
 
     expect(createBody.name).toBe('New Pet')
     expect(createResponse.id).toBe('new-uuid')
@@ -291,42 +347,25 @@ describe('Integration with useOpenApi', () => {
     expect(getPet).toBeTruthy()
   })
 
-  it('should return data with required readonly id from useQuery', () => {
+  it('should return data with all fields required from useQuery', () => {
     const api = useOpenApi(mockConfig)
     const result = api.useQuery(OperationId.getPet, { petId: '123' })
 
-    // ApiResponse uses RequireReadonly which makes readonly properties REQUIRED
+    // ApiResponse makes ALL fields required
     if (result.data.value) {
-      // No null check needed - id is required
+      // No null check needed - all fields required
       const id: string = result.data.value.id
       const name: string = result.data.value.name
-
-      // Optional properties stay optional
-      const _tag: string | undefined = result.data.value.tag
+      const tag: string = result.data.value.tag
+      const status: 'available' | 'pending' | 'sold' = result.data.value.status
 
       // @ts-expect-error - Cannot assign to 'id' because it is read-only
       result.data.value.id = 'modified'
 
       expect(typeof id).toBe('string')
       expect(typeof name).toBe('string')
-    }
-  })
-
-  it('should allow direct property access without null checks', () => {
-    const api = useOpenApi(mockConfig)
-    const result = api.useQuery(OperationId.getPet, { petId: '123' })
-
-    if (result.data.value) {
-      // Direct access - no optional chaining for readonly id
-      const idLength = result.data.value.id.length
-      const idUpper = result.data.value.id.toUpperCase()
-
-      // Optional properties need checks
-      const tagLength = result.data.value.tag?.length
-
-      expect(typeof idLength).toBe('number')
-      expect(typeof idUpper).toBe('string')
-      expect(tagLength).toBeUndefined()
+      expect(typeof tag).toBe('string')
+      expect(typeof status).toBe('string')
     }
   })
 })

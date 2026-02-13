@@ -15,11 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetPathParameters<Ops, Op>` → `ApiPathParams<Op>`
   - `GetQueryParameters<Ops, Op>` → `ApiQueryParams<Op>`
   - Old names removed entirely (no backward compatibility aliases)
+- **BREAKING**: `ApiResponse` now requires ALL fields regardless of `required` status in OpenAPI schema
+  - All response fields are now required - no null checks needed
+  - Added `ApiResponseSafe` for opt-out: only readonly fields required, others preserve optional status
 - **BREAKING**: Made `isQueryMethod` and `isMutationMethod` internal (not exported from public API)
 - Removed `types-documentation.ts` - type documentation now inline in `types.ts`
 - Simplified `index.ts` exports - all public types exported directly from `types.ts`
 - Added inline JSDoc to `QQueryOptions` and `QMutationOptions` properties for better intellisense
 - Updated CLI to generate simplified type aliases using new names
+
+### Added
+
+- `ApiResponseSafe<Op>` type for unreliable backends - only readonly fields required, others optional
 
 ### Removed
 
