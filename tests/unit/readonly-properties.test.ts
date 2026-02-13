@@ -1,313 +1,299 @@
 /**
- * Tests for readonly property handling in OpenAPI endpoints.
+ * Tests for readonly property handling with library type utilities.
  *
- * This test file verifies that readonly properties (marked with "readOnly": true in OpenAPI spec)
- * are handled correctly by our library types:
+ * Verifies that readonly properties (marked with "readOnly": true in OpenAPI spec)
+ * are handled correctly:
  * 1. ApiResponse makes readonly properties REQUIRED (no null checks needed)
  * 2. ApiRequest EXCLUDES readonly properties (can't send server-generated fields)
  */
 
 import { describe, it, expect } from 'vitest'
+import { useOpenApi } from '@/index'
+import { type OpenApiConfig } from '@/types'
+import { mockAxios } from '../setup'
 import {
+  OperationId,
   OpType,
+  openApiOperations,
+  type OpenApiOperations,
   type ApiResponse,
   type ApiRequest,
   type ApiPathParams,
   type ApiQueryParams,
 } from '../fixtures/openapi-typed-operations'
 
-/**
- * Test that readonly properties are correctly handled in our library types.
- */
-describe('Readonly Property Handling', () => {
-  describe('ApiResponse - Response Types', () => {
-    it('should make readonly id REQUIRED in ApiResponse', () => {
-      // ApiResponse uses RequireReadonly which makes readonly properties REQUIRED
-      type PetResponse = ApiResponse<OpType.getPet>
+describe('ApiResponse - Response Types', () => {
+  it('should make readonly id REQUIRED in ApiResponse', () => {
+    type PetResponse = ApiResponse<OpType.getPet>
 
-      // id is REQUIRED - must include it
-      const response: PetResponse = {
-        id: 'readonly-uuid',
-        name: 'Fluffy',
-      }
+    const response: PetResponse = {
+      id: 'readonly-uuid',
+      name: 'Fluffy',
+    }
 
-      // No null check needed - id is guaranteed to exist
-      const id: string = response.id
-      expect(id).toBe('readonly-uuid')
+    // No null check needed - id is guaranteed to exist
+    const id: string = response.id
+    expect(id).toBe('readonly-uuid')
 
-      // @ts-expect-error - Cannot assign to 'id' because it is read-only
-      response.id = 'modified'
-    })
-
-    it('should error when readonly id is missing from ApiResponse', () => {
-      type PetResponse = ApiResponse<OpType.getPet>
-
-      // @ts-expect-error - Property 'id' is missing (RequireReadonly makes it required)
-      const _invalid: PetResponse = {
-        name: 'Fluffy',
-      }
-    })
-
-    it('should allow direct access to readonly id without null check', () => {
-      type PetResponse = ApiResponse<OpType.getPet>
-
-      const response: PetResponse = {
-        id: 'uuid-123',
-        name: 'Fluffy',
-      }
-
-      // No null check or optional chaining needed - id is required
-      const idLength: number = response.id.length
-      const idUpper: string = response.id.toUpperCase()
-
-      expect(idLength).toBe(8)
-      expect(idUpper).toBe('UUID-123')
-    })
-
-    it('should handle optional non-readonly properties', () => {
-      type PetResponse = ApiResponse<OpType.getPet>
-
-      // tag and status are optional (not readonly), so they stay optional
-      const minimalPet: PetResponse = {
-        id: 'uuid',
-        name: 'Fluffy',
-      }
-
-      expect(minimalPet.tag).toBeUndefined()
-      expect(minimalPet.status).toBeUndefined()
-
-      // With optional properties
-      const fullPet: PetResponse = {
-        id: 'uuid',
-        name: 'Fluffy',
-        tag: 'friendly',
-        status: 'available',
-      }
-
-      expect(fullPet.tag).toBe('friendly')
-      expect(fullPet.status).toBe('available')
-    })
-
-    it('should work with list operations returning arrays', () => {
-      type ListResponse = ApiResponse<OpType.listPets>
-
-      // listPets returns an array of Pets
-      const pets: ListResponse = [
-        { id: 'uuid-1', name: 'Fluffy' },
-        { id: 'uuid-2', name: 'Spot' },
-      ]
-
-      expect(pets[0].id).toBe('uuid-1')
-      expect(pets[1].name).toBe('Spot')
-    })
+    // @ts-expect-error - Cannot assign to 'id' because it is read-only
+    response.id = 'modified'
   })
 
-  describe('ApiRequest - Mutation Request Bodies', () => {
-    it('should EXCLUDE readonly id from ApiRequest', () => {
-      // ApiRequest uses Writable which EXCLUDES readonly properties
-      type CreateRequestBody = ApiRequest<OpType.createPet>
+  it('should error when readonly id is missing from ApiResponse', () => {
+    type PetResponse = ApiResponse<OpType.getPet>
 
-      // Should NOT have id in the request body type
-      const body: CreateRequestBody = {
-        name: 'Fluffy',
-        tag: 'friendly',
-      }
-
-      expect(body.name).toBe('Fluffy')
-
-      // @ts-expect-error - 'id' does not exist in type (readonly property excluded)
-      const _invalid: CreateRequestBody = { id: 'should-not-be-here', name: 'Fluffy' }
-    })
-
-    it('should allow all writable properties in request body', () => {
-      type CreateRequestBody = ApiRequest<OpType.createPet>
-
-      // Should accept all non-readonly properties
-      const fullPet: CreateRequestBody = {
-        name: 'Fluffy',
-        tag: 'friendly',
-        status: 'available',
-      }
-
-      expect(fullPet.name).toBe('Fluffy')
-      expect(fullPet.tag).toBe('friendly')
-      expect(fullPet.status).toBe('available')
-
-      // Should also accept just the required property
-      const minimalPet: CreateRequestBody = {
-        name: 'Minimal',
-      }
-
-      expect(minimalPet.name).toBe('Minimal')
-    })
-
-    it('should work the same for PUT operations', () => {
-      type UpdateRequestBody = ApiRequest<OpType.updatePet>
-
-      // PUT should also exclude readonly id
-      const updateBody: UpdateRequestBody = {
-        name: 'Updated Fluffy',
-        status: 'sold',
-      }
-
-      expect(updateBody.name).toBe('Updated Fluffy')
-
-      // @ts-expect-error - 'id' does not exist in type
-      const _invalid: UpdateRequestBody = { id: 'some-id', name: 'Updated' }
-    })
+    // @ts-expect-error - Property 'id' is missing (RequireReadonly makes it required)
+    const _invalid: PetResponse = {
+      name: 'Fluffy',
+    }
   })
 
-  describe('Type Helpers with OpType namespace', () => {
-    it('should use ApiResponse<OpType.getPet> for response types', () => {
-      // Clean syntax with intellisense: OpType.get shows all operations
-      type Response = ApiResponse<OpType.getPet>
+  it('should allow direct access to readonly id without null check', () => {
+    type PetResponse = ApiResponse<OpType.getPet>
 
-      const pet: Response = {
-        id: 'uuid-123',
-        name: 'Fluffy',
-      }
+    const response: PetResponse = {
+      id: 'uuid-123',
+      name: 'Fluffy',
+    }
 
-      // id is guaranteed to exist (required by RequireReadonly)
-      const id: string = pet.id
-      expect(id).toBe('uuid-123')
+    const idLength: number = response.id.length
+    const idUpper: string = response.id.toUpperCase()
 
-      // @ts-expect-error - Cannot assign to 'id' because it is read-only
-      pet.id = 'modified'
-    })
-
-    it('should use ApiRequest<OpType.createPet> for request body types', () => {
-      type Request = ApiRequest<OpType.createPet>
-
-      const body: Request = {
-        name: 'Fluffy',
-        tag: 'friendly',
-      }
-
-      expect(body.name).toBe('Fluffy')
-
-      // @ts-expect-error - 'id' does not exist (readonly property excluded)
-      const _invalid: Request = { id: 'should-fail', name: 'Fluffy' }
-    })
-
-    it('should use ApiPathParams<OpType.getPet> for path parameters', () => {
-      type Params = ApiPathParams<OpType.getPet>
-
-      const params: Params = {
-        petId: '123',
-      }
-
-      expect(params.petId).toBe('123')
-
-      // @ts-expect-error - 'wrongParam' does not exist
-      const _invalid: Params = { wrongParam: '123' }
-    })
-
-    it('should use ApiQueryParams<OpType.listPets> for query parameters', () => {
-      type Params = ApiQueryParams<OpType.listPets>
-
-      const params: Params = {
-        limit: 100,
-      }
-
-      expect(params.limit).toBe(100)
-    })
-
-    it('should prevent typos in operation IDs', () => {
-      // @ts-expect-error - Property 'getPetzzz' does not exist
-      type _TypoResponse = ApiResponse<OpType.getPetzzz>
-
-      // Correct usage:
-      type CorrectResponse = ApiResponse<OpType.getPet>
-
-      const pet: CorrectResponse = {
-        id: 'uuid',
-        name: 'Fluffy',
-      }
-
-      expect(pet.id).toBe('uuid')
-    })
-
-    it('should work with both query and mutation operations', () => {
-      // Query operation (GET)
-      type GetResponse = ApiResponse<OpType.getPet>
-      const getPet: GetResponse = { id: 'uuid', name: 'Pet' }
-      expect(getPet.id).toBe('uuid')
-
-      // Mutation operation (POST)
-      type CreateRequest = ApiRequest<OpType.createPet>
-      type CreateResponse = ApiResponse<OpType.createPet>
-
-      const createBody: CreateRequest = { name: 'New Pet' }
-      const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet' }
-
-      expect(createBody.name).toBe('New Pet')
-      expect(createResponse.id).toBe('new-uuid')
-
-      // Mutation operation (PUT)
-      type UpdateRequest = ApiRequest<OpType.updatePet>
-      type UpdateResponse = ApiResponse<OpType.updatePet>
-
-      const updateBody: UpdateRequest = { name: 'Updated Pet' }
-      const updateResponse: UpdateResponse = { id: 'updated-uuid', name: 'Updated Pet' }
-
-      expect(updateBody.name).toBe('Updated Pet')
-      expect(updateResponse.id).toBe('updated-uuid')
-    })
-
-    it('should handle operations without request body', () => {
-      // DELETE has no request body
-      type DeleteRequest = ApiRequest<OpType.deletePet>
-
-      // Should be never (no request body)
-      const checkNever: DeleteRequest = undefined as never
-      expect(checkNever).toBeUndefined()
-    })
-
-    it('should handle operations without path parameters', () => {
-      // createPet has no path parameters
-      type Params = ApiPathParams<OpType.createPet>
-
-      // Should be empty object
-      const params: Params = {}
-      expect(Object.keys(params)).toHaveLength(0)
-    })
+    expect(idLength).toBe(8)
+    expect(idUpper).toBe('UUID-123')
   })
 
-  describe('Runtime Behavior with Readonly Properties', () => {
-    it('should allow reading readonly properties at runtime', () => {
-      type PetResponse = ApiResponse<OpType.getPet>
+  it('should handle optional non-readonly properties', () => {
+    type PetResponse = ApiResponse<OpType.getPet>
 
-      const pet: PetResponse = {
-        id: 'test-uuid',
-        name: 'Fluffy',
-        tag: 'friendly',
-        status: 'available',
-      }
+    const minimalPet: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+    }
 
-      // We can read the id
-      expect(pet.id).toBe('test-uuid')
-      expect(pet.name).toBe('Fluffy')
+    expect(minimalPet.tag).toBeUndefined()
+    expect(minimalPet.status).toBeUndefined()
+
+    const fullPet: PetResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
+    }
+
+    expect(fullPet.tag).toBe('friendly')
+    expect(fullPet.status).toBe('available')
+  })
+
+  it('should work with list operations returning arrays', () => {
+    type ListResponse = ApiResponse<OpType.listPets>
+
+    const pets: ListResponse = [
+      { id: 'uuid-1', name: 'Fluffy' },
+      { id: 'uuid-2', name: 'Spot' },
+    ]
+
+    expect(pets[0].id).toBe('uuid-1')
+    expect(pets[1].name).toBe('Spot')
+  })
+})
+
+describe('ApiRequest - Mutation Request Bodies', () => {
+  it('should EXCLUDE readonly id from ApiRequest', () => {
+    type CreateRequestBody = ApiRequest<OpType.createPet>
+
+    const body: CreateRequestBody = {
+      name: 'Fluffy',
+      tag: 'friendly',
+    }
+
+    expect(body.name).toBe('Fluffy')
+
+    // @ts-expect-error - 'id' does not exist in type (readonly property excluded)
+    const _invalid: CreateRequestBody = { id: 'should-not-be-here', name: 'Fluffy' }
+  })
+
+  it('should allow all writable properties in request body', () => {
+    type CreateRequestBody = ApiRequest<OpType.createPet>
+
+    const fullPet: CreateRequestBody = {
+      name: 'Fluffy',
+      tag: 'friendly',
+      status: 'available',
+    }
+
+    expect(fullPet.name).toBe('Fluffy')
+
+    const minimalPet: CreateRequestBody = {
+      name: 'Minimal',
+    }
+
+    expect(minimalPet.name).toBe('Minimal')
+  })
+
+  it('should work the same for PUT operations', () => {
+    type UpdateRequestBody = ApiRequest<OpType.updatePet>
+
+    const updateBody: UpdateRequestBody = {
+      name: 'Updated Fluffy',
+      status: 'sold',
+    }
+
+    expect(updateBody.name).toBe('Updated Fluffy')
+
+    // @ts-expect-error - 'id' does not exist in type
+    const _invalid: UpdateRequestBody = { id: 'some-id', name: 'Updated' }
+  })
+
+  it('should handle operations without request body', () => {
+    type DeleteRequest = ApiRequest<OpType.deletePet>
+
+    // Should be never (no request body)
+    const checkNever: DeleteRequest = undefined as never
+    expect(checkNever).toBeUndefined()
+  })
+})
+
+describe('ApiPathParams and ApiQueryParams', () => {
+  it('should use ApiPathParams<OpType.getPet> for path parameters', () => {
+    type Params = ApiPathParams<OpType.getPet>
+
+    const params: Params = {
+      petId: '123',
+    }
+
+    expect(params.petId).toBe('123')
+
+    // @ts-expect-error - 'wrongParam' does not exist
+    const _invalid: Params = { wrongParam: '123' }
+  })
+
+  it('should use ApiQueryParams<OpType.listPets> for query parameters', () => {
+    type Params = ApiQueryParams<OpType.listPets>
+
+    const params: Params = {
+      limit: 100,
+    }
+
+    expect(params.limit).toBe(100)
+  })
+
+  it('should handle operations without path parameters', () => {
+    type Params = ApiPathParams<OpType.createPet>
+
+    const params: Params = {}
+    expect(Object.keys(params)).toHaveLength(0)
+  })
+})
+
+describe('OpType Namespace', () => {
+  it('should prevent typos in operation IDs', () => {
+    // @ts-expect-error - Property 'getPetzzz' does not exist
+    type _TypoResponse = ApiResponse<OpType.getPetzzz>
+
+    type CorrectResponse = ApiResponse<OpType.getPet>
+
+    const pet: CorrectResponse = {
+      id: 'uuid',
+      name: 'Fluffy',
+    }
+
+    expect(pet.id).toBe('uuid')
+  })
+
+  it('should work with both query and mutation operations', () => {
+    type GetResponse = ApiResponse<OpType.getPet>
+    const getPet: GetResponse = { id: 'uuid', name: 'Pet' }
+    expect(getPet.id).toBe('uuid')
+
+    type CreateRequest = ApiRequest<OpType.createPet>
+    type CreateResponse = ApiResponse<OpType.createPet>
+
+    const createBody: CreateRequest = { name: 'New Pet' }
+    const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet' }
+
+    expect(createBody.name).toBe('New Pet')
+    expect(createResponse.id).toBe('new-uuid')
+  })
+})
+
+describe('Integration with useOpenApi', () => {
+  const mockConfig: OpenApiConfig<OpenApiOperations> = {
+    operations: openApiOperations,
+    axios: mockAxios,
+  }
+
+  it('should enforce type safety with useMutation', () => {
+    const api = useOpenApi(mockConfig)
+    const createPet = api.useMutation(OperationId.createPet)
+
+    expect(createPet).toHaveProperty('mutate')
+    expect(createPet).toHaveProperty('mutateAsync')
+
+    // @ts-expect-error - 'id' does not exist in type (readonly property excluded)
+    createPet.mutate({ data: { id: 'should-not-work', name: 'Fluffy' } })
+  })
+
+  it('should enforce type safety with useMutation for updatePet', () => {
+    const api = useOpenApi(mockConfig)
+    const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+
+    expect(updatePet).toBeTruthy()
+
+    // @ts-expect-error - 'id' does not exist in type
+    updatePet.mutate({ data: { id: 'should-not-work', name: 'Updated' } })
+  })
+
+  it('should work with useQuery for listPets', () => {
+    const api = useOpenApi(mockConfig)
+    const listPets = api.useQuery(OperationId.listPets)
+
+    expect(listPets).toHaveProperty('data')
+  })
+
+  it('should work with useQuery for getPet', () => {
+    const api = useOpenApi(mockConfig)
+    const getPet = api.useQuery(OperationId.getPet, { petId: '123' })
+
+    expect(getPet).toBeTruthy()
+  })
+
+  it('should return data with required readonly id from useQuery', () => {
+    const api = useOpenApi(mockConfig)
+    const result = api.useQuery(OperationId.getPet, { petId: '123' })
+
+    // ApiResponse uses RequireReadonly which makes readonly properties REQUIRED
+    if (result.data.value) {
+      // No null check needed - id is required
+      const id: string = result.data.value.id
+      const name: string = result.data.value.name
+
+      // Optional properties stay optional
+      const _tag: string | undefined = result.data.value.tag
 
       // @ts-expect-error - Cannot assign to 'id' because it is read-only
-      pet.id = 'modified'
-    })
+      result.data.value.id = 'modified'
 
-    it('should allow reading readonly properties', () => {
-      type PetResponse = ApiResponse<OpType.getPet>
+      expect(typeof id).toBe('string')
+      expect(typeof name).toBe('string')
+    }
+  })
 
-      const pet: PetResponse = {
-        id: 'test-uuid',
-        name: 'Fluffy',
-        tag: 'friendly',
-        status: 'available',
-      }
+  it('should allow direct property access without null checks', () => {
+    const api = useOpenApi(mockConfig)
+    const result = api.useQuery(OperationId.getPet, { petId: '123' })
 
-      // Readonly properties can be read
-      expect(pet.id).toBe('test-uuid')
-      expect(pet.name).toBe('Fluffy')
+    if (result.data.value) {
+      // Direct access - no optional chaining for readonly id
+      const idLength = result.data.value.id.length
+      const idUpper = result.data.value.id.toUpperCase()
 
-      // Note: TypeScript's readonly is compile-time only
-      // The type system prevents assignment, but runtime doesn't enforce it
-    })
+      // Optional properties need checks
+      const tagLength = result.data.value.tag?.length
+
+      expect(typeof idLength).toBe('number')
+      expect(typeof idUpper).toBe('string')
+      expect(tagLength).toBeUndefined()
+    }
   })
 })
