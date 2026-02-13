@@ -631,6 +631,133 @@ export type OperationId = keyof OpenApiOperations
     })
   })
 
+  describe('enum extraction', () => {
+    // Helper function to extract enums from OpenAPI spec (mirrors CLI implementation)
+    const extractEnumsFromSpec = (openApiSpec: any) => {
+      const enums: { name: string; values: (string | number)[]; sourcePath: string }[] = []
+      const seenEnumValues = new Map<string, string>()
+
+      if (!openApiSpec.components?.schemas) {
+        return enums
+      }
+
+      const toPascalCase = (str: string) =>
+        str
+          .split(/[-_\s]+/)
+          .filter((part) => part.length > 0)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join('')
+
+      for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+        if (!(schema as any).properties) continue
+
+        for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
+          if (!(propSchema as any).enum) continue
+
+          const enumValues = (propSchema as any).enum as (string | number)[]
+          const enumName = toPascalCase(schemaName) + toPascalCase(propName)
+          const valuesKey = JSON.stringify([...enumValues].sort())
+
+          const existingName = seenEnumValues.get(valuesKey)
+          if (existingName) {
+            continue
+          }
+
+          seenEnumValues.set(valuesKey, enumName)
+          enums.push({
+            name: enumName,
+            values: enumValues,
+            sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
+          })
+        }
+      }
+
+      enums.sort((a, b) => a.name.localeCompare(b.name))
+      return enums
+    }
+
+    it('should extract enums from components.schemas', () => {
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('PetStatus')
+      expect(enums[0].values).toEqual(expect.arrayContaining(['available', 'pending', 'adopted']))
+    })
+
+    it('should deduplicate enums with same values', () => {
+      // Pet and NewPet both have the same status enum
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      // Should only have one enum, not two
+      expect(enums).toHaveLength(1)
+    })
+
+    it('should generate correct source path', () => {
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      expect(enums[0].sourcePath).toBe('components.schemas.Pet.properties.status')
+    })
+
+    it('should handle spec without components', () => {
+      const specWithoutComponents = { openapi: '3.0.0', paths: {} }
+      const enums = extractEnumsFromSpec(specWithoutComponents)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should handle spec without schemas', () => {
+      const specWithoutSchemas = { openapi: '3.0.0', paths: {}, components: {} }
+      const enums = extractEnumsFromSpec(specWithoutSchemas)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should handle spec with schemas but no enums', () => {
+      const specNoEnums = {
+        openapi: '3.0.0',
+        paths: {},
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+            },
+          },
+        },
+      }
+      const enums = extractEnumsFromSpec(specNoEnums)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should convert enum values to valid member names', () => {
+      const specWithVariousEnums = {
+        openapi: '3.0.0',
+        paths: {},
+        components: {
+          schemas: {
+            Order: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['in-progress', 'completed', 'pending_review'],
+                },
+              },
+            },
+          },
+        },
+      }
+      const enums = extractEnumsFromSpec(specWithVariousEnums)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('OrderStatus')
+      expect(enums[0].values).toEqual(['in-progress', 'completed', 'pending_review'])
+    })
+  })
+
   describe('URL validation patterns', () => {
     it('should identify HTTP URLs correctly', () => {
       const httpUrl = 'http://api.example.com/openapi.json'

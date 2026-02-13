@@ -37,10 +37,11 @@ npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 ```
 
-This will generate two files:
+This will generate three files:
 
 - `openapi-types.ts` - TypeScript type definitions for your API
 - `api-operations.ts` - Operation definitions combining metadata and types
+- `api-enums.ts` - Type-safe enum constants from your API schema
 
 ## Step 2: Configure Axios
 
@@ -171,6 +172,31 @@ const handleSubmit = async () => {
     </button>
   </form>
 </template>
+```
+
+## Using Enum Values
+
+The CLI generates type-safe enum constants from your OpenAPI spec:
+
+```vue
+<script setup lang="ts">
+import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+import { PetStatus } from './api/generated/api-enums'
+
+// Use enum constants for intellisense and typo safety
+const { data: availablePets } = api.useQuery(OperationId.listPets, {
+  queryParams: { status: PetStatus.Available },
+})
+
+const createPet = api.useMutation(OperationId.createPet)
+
+const handleSubmit = async () => {
+  await createPet.mutateAsync({
+    data: { name: 'Fluffy', status: PetStatus.Pending },
+  })
+}
+</script>
 ```
 
 ## What's Next?

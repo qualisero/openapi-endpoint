@@ -123,6 +123,49 @@ type GetParams = ApiPathParams<OpType.getPet> // { petId: string | undefined }
 type ListParams = ApiQueryParams<OpType.listPets> // { limit?: number, status?: string }
 ```
 
+## Enums (from generated file)
+
+The CLI extracts enum values from your OpenAPI spec and generates type-safe constants:
+
+```typescript
+import { PetStatus } from './generated/api-enums'
+
+// Use enum constant for query params - intellisense + typo safety
+const { data: pets } = api.useQuery(OperationId.listPets, {
+  queryParams: { status: PetStatus.Available },
+})
+
+// Use in mutation body
+await createPet.mutateAsync({
+  data: { name: 'Fluffy', status: PetStatus.Pending },
+})
+
+// Type is inferred correctly
+const status: PetStatus = PetStatus.Available // type: 'available'
+
+// Still works with string literals
+const { data } = api.useQuery(OperationId.listPets, {
+  queryParams: { status: 'available' }, // also valid
+})
+```
+
+### Enum Naming
+
+Enums are named as `{SchemaName}{PropertyName}` in PascalCase:
+
+```typescript
+// components.schemas.Pet.properties.status → PetStatus
+export const PetStatus = {
+  Available: 'available' as const,
+  Pending: 'pending' as const,
+  Adopted: 'adopted' as const,
+} as const
+
+export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus]
+```
+
+Duplicate enums (same values) are automatically deduplicated.
+
 ### When to use ApiResponseSafe
 
 Use `ApiResponseSafe` when your backend may omit optional fields in responses:
