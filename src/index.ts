@@ -1,32 +1,28 @@
 import type { MaybeRefOrGetter } from 'vue'
 
-import { useEndpoint } from './openapi-endpoint'
 import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
-import { EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
-import {
-  Operations,
-  GetPathParameters,
-  OpenApiConfig,
-  QQueryOptions,
-  QMutationOptions,
-  IsQueryOperation,
-} from './types'
+import { useEndpointMutation } from './openapi-mutation'
+import { Operations, ApiPathParams, OpenApiConfig, QQueryOptions, QMutationOptions, IsQueryOperation } from './types'
 import { getHelpers } from './openapi-helpers'
+
+// Public type exports
 export type {
   OpenApiConfig,
   OpenApiInstance,
-  GetResponseData,
+  ApiResponse,
+  ApiRequest,
+  ApiPathParams,
+  ApiQueryParams,
   QueryClientLike,
-  GetQueryParameters,
-  GetPathParameters,
-  GetRequestBody,
-} from './types'
-export type {
   QQueryOptions,
   QMutationOptions,
   EndpointQueryReturn,
   EndpointMutationReturn,
-} from './types-documentation'
+} from './types'
+
+// Constants exports
+export { QUERY_METHODS, MUTATION_METHODS, HttpMethod } from './types'
+
 export { queryClient } from './openapi-helpers'
 /** @internal */
 export { type useEndpointQuery } from './openapi-query'
@@ -42,7 +38,7 @@ export { type useEndpointMutation } from './openapi-mutation'
  * @group Setup
  * @template Ops - The operations type, typically generated from your OpenAPI spec
  * @param config - Configuration object containing operations metadata and axios instance
- * @returns {OpenApiInstance<Ops>} API instance with useQuery, useMutation, useEndpoint, and debug methods
+ * @returns {OpenApiInstance<Ops>} API instance with useQuery, useMutation, and debug methods
  *
  * @example
  * ```typescript
@@ -64,10 +60,24 @@ export { type useEndpointMutation } from './openapi-mutation'
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   return {
     /**
-     * Debug utility to inspect operation metadata.
+     * Debug utility to inspect operation metadata and verify type inference.
      *
-     * @param operationId - The operation ID to debug
-     * @returns Information about whether the operation is a query operation
+     * This method is primarily intended for development and debugging purposes.
+     * It logs operation info to the console and returns a typed empty object
+     * that can be used to verify TypeScript's type inference for operations.
+     *
+     * @param operationId - The operation ID to inspect
+     * @returns An empty object typed as `IsQueryOperation<Ops, Op>` for type checking
+     *
+     * @example
+     * ```typescript
+     * // Verify type inference at compile time
+     * const isQuery: true = api._debugIsQueryOperation('getPet')
+     * const isMutation: false = api._debugIsQueryOperation('createPet')
+     *
+     * // Also logs operation info to console for runtime inspection
+     * api._debugIsQueryOperation('getPet') // logs: { path: '/pets/{petId}', method: 'GET' }
+     * ```
      */
     _debugIsQueryOperation: function <Op extends keyof Ops>(operationId: Op) {
       const helpers = getHelpers<Ops, Op>(config)
@@ -104,9 +114,9 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      */
     useQuery: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      pathParamsOrOptions?: ApiPathParams<Ops, Op> extends Record<string, never>
         ? QQueryOptions<Ops, Op>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+        : MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
       optionsOrNull?: QQueryOptions<Ops, Op>,
     ): EndpointQueryReturn<Ops, Op> {
       const helpers = getHelpers<Ops, Op>(config)
@@ -147,55 +157,14 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
      */
     useMutation: function <Op extends keyof Ops>(
       operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
+      pathParamsOrOptions?: ApiPathParams<Ops, Op> extends Record<string, never>
         ? QMutationOptions<Ops, Op>
-        : MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+        : MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
       optionsOrNull?: QMutationOptions<Ops, Op>,
     ) {
       const helpers = getHelpers<Ops, Op>(config)
 
       return useEndpointMutation<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
-    },
-
-    /**
-     * Generic endpoint composable that automatically detects operation type.
-     *
-     * This is a universal composable that returns either a query or mutation based
-     * on the operation's HTTP method. Use this when you want unified handling.
-     *
-     * @template Op - The operation key from your operations type
-     * @param operationId - Any operation ID
-     * @param pathParamsOrOptions - Path parameters or operation options
-     * @param optionsOrNull - Additional options when path params are provided
-     * @returns Query result for GET operations, mutation result for others
-     *
-     * @example
-     * ```typescript
-     * // Automatically becomes a query for GET operations
-     * const listEndpoint = api.useEndpoint(OperationId.listPets)
-     *
-     * // Automatically becomes a mutation for POST operations
-     * const createEndpoint = api.useEndpoint(OperationId.createPet)
-     *
-     * // TypeScript knows the correct return type based on the operation
-     * const data = listEndpoint.data // Query data
-     * await createEndpoint.mutateAsync({ data: petData }) // Mutation execution
-     * ```
-     */
-    useEndpoint: function <Op extends keyof Ops>(
-      operationId: Op,
-      pathParamsOrOptions?: GetPathParameters<Ops, Op> extends Record<string, never>
-        ? IsQueryOperation<Ops, Op> extends true
-          ? QQueryOptions<Ops, Op>
-          : QMutationOptions<Ops, Op>
-        :
-            | MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined>
-            | (IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>),
-      optionsOrNull?: IsQueryOperation<Ops, Op> extends true ? QQueryOptions<Ops, Op> : QMutationOptions<Ops, Op>,
-    ): IsQueryOperation<Ops, Op> extends true ? EndpointQueryReturn<Ops, Op> : EndpointMutationReturn<Ops, Op> {
-      const helpers = getHelpers<Ops, Op>(config)
-
-      return useEndpoint<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
     },
   }
 }

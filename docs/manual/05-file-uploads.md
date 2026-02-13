@@ -5,6 +5,7 @@ This guide covers how to handle file uploads using `multipart/form-data` with `@
 ## File Upload Overview
 
 File uploads use the `multipart/form-data` content type, which allows sending binary files along with other form data. This library supports both:
+
 - **FormData objects** - Directly upload browser `FormData` instances
 - **Binary strings** - Upload binary data as string (for some APIs)
 
@@ -96,12 +97,7 @@ const handleFileChange = (userId: string) => {
 
 <template>
   <div>
-    <input
-      ref="fileInput"
-      type="file"
-      @change="handleFileChange('123')"
-      accept="image/*"
-    />
+    <input ref="fileInput" type="file" @change="handleFileChange('123')" accept="image/*" />
     <p v-if="isUploading">Uploading...</p>
     <p v-if="uploadError" class="error">{{ uploadError }}</p>
   </div>
@@ -129,17 +125,19 @@ const uploadFile = async () => {
     const formData = new FormData()
     formData.append('file', file.value)
 
-    const uploadMutation = api.useMutation('uploadDocument', {}, {
-      axiosOptions: {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            uploadProgress.value = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            )
-          }
-        }
-      }
-    })
+    const uploadMutation = api.useMutation(
+      'uploadDocument',
+      {},
+      {
+        axiosOptions: {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            }
+          },
+        },
+      },
+    )
 
     await uploadMutation.mutateAsync({ data: formData })
   } finally {
@@ -150,10 +148,8 @@ const uploadFile = async () => {
 
 <template>
   <div>
-    <input type="file" @change="(e) => file = e.target.files[0]" />
-    <button @click="uploadFile" :disabled="isUploading || !file">
-      Upload
-    </button>
+    <input type="file" @change="(e) => (file = e.target.files[0])" />
+    <button @click="uploadFile" :disabled="isUploading || !file">Upload</button>
 
     <div v-if="isUploading" class="progress-bar">
       <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
@@ -204,8 +200,8 @@ async function uploadBinaryData(userId: string, binaryString: string) {
 
   return uploadMutation.mutateAsync({
     data: {
-      file: binaryString  // Binary data as string
-    }
+      file: binaryString, // Binary data as string
+    },
   })
 }
 
@@ -230,18 +226,22 @@ const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.useMutation('uploadUserAvatar', { userId }, {
-    // Automatically invalidate related queries after upload
-    invalidateOperations: ['getUserProfile'],
+  const uploadMutation = api.useMutation(
+    'uploadUserAvatar',
+    { userId },
+    {
+      // Automatically invalidate related queries after upload
+      invalidateOperations: ['getUserProfile'],
 
-    onSuccess: (data) => {
-      console.log('Avatar uploaded:', data)
-      // userProfile will automatically refetch
+      onSuccess: (data) => {
+        console.log('Avatar uploaded:', data)
+        // userProfile will automatically refetch
+      },
+      onError: (error) => {
+        console.error('Upload failed:', error)
+      },
     },
-    onError: (error) => {
-      console.error('Upload failed:', error)
-    },
-  })
+  )
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -262,7 +262,7 @@ const file = ref<File | null>(null)
 const error = ref<string | null>(null)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif']
-const MAX_SIZE = 5 * 1024 * 1024  // 5MB
+const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
 const handleFileSelect = (e: Event) => {
   const selectedFile = (e.target as HTMLInputElement).files?.[0]
@@ -290,15 +290,19 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('file', file.value)
 
-  const uploadMutation = api.useMutation('uploadDocument', {}, {
-    onSuccess: () => {
-      file.value = null
-      alert('Upload successful!')
+  const uploadMutation = api.useMutation(
+    'uploadDocument',
+    {},
+    {
+      onSuccess: () => {
+        file.value = null
+        alert('Upload successful!')
+      },
+      onError: (err) => {
+        error.value = err instanceof Error ? err.message : 'Upload failed'
+      },
     },
-    onError: (err) => {
-      error.value = err instanceof Error ? err.message : 'Upload failed'
-    },
-  })
+  )
 
   await uploadMutation.mutateAsync({ data: formData })
 }
@@ -306,11 +310,7 @@ const uploadFile = async () => {
 
 <template>
   <div>
-    <input
-      type="file"
-      accept="image/jpeg,image/png,image/gif"
-      @change="handleFileSelect"
-    />
+    <input type="file" accept="image/jpeg,image/png,image/gif" @change="handleFileSelect" />
     <button @click="uploadFile" :disabled="!file">Upload</button>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -344,16 +344,20 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('avatar', file.value)
 
-  const uploadMutation = api.useMutation('uploadUserAvatar', { userId: '123' }, {
-    onSuccess: () => {
-      // Cleanup preview
-      if (previewUrl.value) {
-        URL.revokeObjectURL(previewUrl.value)
-        previewUrl.value = null
-      }
-      file.value = null
+  const uploadMutation = api.useMutation(
+    'uploadUserAvatar',
+    { userId: '123' },
+    {
+      onSuccess: () => {
+        // Cleanup preview
+        if (previewUrl.value) {
+          URL.revokeObjectURL(previewUrl.value)
+          previewUrl.value = null
+        }
+        file.value = null
+      },
     },
-  })
+  )
 
   await uploadMutation.mutateAsync({ data: formData })
 }

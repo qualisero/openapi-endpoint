@@ -16,9 +16,9 @@ import { api } from './api/init'
 // Simple query that fetches data on mount
 const { data: pets, isLoading, error, refetch } = api.useQuery('listPets')
 
-console.log(pets.value)  // Array of pets
-console.log(isLoading.value)  // true while fetching
-console.log(error.value)  // Error object if request failed
+console.log(pets.value) // Array of pets
+console.log(isLoading.value) // true while fetching
+console.log(error.value) // Error object if request failed
 ```
 
 ### Query With Path Parameters
@@ -29,7 +29,7 @@ import { api } from './api/init'
 // Query with required path parameter
 const { data: pet } = api.useQuery('getPet', { petId: '123' })
 
-console.log(pet.value)  // Pet with id '123'
+console.log(pet.value) // Pet with id '123'
 ```
 
 ### Query With Query Parameters
@@ -39,7 +39,7 @@ import { api } from './api/init'
 
 // Query with query parameters
 const { data: pets } = api.useQuery('listPets', {
-  queryParams: { limit: 10, status: 'available' }
+  queryParams: { limit: 10, status: 'available' },
 })
 
 // Results in: GET /pets?limit=10&status=available
@@ -52,9 +52,13 @@ You can pass additional options to customize query behavior:
 ### Enabled/Disabled Queries
 
 ```typescript
-const { data: pet } = api.useQuery('getPet', { petId: '123' }, {
-  enabled: computed(() => Boolean(selectedPetId.value))
-})
+const { data: pet } = api.useQuery(
+  'getPet',
+  { petId: '123' },
+  {
+    enabled: computed(() => Boolean(selectedPetId.value)),
+  },
+)
 
 // Query only runs when selectedPetId has a value
 ```
@@ -62,9 +66,13 @@ const { data: pet } = api.useQuery('getPet', { petId: '123' }, {
 ### Stale Time
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  staleTime: 60 * 1000  // 1 minute
-})
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    staleTime: 60 * 1000, // 1 minute
+  },
+)
 
 // Data is considered fresh for 1 minute, no refetch within that time
 ```
@@ -72,9 +80,13 @@ const { data: pets } = api.useQuery('listPets', {}, {
 ### Cache Time
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  cacheTime: 5 * 60 * 1000  // 5 minutes
-})
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    cacheTime: 5 * 60 * 1000, // 5 minutes
+  },
+)
 
 // Data stays in cache for 5 minutes after becoming inactive
 ```
@@ -82,25 +94,33 @@ const { data: pets } = api.useQuery('listPets', {}, {
 ### Retry Behavior
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  retry: 3,  // Retry failed requests 3 times
-  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
-})
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  },
+)
 ```
 
 ### Custom Success/Error Handlers
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  onSuccess: (data) => {
-    console.log('Pets loaded:', data)
-    // Update local state, show notification, etc.
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    onSuccess: (data) => {
+      console.log('Pets loaded:', data)
+      // Update local state, show notification, etc.
+    },
+    onError: (error) => {
+      console.error('Failed to load pets:', error)
+      // Show error message to user
+    },
   },
-  onError: (error) => {
-    console.error('Failed to load pets:', error)
-    // Show error message to user
-  },
-})
+)
 ```
 
 ## Query Return Values
@@ -109,13 +129,13 @@ The `useQuery` hook returns a reactive object with the following properties:
 
 ```typescript
 interface QueryResult {
-  data: Ref<T>              // The fetched data
-  isLoading: Ref<boolean>     // True while initial fetch is in progress
-  isFetching: Ref<boolean>    // True while any fetch is in progress (including refetches)
-  isError: Ref<boolean>      // True if an error occurred
-  error: Ref<AxiosError>    // Error object if query failed
-  refetch: Function          // Manually trigger refetch
-  invalidate: Function       // Invalidate cache and refetch
+  data: Ref<T> // The fetched data
+  isLoading: Ref<boolean> // True while initial fetch is in progress
+  isFetching: Ref<boolean> // True while any fetch is in progress (including refetches)
+  isError: Ref<boolean> // True if an error occurred
+  error: Ref<AxiosError> // Error object if query failed
+  refetch: Function // Manually trigger refetch
+  invalidate: Function // Invalidate cache and refetch
 }
 ```
 
@@ -136,9 +156,7 @@ const { data: pets, isLoading, error } = api.useQuery('listPets')
     <div class="skeleton-item"></div>
     <div class="skeleton-item"></div>
   </div>
-  <div v-else-if="error" class="error">
-    Failed to load pets. Please try again.
-  </div>
+  <div v-else-if="error" class="error">Failed to load pets. Please try again.</div>
   <div v-else>
     <div v-for="pet in pets" :key="pet.id">
       {{ pet.name }}
@@ -177,10 +195,10 @@ const { data: user } = api.useQuery('getUser', { userId: '123' })
 // Second query depends on first query's result
 const { data: userPets } = api.useQuery(
   'listUserPets',
-  { userId: user.value?.id },  // Only fetches when user is loaded
+  { userId: user.value?.id }, // Only fetches when user is loaded
   {
-    enabled: computed(() => Boolean(user.value))
-  }
+    enabled: computed(() => Boolean(user.value)),
+  },
 )
 ```
 

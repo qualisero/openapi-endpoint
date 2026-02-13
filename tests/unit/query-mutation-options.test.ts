@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { useEndpointQuery } from '@/openapi-query'
 import { useEndpointMutation } from '@/openapi-mutation'
-import { useEndpoint } from '@/openapi-endpoint'
 import { getHelpers } from '@/openapi-helpers'
-import { GetPathParameters, OpenApiConfig } from '@/types'
+import { OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import {
+  OperationId,
+  OpType,
+  openApiOperations,
+  type OpenApiOperations,
+  type ApiPathParams,
+} from '../fixtures/openapi-typed-operations'
 
 /**
  * Query and Mutation Options Testing
@@ -266,7 +271,7 @@ describe('Query and Mutation Options', () => {
     it('should validate operation types at runtime for useEndpointQuery', () => {
       expect(() => {
         useEndpointQuery<OpenApiOperations, 'createPet'>(OperationId.createPet, helpers)
-      }).toThrow('Operation createPet is not a query operation (GET/HEAD/OPTIONS)')
+      }).toThrow("Operation 'createPet' uses method POST and cannot be used with useQuery()")
 
       const query = useEndpointQuery<OpenApiOperations, 'listPets'>(OperationId.listPets, helpers)
       expect(query).toBeTruthy()
@@ -277,7 +282,7 @@ describe('Query and Mutation Options', () => {
     it('should validate operation types at runtime for useEndpointMutation', () => {
       expect(() => {
         useEndpointMutation<OpenApiOperations, 'listPets'>(OperationId.listPets, helpers)
-      }).toThrow('Operation listPets is not a mutation operation (POST/PUT/PATCH/DELETE)')
+      }).toThrow("Operation 'listPets' uses method GET and cannot be used with useMutation()")
 
       const mutation = useEndpointMutation<OpenApiOperations, 'createPet'>(OperationId.createPet, helpers)
       expect(mutation).toBeTruthy()
@@ -287,11 +292,9 @@ describe('Query and Mutation Options', () => {
 
     it('should handle different HTTP methods in mutations', () => {
       const postMutation = useEndpointMutation<OpenApiOperations, 'createPet'>(OperationId.createPet, helpers)
-      const putMutation = useEndpointMutation<OpenApiOperations, typeof OperationId.updatePet>(
-        OperationId.updatePet,
-        helpers,
-        { petId: '123' },
-      )
+      const putMutation = useEndpointMutation<OpenApiOperations, OpType.updatePet>(OperationId.updatePet, helpers, {
+        petId: '123',
+      })
       const deleteMutation = useEndpointMutation<OpenApiOperations, 'deletePet'>(OperationId.deletePet, helpers, {
         petId: '123',
       })
@@ -334,7 +337,7 @@ describe('Query and Mutation Options', () => {
 
     it('should support options in advanced composables', () => {
       const onLoad = vi.fn()
-      const query = useEndpointQuery<OpenApiOperations, typeof OperationId.listPets>(OperationId.listPets, helpers, {
+      const query = useEndpointQuery<OpenApiOperations, OpType.listPets>(OperationId.listPets, helpers, {
         onLoad,
         axiosOptions: { headers: { 'X-Test': 'value' } },
         staleTime: 3600,
@@ -342,60 +345,13 @@ describe('Query and Mutation Options', () => {
       expect(query).toHaveProperty('onLoad')
 
       const onSuccess = vi.fn()
-      const mutation = useEndpointMutation<OpenApiOperations, typeof OperationId.createPet>(
-        OperationId.createPet,
-        helpers,
-        {
-          onSuccess,
-          invalidateOperations: [OperationId.listPets],
-          axiosOptions: { headers: { 'X-Test': 'value' } },
-          retry: 3,
-        },
-      )
+      const mutation = useEndpointMutation<OpenApiOperations, OpType.createPet>(OperationId.createPet, helpers, {
+        onSuccess,
+        invalidateOperations: [OperationId.listPets],
+        axiosOptions: { headers: { 'X-Test': 'value' } },
+        retry: 3,
+      })
       expect(mutation).toBeTruthy()
-    })
-  })
-
-  describe('useEndpoint Delegation Patterns', () => {
-    it('should delegate to useEndpointQuery for query operations', () => {
-      const endpoint = useEndpoint<OpenApiOperations, 'listPets'>(OperationId.listPets, helpers)
-      expect(endpoint).toBeTruthy()
-      // Should have query-like properties
-      expect(endpoint).toHaveProperty('data')
-      expect(endpoint).toHaveProperty('isLoading')
-    })
-
-    it('should delegate to useEndpointMutation for mutation operations', () => {
-      const endpoint = useEndpoint<OpenApiOperations, 'createPet'>(OperationId.createPet, helpers)
-      expect(endpoint).toBeTruthy()
-      // Should have mutation-like properties
-      expect(endpoint).toHaveProperty('mutate')
-      expect(endpoint).toHaveProperty('mutateAsync')
-    })
-
-    it('should handle path parameters for both query and mutation operations', () => {
-      const queryEndpoint = useEndpoint<OpenApiOperations, 'getPet'>(OperationId.getPet, helpers, { petId: '123' })
-      expect(queryEndpoint).toBeTruthy()
-
-      const mutationEndpoint = useEndpoint<OpenApiOperations, 'updatePet'>(OperationId.updatePet, helpers, {
-        petId: '123',
-      })
-      expect(mutationEndpoint).toBeTruthy()
-    })
-
-    it('should pass through options correctly to delegated composables', () => {
-      const queryEndpoint = useEndpoint<OpenApiOperations, 'listPets'>(OperationId.listPets, helpers, {
-        staleTime: 60000,
-        axiosOptions: { headers: { 'Cache-Control': 'no-cache' } },
-      })
-
-      const mutationEndpoint = useEndpoint<OpenApiOperations, 'createPet'>(OperationId.createPet, helpers, {
-        onSuccess: vi.fn(),
-        axiosOptions: { timeout: 8000 },
-      })
-
-      expect(queryEndpoint).toHaveProperty('data')
-      expect(mutationEndpoint).toHaveProperty('mutate')
     })
   })
 
@@ -424,26 +380,20 @@ describe('Query and Mutation Options', () => {
       expect(mutation).toBeTruthy()
     })
 
-    it('should validate GetPathParameters type utility', () => {
-      // This is a compile-time type test
-      type UpdatePetParams = GetPathParameters<OpenApiOperations, typeof OperationId.updatePet>
+    it('should validate ApiPathParams type utility', () => {
+      // This is a compile-time type test - using ApiPathParams with OpType namespace
+      type UpdatePetParams = ApiPathParams<OpType.updatePet>
 
-      const mutation = useEndpointMutation<OpenApiOperations, typeof OperationId.updatePet>(
-        OperationId.updatePet,
-        helpers,
-        { petId: '123' } as UpdatePetParams,
-      )
+      const mutation = useEndpointMutation<OpenApiOperations, OpType.updatePet>(OperationId.updatePet, helpers, {
+        petId: '123',
+      } as UpdatePetParams)
       expect(mutation).toBeTruthy()
     })
 
     it('should support reactive parameters with proper typing', () => {
       // Create a ref-like object for testing
       const reactiveParams = { petId: '123' }
-      const query = useEndpointQuery<OpenApiOperations, typeof OperationId.getPet>(
-        OperationId.getPet,
-        helpers,
-        reactiveParams,
-      )
+      const query = useEndpointQuery<OpenApiOperations, OpType.getPet>(OperationId.getPet, helpers, reactiveParams)
 
       expect(query.queryKey.value).toEqual(['pets', '123'])
       expect(query.isEnabled.value).toBe(true)
@@ -462,7 +412,6 @@ describe('Query and Mutation Options', () => {
       }
 
       expect(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useEndpointQuery<OpenApiOperations, any>('invalidOp' as any, invalidHelpers)
       }).toThrow()
     })

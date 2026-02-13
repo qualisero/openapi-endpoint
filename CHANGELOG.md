@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-02-13
+
+### Changed
+
+- **BREAKING**: Renamed type helpers to shorter, more intuitive names:
+  - `GetResponseData<Ops, Op>` → `ApiResponse<Op>` (simplified usage with OpType)
+  - `GetRequestBody<Ops, Op>` → `ApiRequest<Op>`
+  - `GetPathParameters<Ops, Op>` → `ApiPathParams<Op>`
+  - `GetQueryParameters<Ops, Op>` → `ApiQueryParams<Op>`
+  - Old names removed entirely (no backward compatibility aliases)
+- **BREAKING**: Made `isQueryMethod` and `isMutationMethod` internal (not exported from public API)
+- Removed `types-documentation.ts` - type documentation now inline in `types.ts`
+- Simplified `index.ts` exports - all public types exported directly from `types.ts`
+- Added inline JSDoc to `QQueryOptions` and `QMutationOptions` properties for better intellisense
+- Updated CLI to generate simplified type aliases using new names
+
+### Removed
+
+- `types-documentation.ts` - redundant JSDoc-enhanced re-exports
+- Unused `OperationId` type alias from `types.ts`
+- Direct `components` and `operations` type access from tests and examples
+
 ## [0.12.0] - 2025-11-22
 
 ### Added

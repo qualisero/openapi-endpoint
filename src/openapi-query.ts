@@ -1,14 +1,24 @@
 import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 import { useQuery, QueryClient } from '@tanstack/vue-query'
-import { Operations, type GetPathParameters, type GetResponseData, type QQueryOptions } from './types'
-import { resolvePath, generateQueryKey, isPathResolved, getParamsOptionsFrom } from './openapi-utils'
+import { Operations, type ApiPathParams, type ApiResponse, type QQueryOptions } from './types'
+import { getParamsOptionsFrom, useResolvedOperation } from './openapi-utils'
 import { isAxiosError } from 'axios'
 import { type OpenApiHelpers } from './openapi-helpers'
 
+/**
+ * Return type of `useQuery` with all available reactive properties.
+ *
+ * Includes all properties from TanStack Query's UseQueryResult plus
+ * helper properties provided by this library.
+ *
+ * @template Ops - The operations type from your OpenAPI specification
+ * @template Op - The operation key from your operations type
+ */
 export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
   typeof useEndpointQuery<Ops, Op>
 > & {
-  onLoad: (callback: (data: GetResponseData<Ops, Op>) => void) => void
+  /** Register a callback for when data loads successfully. */
+  onLoad: (callback: (data: ApiResponse<Ops, Op>) => void) => void
 }
 
 /**
@@ -34,12 +44,16 @@ export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Op
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
   h: OpenApiHelpers<Ops, Op>,
-  pathParamsOrOptions?: MaybeRefOrGetter<GetPathParameters<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+  pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
   optionsOrNull?: QQueryOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a query operation
   if (!h.isQueryOperation(operationId)) {
-    throw new Error(`Operation ${String(operationId)} is not a query operation (GET/HEAD/OPTIONS)`)
+    const { method } = h.getOperationInfo(operationId)
+    throw new Error(
+      `Operation '${String(operationId)}' uses method ${method} and cannot be used with useQuery(). ` +
+        `Use useMutation() for POST/PUT/PATCH/DELETE operations.`,
+    )
   }
   const { path, method } = h.getOperationInfo(operationId)
   const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QQueryOptions<Ops, Op>>(
@@ -56,35 +70,19 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     ...useQueryOptions
   } = options
 
-  // Make path parameters reactive by ensuring toValue is called inside computed
-  // This ensures that when pathParams is a function, it gets called within the computed
-  // so Vue can track dependencies of variables referenced inside the function
-  const allPathParams = computed(() => {
-    const result = toValue(pathParams)
-    return result
-  })
-  const resolvedPath = computed(() => resolvePath(path, allPathParams.value))
-
-  // Make query parameters reactive
-  const allQueryParams = computed(() => {
-    const result = toValue(queryParams)
-    return result
-  })
-
-  // Include query params in the query key so changes trigger refetch
-  const queryKey = computed(() => {
-    const baseKey = generateQueryKey(resolvedPath.value)
-    const qParams = allQueryParams.value
-    if (qParams && Object.keys(qParams).length > 0) {
-      return [...baseKey, qParams]
-    }
-    return baseKey
-  })
+  // Use the consolidated operation resolver
+  const {
+    resolvedPath,
+    queryKey,
+    isResolved,
+    queryParams: resolvedQueryParams,
+    pathParams: resolvedPathParams,
+  } = useResolvedOperation(path, pathParams, queryParams)
 
   // Check if path is fully resolved for enabling the query
   const isEnabled = computed(() => {
     const baseEnabled = enabledInit !== undefined ? toValue(enabledInit) : true
-    return baseEnabled && isPathResolved(resolvedPath.value)
+    return baseEnabled && isResolved.value
   })
 
   const query = useQuery(
@@ -98,7 +96,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
             ...axiosOptions,
             params: {
               ...(axiosOptions?.params || {}),
-              ...(allQueryParams.value || {}),
+              ...(resolvedQueryParams.value || {}),
             },
           })
           return response.data
@@ -111,7 +109,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
             // If errorHandler returns undefined and doesn't throw,
             // we consider this a "recovered" state and return undefined
             // TanStack Query will handle this as a successful query with no data
-            return undefined as GetResponseData<Ops, Op>
+            return undefined as ApiResponse<Ops, Op>
           } else {
             throw error
           }
@@ -132,41 +130,47 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     h.queryClient as QueryClient,
   )
 
-  // onLoad callback is called once, as soon as data is available (immediately or when loading finishes)
-  // Shared onLoad handler setup
-  const setupOnLoadHandler = (callback: (data: GetResponseData<Ops, Op>) => void) => {
-    // If data is already available, call immediately
-    if (query.data.value !== undefined) {
-      callback(query.data.value)
-    } else {
-      // Watch for data to become available
-      let hasLoaded = false
-      const stopWatch = watch(query.data, (newData) => {
-        if (newData !== undefined && !hasLoaded) {
-          hasLoaded = true
-          callback(newData)
-          stopWatch() // Stop watching after first load
-        }
-      })
-    }
-  }
+  // onLoad callback management using a Set for efficient tracking
+  const onLoadCallbacks = new Set<(data: ApiResponse<Ops, Op>) => void>()
 
-  // Handle onLoad callback from options
+  // Add initial callback from options if provided
   if (onLoadInit) {
-    setupOnLoadHandler(onLoadInit)
+    onLoadCallbacks.add(onLoadInit)
   }
 
-  // Create onLoad method
-  const onLoad = (callback: (data: GetResponseData<Ops, Op>) => void) => {
-    setupOnLoadHandler(callback)
+  // Single watch instance to handle all callbacks
+  if (query.data.value !== undefined) {
+    // Data already available - call all callbacks immediately
+    onLoadCallbacks.forEach((cb) => cb(query.data.value as ApiResponse<Ops, Op>))
+    onLoadCallbacks.clear()
+  } else {
+    // Watch for data to become available
+    watch(query.data, (newData) => {
+      if (newData !== undefined && onLoadCallbacks.size > 0) {
+        // Call all pending callbacks
+        onLoadCallbacks.forEach((cb) => cb(newData))
+        onLoadCallbacks.clear()
+      }
+    })
+  }
+
+  // Public onLoad method to register additional callbacks
+  const onLoad = (callback: (data: ApiResponse<Ops, Op>) => void) => {
+    if (query.data.value !== undefined) {
+      // Data already available - call immediately
+      callback(query.data.value as ApiResponse<Ops, Op>)
+    } else {
+      // Add to pending callbacks
+      onLoadCallbacks.add(callback)
+    }
   }
 
   return {
     ...query,
-    data: query.data as ComputedRef<GetResponseData<Ops, Op> | undefined>,
+    data: query.data as ComputedRef<ApiResponse<Ops, Op> | undefined>,
     isEnabled,
     queryKey,
     onLoad,
-    pathParams: allPathParams,
+    pathParams: resolvedPathParams,
   }
 }

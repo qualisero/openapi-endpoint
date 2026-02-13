@@ -1,4 +1,12 @@
-import { HttpMethod, type OperationInfo, OpenApiConfig, Operations, QueryClientLike } from './types'
+import {
+  HttpMethod,
+  type OperationInfo,
+  OpenApiConfig,
+  Operations,
+  QueryClientLike,
+  isQueryMethod,
+  isMutationMethod,
+} from './types'
 import { QueryClient } from '@tanstack/vue-query'
 
 /**
@@ -13,52 +21,96 @@ const defaultQueryClient: QueryClientLike = new QueryClient({
   },
 })
 
-// Helper returning the operationId prefix given an http method
-function getMethodPrefix(method: HttpMethod): string | null {
-  const METHOD_PREFIXES: Record<HttpMethod, string | null> = {
-    [HttpMethod.GET]: 'get', // or 'list' depending on the operationId
-    [HttpMethod.POST]: 'create',
-    [HttpMethod.PUT]: 'update',
-    [HttpMethod.PATCH]: 'update',
-    [HttpMethod.DELETE]: 'delete',
-    [HttpMethod.HEAD]: null,
-    [HttpMethod.OPTIONS]: null,
-    [HttpMethod.TRACE]: null,
+/**
+ * Suffixes that require adding 'es' for pluralization (e.g., 'box' -> 'boxes').
+ */
+const PLURAL_ES_SUFFIXES = ['s', 'x', 'z', 'ch', 'sh', 'o'] as const
+
+/**
+ * Mapping of HTTP methods to their CRUD operation name prefixes.
+ * Used to infer resource names from operation IDs.
+ */
+const CRUD_PREFIXES: Record<HttpMethod, { singular: string; plural: string } | null> = {
+  [HttpMethod.GET]: { singular: 'get', plural: 'list' },
+  [HttpMethod.POST]: { singular: 'create', plural: 'create' },
+  [HttpMethod.PUT]: { singular: 'update', plural: 'update' },
+  [HttpMethod.PATCH]: { singular: 'update', plural: 'update' },
+  [HttpMethod.DELETE]: { singular: 'delete', plural: 'delete' },
+  [HttpMethod.HEAD]: null,
+  [HttpMethod.OPTIONS]: null,
+  [HttpMethod.TRACE]: null,
+}
+
+/**
+ * Extracts the resource name from an operation ID based on its HTTP method.
+ * @param operationId - The operation ID (e.g., 'createPet', 'updatePet')
+ * @param method - The HTTP method
+ * @returns The resource name (e.g., 'Pet') or null if not extractable
+ */
+function getResourceName(operationId: string, method: HttpMethod): string | null {
+  const prefixes = CRUD_PREFIXES[method]
+  if (!prefixes) return null
+
+  // Try singular prefix first (get, create, update, delete)
+  if (operationId.startsWith(prefixes.singular)) {
+    const remaining = operationId.slice(prefixes.singular.length)
+    if (remaining.length > 0 && /^[A-Z]/.test(remaining)) {
+      return remaining
+    }
   }
-  return METHOD_PREFIXES[method]
+
+  // Try plural prefix (list)
+  if (operationId.startsWith(prefixes.plural)) {
+    const remaining = operationId.slice(prefixes.plural.length)
+    if (remaining.length > 0 && /^[A-Z]/.test(remaining)) {
+      return remaining
+    }
+  }
+
+  return null
+}
+
+/**
+ * Pluralizes a resource name using common English rules.
+ * @param name - The singular resource name
+ * @returns The pluralized name
+ */
+function pluralizeResource(name: string): string {
+  if (name.endsWith('y')) {
+    return name.slice(0, -1) + 'ies'
+  } else if (PLURAL_ES_SUFFIXES.some((suffix) => name.endsWith(suffix))) {
+    return name + 'es'
+  }
+  return name + 's'
 }
 
 export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(config: OpenApiConfig<Ops>) {
   // Helper function to get operation info by ID
   function getOperationInfo(operationId: Op): OperationInfo {
-    return config.operations[operationId as keyof Ops] as unknown as OperationInfo
+    return config.operations[operationId]
   }
 
   // Helper to return a url path for matching list endpoint (e.g. /items/123 -> /items/)
-  // Based on operationId prefix: createItem, updateItem -> listItems
+  // Based on operationId prefix: createItem, updateItem -> listItem
   function getListOperationPath(operationId: Op): string | null {
     const opInfo = getOperationInfo(operationId)
     const operationIdStr: string = operationId as string
-    const operationPrefix = opInfo ? getMethodPrefix(opInfo.method) : null
-    // Make sure operationId matches `<operationPrefix><upercase resourceName>` pattern
-    if (!operationPrefix || !/^[A-Z]/.test(operationIdStr.charAt(operationPrefix.length)))
-      // If not, fallback to CRUD heuristic
+
+    // Try to extract resource name from operation ID
+    const resourceName = getResourceName(operationIdStr, opInfo.method)
+    if (!resourceName) {
+      // Fallback to CRUD heuristic based on path structure
       return getCrudListPathPrefix(operationId)
-    const resourceName = operationIdStr.substring(operationPrefix.length)
+    }
+
+    // Try to find list operation with same resource name
     const listOperationId = `list${resourceName}`
     let listOperationInfo = getOperationInfo(listOperationId as Op)
+
+    // If not found, try pluralized version
     if (!listOperationInfo) {
-      // Try pluralizing the resource name (simple heuristic)
-      let pluralResourceName = resourceName
-      const addEsSuffixes = ['s', 'x', 'z', 'ch', 'sh', 'o']
-      if (resourceName.endsWith('y')) {
-        pluralResourceName = resourceName.slice(0, -1) + 'ies'
-      } else if (addEsSuffixes.some((suffix) => resourceName.endsWith(suffix))) {
-        pluralResourceName = resourceName + 'es'
-      } else {
-        pluralResourceName = resourceName + 's'
-      }
-      listOperationInfo = getOperationInfo(`list${pluralResourceName}` as Op)
+      const pluralName = pluralizeResource(resourceName)
+      listOperationInfo = getOperationInfo(`list${pluralName}` as Op)
     }
 
     if (listOperationInfo && listOperationInfo.method === HttpMethod.GET) {
@@ -79,20 +131,16 @@ export function getHelpers<Ops extends Operations<Ops>, Op extends keyof Ops>(co
     return null
   }
 
-  // Constants for HTTP method categorization
-  const QUERY_METHODS: HttpMethod[] = [HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS]
-  const MUTATION_METHODS: HttpMethod[] = [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
-
   // Helper to check if an operation is a query method at runtime
   function isQueryOperation(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
-    return QUERY_METHODS.includes(method)
+    return isQueryMethod(method)
   }
 
   // Helper to check if an operation is a mutation method at runtime
   function isMutationOperation(operationId: Op): boolean {
     const { method } = getOperationInfo(operationId)
-    return MUTATION_METHODS.includes(method)
+    return isMutationMethod(method)
   }
 
   return {

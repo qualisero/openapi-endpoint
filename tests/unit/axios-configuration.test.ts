@@ -403,47 +403,6 @@ describe('Axios Configuration Integration', () => {
     })
   })
 
-  describe('useEndpoint with Axios Options', () => {
-    it('should pass axios options to both query and mutation endpoints', () => {
-      const queryEndpoint = api.useEndpoint(OperationId.listPets, {
-        axiosOptions: {
-          headers: { 'Cache-Control': 'no-cache' },
-          // Custom properties
-          manualErrorHandling: false,
-          cacheStrategy: 'aggressive',
-        },
-      })
-
-      const mutationEndpoint = api.useEndpoint(OperationId.createPet, {
-        axiosOptions: {
-          timeout: 8000,
-          headers: { 'Content-Type': 'application/json' },
-          // Custom properties for mutations
-          handledByAxios: true,
-          uploadProgressTracking: true,
-        },
-      })
-
-      expect(queryEndpoint).toHaveProperty('data')
-      expect(mutationEndpoint).toHaveProperty('mutate')
-    })
-
-    it('should handle axios options with path parameters in endpoints', () => {
-      const endpoint = api.useEndpoint(
-        OperationId.getPet,
-        { petId: '456' },
-        {
-          axiosOptions: {
-            validateStatus: (status: number) => status < 500,
-            headers: { 'Accept-Language': 'en-US' },
-          },
-        },
-      )
-
-      expect(endpoint).toHaveProperty('data')
-    })
-  })
-
   describe('Environment and Browser-Specific Configuration', () => {
     it('should support Node.js specific options', () => {
       const query = api.useQuery(OperationId.listPets, {

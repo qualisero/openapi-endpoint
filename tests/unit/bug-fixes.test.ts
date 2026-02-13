@@ -189,121 +189,6 @@ describe('Bug Fixes and Issue Reproductions', () => {
   })
 
   /**
-   * Issue: Type Inference for useEndpoint with Mutation Operations
-   *
-   * Problem: `useEndpoint` with mutation operations would return a union type,
-   * preventing TypeScript from knowing that properties like `mutateAsync` are available.
-   *
-   * Solution: Improved type inference to properly detect operation types and return
-   * specific types instead of union types.
-   */
-  describe('Type Inference for useEndpoint (GitHub Issue)', () => {
-    it('should correctly infer mutation types for createPet operation', () => {
-      // This reproduces the exact scenario from the GitHub issue
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-
-      // These should now work without TypeScript errors
-      // Previously, this would fail with: Property 'mutateAsync' does not exist on type 'union type'
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-
-      // Verify the methods are callable functions
-      expect(typeof createEndpoint.mutate).toBe('function')
-      expect(typeof createEndpoint.mutateAsync).toBe('function')
-
-      // The key test: we can access mutateAsync directly without type errors
-      const mutateAsyncFunction = createEndpoint.mutateAsync
-      expect(mutateAsyncFunction).toBeDefined()
-      expect(typeof mutateAsyncFunction).toBe('function')
-    })
-
-    it('should correctly infer mutation types for updatePet operation', () => {
-      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-
-      // Verify mutation properties are available
-      expect(updateEndpoint).toHaveProperty('mutate')
-      expect(updateEndpoint).toHaveProperty('mutateAsync')
-      expect(updateEndpoint).toHaveProperty('isEnabled')
-
-      // Verify these are functions
-      expect(typeof updateEndpoint.mutate).toBe('function')
-      expect(typeof updateEndpoint.mutateAsync).toBe('function')
-    })
-
-    it('should correctly infer query types for query operations', () => {
-      // Test that query operations still work correctly with proper type inference
-      const listEndpoint = api.useEndpoint(OperationId.listPets)
-
-      // Should have query properties, not mutation properties
-      expect(listEndpoint).toHaveProperty('data')
-      expect(listEndpoint).toHaveProperty('isLoading')
-      expect(listEndpoint).not.toHaveProperty('mutate')
-      expect(listEndpoint).not.toHaveProperty('mutateAsync')
-    })
-
-    it('should correctly infer types for GET operations with path parameters', () => {
-      const getEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
-
-      // Should have query properties
-      expect(getEndpoint).toHaveProperty('data')
-      expect(getEndpoint).toHaveProperty('isLoading')
-      expect(getEndpoint).toHaveProperty('queryKey')
-    })
-
-    it('should work with mutation operations not requiring variables', () => {
-      // Test DELETE operations that might not require data variables
-      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
-
-      // Should have mutation properties
-      expect(deleteEndpoint).toHaveProperty('mutate')
-      expect(deleteEndpoint).toHaveProperty('mutateAsync')
-
-      // Test with the standalone mutation as well
-      const standaloneMutation = api.useMutation(OperationId.deletePet, { petId: '123' })
-
-      // Both should have mutateAsync functions
-      expect(typeof deleteEndpoint.mutateAsync).toBe('function')
-      expect(typeof standaloneMutation.mutateAsync).toBe('function')
-
-      // Call mutateAsync to ensure it works without vars (should not throw)
-      expect(() => deleteEndpoint.mutateAsync()).not.toThrow()
-      expect(() => standaloneMutation.mutateAsync()).not.toThrow()
-    })
-
-    it('should correctly infer types for mutation operations', () => {
-      // This test specifically addresses the issue mentioned in the problem statement
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-
-      // These should now work without TypeScript errors
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-
-      // Test that the methods exist and are callable (runtime verification)
-      expect(typeof createEndpoint.mutate).toBe('function')
-      expect(typeof createEndpoint.mutateAsync).toBe('function')
-
-      // Test with typing - this should not cause TypeScript compilation errors
-      const mutateFunction = createEndpoint.mutateAsync
-      expect(mutateFunction).toBeDefined()
-    })
-
-    it('should work with different mutation types', () => {
-      // Test various mutation operations
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
-
-      // All should have mutation properties
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-      expect(updateEndpoint).toHaveProperty('mutate')
-      expect(updateEndpoint).toHaveProperty('mutateAsync')
-      expect(deleteEndpoint).toHaveProperty('mutate')
-      expect(deleteEndpoint).toHaveProperty('mutateAsync')
-    })
-  })
-
-  /**
    * Issue: Reactive Path Parameters Support
    *
    * Problem: Path parameters that start undefined and get updated later should
@@ -316,22 +201,22 @@ describe('Bug Fixes and Issue Reproductions', () => {
       // This test reproduces the exact scenario from the issue
       let userId: string | undefined = undefined
 
-      // Create endpoint with reactive function for path params
-      const myEndpoint = api.useEndpoint(OperationId.listUserPets, () => ({ userId }))
+      // Create query with reactive function for path params
+      const myQuery = api.useQuery(OperationId.listUserPets, () => ({ userId }))
 
       // Initially, the path should not be resolved (contains {userId})
-      expect(myEndpoint.isEnabled.value).toBe(false)
+      expect(myQuery.isEnabled.value).toBe(false)
 
       // Update the userId - in a real Vue app with refs, this would be reactive
       userId = '123'
 
       // Note: In test environment, we can't fully simulate Vue's reactivity
-      // but we can verify the endpoint structure is correct
-      expect(myEndpoint).toBeTruthy()
+      // but we can verify the query structure is correct
+      expect(myQuery).toBeTruthy()
 
       // Verify it's a query endpoint since listUserPets is GET
-      expect(myEndpoint).toHaveProperty('data')
-      expect(myEndpoint).not.toHaveProperty('mutateAsync')
+      expect(myQuery).toHaveProperty('data')
+      expect(myQuery).not.toHaveProperty('mutateAsync')
     })
 
     it('should handle reactive path params with mutations', () => {
@@ -535,7 +420,6 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(apiWithCustomClient).toBeTruthy()
       expect(apiWithCustomClient).toHaveProperty('useQuery')
       expect(apiWithCustomClient).toHaveProperty('useMutation')
-      expect(apiWithCustomClient).toHaveProperty('useEndpoint')
     })
 
     it('should use default queryClient when not specified', () => {
@@ -543,7 +427,6 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(api).toBeTruthy()
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
-      expect(api).toHaveProperty('useEndpoint')
     })
   })
 })

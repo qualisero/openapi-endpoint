@@ -5,6 +5,7 @@ This guide covers how to use reactive parameters for queries and mutations with 
 ## What are Reactive Parameters?
 
 Reactive parameters allow your API calls to automatically refetch when their dependencies change. This is powerful for:
+
 - Search/filter functionality
 - Pagination
 - Dependent queries
@@ -22,16 +23,16 @@ const selectedPetId = ref<string | null>(null)
 
 const { data: pet } = api.useQuery(
   'getPet',
-  { petId: selectedPetId.value }  // Static value - won't refetch
+  { petId: selectedPetId.value }, // Static value - won't refetch
 )
 
 const { data: reactivePet } = api.useQuery(
   'getPet',
-  computed(() => ({ petId: selectedPetId.value }))  // Reactive!
+  computed(() => ({ petId: selectedPetId.value })), // Reactive!
 )
 
 // When selectedPetId changes, reactivePet automatically refetches
-selectedPetId.value = '123'  // Triggers refetch
+selectedPetId.value = '123' // Triggers refetch
 ```
 
 ### Using `computed`
@@ -45,17 +46,17 @@ const includeArchived = ref(false)
 
 const { data: userPets } = api.useQuery(
   'listUserPets',
-  computed(() => ({ userId: userId.value })),  // Reactive path param
+  computed(() => ({ userId: userId.value })), // Reactive path param
   {
     queryParams: computed(() => ({
-      includeArchived: includeArchived.value  // Reactive query param
-    }))
-  }
+      includeArchived: includeArchived.value, // Reactive query param
+    })),
+  },
 )
 
 // Changes trigger refetch
-userId.value = '456'  // Refetches /users/456/pets
-includeArchived.value = true  // Refetches with ?includeArchived=true
+userId.value = '456' // Refetches /users/456/pets
+includeArchived.value = true // Refetches with ?includeArchived=true
 ```
 
 ## Reactive Query Parameters
@@ -73,12 +74,12 @@ const { data: pets } = api.useQuery('listPets', {
   queryParams: computed(() => ({
     search: searchTerm.value,
     status: statusFilter.value,
-  }))
+  })),
 })
 
 // Query refetches when search or status changes
-searchTerm.value = 'fluffy'  // Triggers refetch
-statusFilter.value = 'sold'   // Triggers refetch
+searchTerm.value = 'fluffy' // Triggers refetch
+statusFilter.value = 'sold' // Triggers refetch
 ```
 
 ### Pagination
@@ -94,16 +95,16 @@ const { data: pets } = api.useQuery('listPets', {
   queryParams: computed(() => ({
     page: page.value,
     limit: limit.value,
-  }))
+  })),
 })
 
 const nextPage = () => {
-  page.value++  // Automatically refetches
+  page.value++ // Automatically refetches
 }
 
 const prevPage = () => {
   if (page.value > 1) {
-    page.value--  // Automatically refetches
+    page.value-- // Automatically refetches
   }
 }
 ```
@@ -123,8 +124,8 @@ const { data: user } = api.useQuery('getUser', { userId: '123' })
 const { data: userPets } = api.useQuery(
   'listUserPets',
   computed(() => ({
-    userId: user.value?.id  // Only runs when user is loaded
-  }))
+    userId: user.value?.id, // Only runs when user is loaded
+  })),
 )
 ```
 
@@ -141,15 +142,15 @@ const { data: userPets } = api.useQuery(
   'listUserPets',
   computed(() => {
     if (!selectedUserId.value || !shouldFetchPets.value) {
-      return null  // Return null to disable query
+      return null // Return null to disable query
     }
     return { userId: selectedUserId.value }
-  })
+  }),
 )
 
 // Query enables/disables based on reactive parameters
-selectedUserId.value = '123'  // Enables and fetches
-shouldFetchPets.value = false    // Disables query
+selectedUserId.value = '123' // Enables and fetches
+shouldFetchPets.value = false // Disables query
 ```
 
 ### Using `enabled` Option with Reactive Parameters
@@ -164,12 +165,12 @@ const { data: profile } = api.useQuery(
   'getProfile',
   {},
   {
-    enabled: computed(() => isAuthenticated.value)
-  }
+    enabled: computed(() => isAuthenticated.value),
+  },
 )
 
 // Query only runs when authenticated
-isAuthenticated.value = true  // Starts fetching
+isAuthenticated.value = true // Starts fetching
 ```
 
 ## Reactive Mutation Parameters
@@ -184,7 +185,7 @@ const selectedPetId = ref('123')
 
 const updatePet = api.useMutation(
   'updatePet',
-  { petId: selectedPetId.value }  // Not reactive - static value
+  { petId: selectedPetId.value }, // Not reactive - static value
 )
 
 // To use reactive path params, create a new mutation when ID changes
@@ -217,8 +218,8 @@ watch(searchTerm, (newValue) => {
 
 const { data: pets } = api.useQuery('listPets', {
   queryParams: computed(() => ({
-    search: debouncedSearch.value
-  }))
+    search: debouncedSearch.value,
+  })),
 })
 ```
 
@@ -234,7 +235,7 @@ const filters = ref({
   minPrice: 0,
   maxPrice: 1000,
   sortBy: 'name',
-  sortOrder: 'asc'
+  sortOrder: 'asc',
 })
 
 const { data: products } = api.useQuery('listProducts', {
@@ -249,7 +250,7 @@ const { data: products } = api.useQuery('listProducts', {
     params.sortOrder = filters.value.sortOrder
 
     return params
-  })
+  }),
 })
 
 // All filter changes trigger refetch
@@ -267,11 +268,14 @@ import { api } from './api/init'
 const showDetails = ref(false)
 const petId = ref('123')
 
-const { data: pet } = api.useQuery('getPet', computed(() => {
-  // Return null when details shouldn't be shown
-  if (!showDetails.value) return null
-  return { petId: petId.value }
-}))
+const { data: pet } = api.useQuery(
+  'getPet',
+  computed(() => {
+    // Return null when details shouldn't be shown
+    if (!showDetails.value) return null
+    return { petId: petId.value }
+  }),
+)
 
 // Toggle details view
 const toggleDetails = () => {
@@ -289,17 +293,20 @@ import { api } from './api/init'
 const shouldLoad = ref(false)
 const petId = ref('123')
 
-const { data: pet, refetch } = api.useQuery('getPet', computed(() => {
-  if (!shouldLoad.value) return null
-  return { petId: petId.value }
-}))
+const { data: pet, refetch } = api.useQuery(
+  'getPet',
+  computed(() => {
+    if (!shouldLoad.value) return null
+    return { petId: petId.value }
+  }),
+)
 
 const loadDetails = () => {
-  shouldLoad.value = true  // Triggers fetch
+  shouldLoad.value = true // Triggers fetch
 }
 
 const refreshDetails = () => {
-  refetch()  // Manually refetch
+  refetch() // Manually refetch
 }
 ```
 

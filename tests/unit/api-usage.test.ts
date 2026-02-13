@@ -32,13 +32,11 @@ describe('API Usage Patterns', () => {
   })
 
   describe('Basic API Structure', () => {
-    it('should return an object with useQuery, useMutation, and useEndpoint functions', () => {
+    it('should return an object with useQuery and useMutation functions', () => {
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
-      expect(api).toHaveProperty('useEndpoint')
       expect(typeof api.useQuery).toBe('function')
       expect(typeof api.useMutation).toBe('function')
-      expect(typeof api.useEndpoint).toBe('function')
     })
 
     it('should correctly type operationId parameters', () => {
@@ -55,7 +53,6 @@ describe('API Usage Patterns', () => {
       expect(typedApi).toBeTruthy()
       expect(typeof typedApi.useQuery).toBe('function')
       expect(typeof typedApi.useMutation).toBe('function')
-      expect(typeof typedApi.useEndpoint).toBe('function')
     })
   })
 
@@ -290,71 +287,6 @@ describe('API Usage Patterns', () => {
     })
   })
 
-  describe('Generic useEndpoint Patterns', () => {
-    it('should automatically detect GET operations as queries', () => {
-      const listEndpoint = api.useEndpoint(OperationId.listPets)
-
-      // TypeScript knows this has query properties
-      expect(listEndpoint).toHaveProperty('data')
-      expect(listEndpoint).toHaveProperty('isLoading')
-      expect(listEndpoint).toHaveProperty('refetch')
-      expect(listEndpoint).not.toHaveProperty('mutate')
-      expect(listEndpoint).not.toHaveProperty('mutateAsync')
-    })
-
-    it('should automatically detect POST operations as mutations', () => {
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-
-      // TypeScript knows this has mutation properties
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-      expect(createEndpoint).toHaveProperty('data')
-      expect(createEndpoint).toHaveProperty('error')
-      expect(createEndpoint).toHaveProperty('isEnabled')
-    })
-
-    it('should handle path parameters correctly for both types', () => {
-      const queryEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
-      expect(queryEndpoint).toHaveProperty('data')
-
-      const mutationEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-      expect(mutationEndpoint).toHaveProperty('mutate')
-    })
-
-    it('should work with different mutation types', () => {
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
-
-      // All should have mutation properties
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-      expect(updateEndpoint).toHaveProperty('mutate')
-      expect(updateEndpoint).toHaveProperty('mutateAsync')
-      expect(deleteEndpoint).toHaveProperty('mutate')
-      expect(deleteEndpoint).toHaveProperty('mutateAsync')
-    })
-
-    it('should pass options to the appropriate underlying composable', () => {
-      const queryEndpoint = api.useEndpoint(OperationId.listPets, {
-        staleTime: 60000,
-        axiosOptions: {
-          headers: { 'Cache-Control': 'no-cache' },
-        },
-      })
-
-      const mutationEndpoint = api.useEndpoint(OperationId.createPet, {
-        onSuccess: vi.fn(),
-        axiosOptions: {
-          timeout: 8000,
-        },
-      })
-
-      expect(queryEndpoint).toHaveProperty('data')
-      expect(mutationEndpoint).toHaveProperty('mutate')
-    })
-  })
-
   describe('Reactive Parameters and Conditional Enabling', () => {
     it('should support reactive path parameters with refs', () => {
       const reactiveParams = ref({ petId: '123' })
@@ -427,22 +359,22 @@ describe('API Usage Patterns', () => {
       // This test reproduces an exact scenario from a GitHub issue
       let userId: string | undefined = undefined
 
-      // Create endpoint with reactive function for path params
-      const myEndpoint = api.useEndpoint(OperationId.listUserPets, () => ({ userId }))
+      // Create query with reactive function for path params
+      const myQuery = api.useQuery(OperationId.listUserPets, () => ({ userId }))
 
       // Initially, the path should not be resolved (contains {userId})
-      expect(myEndpoint.isEnabled.value).toBe(false)
+      expect(myQuery.isEnabled.value).toBe(false)
 
       // Update the userId - in a real Vue app with refs, this would be reactive
       userId = '123'
 
       // Note: In test environment, we can't fully simulate Vue's reactivity
-      // but we can verify the endpoint structure is correct
-      expect(myEndpoint).toBeTruthy()
+      // but we can verify the query structure is correct
+      expect(myQuery).toBeTruthy()
 
       // Verify it's a query endpoint since listUserPets is GET
-      expect(myEndpoint).toHaveProperty('data')
-      expect(myEndpoint).not.toHaveProperty('mutateAsync')
+      expect(myQuery).toHaveProperty('data')
+      expect(myQuery).not.toHaveProperty('mutateAsync')
     })
 
     it('should handle reactive parameters with function-based path params', () => {
@@ -491,7 +423,6 @@ describe('API Usage Patterns', () => {
       expect(apiWithCustomClient).toBeTruthy()
       expect(apiWithCustomClient).toHaveProperty('useQuery')
       expect(apiWithCustomClient).toHaveProperty('useMutation')
-      expect(apiWithCustomClient).toHaveProperty('useEndpoint')
     })
 
     it('should use default queryClient when not specified in config', () => {
@@ -499,7 +430,6 @@ describe('API Usage Patterns', () => {
       expect(api).toBeTruthy()
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
-      expect(api).toHaveProperty('useEndpoint')
     })
 
     it('should work with QueryClient-like objects', () => {
@@ -570,15 +500,11 @@ describe('API Usage Patterns', () => {
         retry: 3,
       })
 
-      // Use generic endpoint for flexible handling
-      const flexibleEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
-
       // Verify all components work
       expect(petListQuery).toBeTruthy()
       expect(petQuery).toBeTruthy()
       expect(createPet).toBeTruthy()
       expect(updatePet).toBeTruthy()
-      expect(flexibleEndpoint).toBeTruthy()
 
       // Verify reactive enabling works
       expect(petQuery.isEnabled).toBeDefined()

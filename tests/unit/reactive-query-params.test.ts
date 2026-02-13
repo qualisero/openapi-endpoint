@@ -241,38 +241,6 @@ describe('Reactive Query Parameters', () => {
     })
   })
 
-  describe('useEndpoint with Query Parameters', () => {
-    it('should support query params for query operations through useEndpoint', () => {
-      const endpoint = api.useEndpoint(OperationId.listPets, {
-        queryParams: { limit: 10 },
-      })
-
-      expect(endpoint).toBeTruthy()
-      expect(endpoint).toHaveProperty('data')
-      expect(endpoint).toHaveProperty('isLoading')
-    })
-
-    it('should support query params for mutation operations through useEndpoint', () => {
-      const endpoint = api.useEndpoint(OperationId.createPet, {
-        queryParams: { returnDetails: true } as any,
-      })
-
-      expect(endpoint).toBeTruthy()
-      expect(endpoint).toHaveProperty('mutate')
-      expect(endpoint).toHaveProperty('mutateAsync')
-    })
-
-    it('should support reactive query params through useEndpoint', () => {
-      const limit = ref(10)
-      const endpoint = api.useEndpoint(OperationId.listPets, {
-        queryParams: computed(() => ({ limit: limit.value })),
-      })
-
-      expect(endpoint).toBeTruthy()
-      expect(endpoint.queryKey.value).toBeDefined()
-    })
-  })
-
   describe('Integration with Path Parameters', () => {
     it('should work with both path params and query params', () => {
       const query = api.useQuery(

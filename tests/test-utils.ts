@@ -226,24 +226,6 @@ export const testScenarios = {
     expect(mutation.isEnabled.value).toBe(true)
     return mutation
   },
-
-  /**
-   * useEndpoint with GET operation (should become query)
-   */
-  endpointAsQuery: (api: OpenApiInstance<OpenApiOperations>) => {
-    const endpoint = api.useEndpoint(OperationId.listPets)
-    testPatterns.assertQueryEndpoint(endpoint)
-    return endpoint
-  },
-
-  /**
-   * useEndpoint with POST operation (should become mutation)
-   */
-  endpointAsMutation: (api: OpenApiInstance<OpenApiOperations>) => {
-    const endpoint = api.useEndpoint(OperationId.createPet)
-    testPatterns.assertMutationEndpoint(endpoint)
-    return endpoint
-  },
 }
 
 /**

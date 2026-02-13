@@ -9,6 +9,7 @@ By default, the library provides intelligent cache management for queries and mu
 ### Query Caching
 
 Queries automatically cache their results based on:
+
 - **Query key** - Unique identifier based on operation ID and parameters
 - **Stale time** - How long data is considered fresh
 - **Cache time** - How long data stays in memory
@@ -23,6 +24,7 @@ const { data: pets } = api.useQuery('listPets')
 ### Mutation Cache Updates
 
 Mutations automatically:
+
 1. **Update cache** - Insert returned data into matching cache entries
 2. **Invalidate queries** - Mark related queries as stale
 3. **Trigger refetch** - Stale queries automatically refetch
@@ -31,7 +33,7 @@ Mutations automatically:
 const createPet = api.useMutation('createPet')
 
 await createPet.mutateAsync({
-  data: { name: 'Fluffy', species: 'cat' }
+  data: { name: 'Fluffy', species: 'cat' },
 })
 
 // After mutation:
@@ -46,15 +48,20 @@ await createPet.mutateAsync({
 `staleTime` determines how long data is considered "fresh":
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  staleTime: 60 * 1000  // 1 minute
-})
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    staleTime: 60 * 1000, // 1 minute
+  },
+)
 
 // Within 1 minute: returns cached data immediately
 // After 1 minute: data is stale, may refetch on window focus/reconnect
 ```
 
 **Common stale times:**
+
 - `0` - Always consider data stale (refetch frequently)
 - `5 * 60 * 1000` (5 min) - Good for frequently changing data
 - `Infinity` - Never refetch automatically (manual control only)
@@ -64,9 +71,13 @@ const { data: pets } = api.useQuery('listPets', {}, {
 `cacheTime` (also called `gcTime`) determines how long data stays in memory:
 
 ```typescript
-const { data: pets } = api.useQuery('listPets', {}, {
-  cacheTime: 10 * 60 * 1000  // 10 minutes
-})
+const { data: pets } = api.useQuery(
+  'listPets',
+  {},
+  {
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  },
+)
 
 // Data removed from memory 10 minutes after becoming inactive
 ```
@@ -82,7 +93,7 @@ import { QueryClient } from '@tanstack/vue-query'
 const customQueryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,  // 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
       retry: 3,
     },
@@ -121,7 +132,7 @@ queryClient.invalidateQueries()
 // Invalidate with filters
 queryClient.invalidateQueries({
   queryKey: ['pets'],
-  type: 'active',  // Only invalidate active queries
+  type: 'active', // Only invalidate active queries
 })
 ```
 
@@ -158,29 +169,41 @@ if (cachedPets) {
 ### Disable Automatic Invalidation
 
 ```typescript
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  dontInvalidate: true,  // Don't auto-invalidate any queries
-})
+const updatePet = api.useMutation(
+  'updatePet',
+  { petId: '123' },
+  {
+    dontInvalidate: true, // Don't auto-invalidate any queries
+  },
+)
 ```
 
 ### Disable Automatic Cache Updates
 
 ```typescript
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  dontUpdateCache: true,  // Don't update cache with mutation result
-})
+const updatePet = api.useMutation(
+  'updatePet',
+  { petId: '123' },
+  {
+    dontUpdateCache: true, // Don't update cache with mutation result
+  },
+)
 ```
 
 ### Specify Operations to Invalidate
 
 ```typescript
-const createPet = api.useMutation('createPet', { userId: '123' }, {
-  invalidateOperations: [
-    'listPets',      // Invalidate specific operations
-    'getUserPets',
-    'getPet',        // Won't auto-detect, manually specified
-  ],
-})
+const createPet = api.useMutation(
+  'createPet',
+  { userId: '123' },
+  {
+    invalidateOperations: [
+      'listPets', // Invalidate specific operations
+      'getUserPets',
+      'getPet', // Won't auto-detect, manually specified
+    ],
+  },
+)
 ```
 
 ### Refetch Specific Endpoints
@@ -189,12 +212,16 @@ const createPet = api.useMutation('createPet', { userId: '123' }, {
 const petListQuery = api.useQuery('listPets')
 const userPetsQuery = api.useQuery('getUserPets', { userId: '123' })
 
-const createPet = api.useMutation('createPet', {}, {
-  refetchEndpoints: [
-    petListQuery,    // Refetch these specific endpoints
-    userPetsQuery,
-  ],
-})
+const createPet = api.useMutation(
+  'createPet',
+  {},
+  {
+    refetchEndpoints: [
+      petListQuery, // Refetch these specific endpoints
+      userPetsQuery,
+    ],
+  },
+)
 ```
 
 ## Optimistic Updates
@@ -206,39 +233,43 @@ Optimistic updates show UI changes immediately, then rollback if the mutation fa
 ```typescript
 import { api, queryClient } from './api/init'
 
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  onMutate: async (variables) => {
-    // Cancel outgoing queries
-    await queryClient.cancelQueries({ queryKey: ['getPet', '123'] })
+const updatePet = api.useMutation(
+  'updatePet',
+  { petId: '123' },
+  {
+    onMutate: async (variables) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ['getPet', '123'] })
 
-    // Snapshot previous value
-    const previousPet = queryClient.getQueryData(['getPet', '123'])
+      // Snapshot previous value
+      const previousPet = queryClient.getQueryData(['getPet', '123'])
 
-    // Optimistically update
-    queryClient.setQueryData(['getPet', '123'], (old: any) => ({
-      ...old,
-      ...variables.data,
-    }))
+      // Optimistically update
+      queryClient.setQueryData(['getPet', '123'], (old: any) => ({
+        ...old,
+        ...variables.data,
+      }))
 
-    // Return context with snapshot
-    return { previousPet }
+      // Return context with snapshot
+      return { previousPet }
+    },
+
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousPet) {
+        queryClient.setQueryData(['getPet', '123'], context.previousPet)
+      }
+    },
+
+    onSettled: () => {
+      // Refetch on completion (success or error)
+      queryClient.invalidateQueries({ queryKey: ['getPet', '123'] })
+    },
   },
-
-  onError: (error, variables, context) => {
-    // Rollback on error
-    if (context?.previousPet) {
-      queryClient.setQueryData(['getPet', '123'], context.previousPet)
-    }
-  },
-
-  onSettled: () => {
-    // Refetch on completion (success or error)
-    queryClient.invalidateQueries({ queryKey: ['getPet', '123'] })
-  },
-})
+)
 
 await updatePet.mutateAsync({
-  data: { name: 'Updated Name' }
+  data: { name: 'Updated Name' },
 })
 ```
 
@@ -247,31 +278,32 @@ await updatePet.mutateAsync({
 ```typescript
 import { api, queryClient } from './api/init'
 
-const createPet = api.useMutation('createPet', {}, {
-  onMutate: async (variables) => {
-    await queryClient.cancelQueries({ queryKey: ['listPets'] })
+const createPet = api.useMutation(
+  'createPet',
+  {},
+  {
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ['listPets'] })
 
-    const previousPets = queryClient.getQueryData(['listPets'])
+      const previousPets = queryClient.getQueryData(['listPets'])
 
-    // Optimistically add new item
-    queryClient.setQueryData(['listPets'], (old: any) => [
-      ...old,
-      { id: 'temp', ...variables.data }
-    ])
+      // Optimistically add new item
+      queryClient.setQueryData(['listPets'], (old: any) => [...old, { id: 'temp', ...variables.data }])
 
-    return { previousPets }
+      return { previousPets }
+    },
+
+    onError: (error, variables, context) => {
+      if (context?.previousPets) {
+        queryClient.setQueryData(['listPets'], context.previousPets)
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['listPets'] })
+    },
   },
-
-  onError: (error, variables, context) => {
-    if (context?.previousPets) {
-      queryClient.setQueryData(['listPets'], context.previousPets)
-    }
-  },
-
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: ['listPets'] })
-  },
-})
+)
 ```
 
 ## Advanced Cache Strategies
@@ -291,7 +323,7 @@ const handleMouseEnter = () => {
       const result = await api.useQuery('getPet', { petId: '123' })
       return result.data.value
     },
-    staleTime: 60 * 1000,  // Fresh for 1 minute
+    staleTime: 60 * 1000, // Fresh for 1 minute
   })
 }
 ```
@@ -307,7 +339,7 @@ const { data: pets } = api.useQuery('listPets', {
   queryParams: computed(() => ({
     page: page.value,
     limit: 20,
-  }))
+  })),
 })
 
 // Load next page and keep previous pages in cache
@@ -319,13 +351,13 @@ const loadNextPage = () => {
     queryKey: ['listPets', { page: nextPage, limit: 20 }],
     queryFn: async () => {
       const result = await api.useQuery('listPets', {
-        queryParams: { page: nextPage, limit: 20 }
+        queryParams: { page: nextPage, limit: 20 },
       })
       return result.data.value
     },
   })
 
-  page.value = nextPage  // Now the next page is already cached!
+  page.value = nextPage // Now the next page is already cached!
 }
 ```
 
@@ -334,22 +366,26 @@ const loadNextPage = () => {
 ```typescript
 import { api, queryClient } from './api/init'
 
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  dontInvalidate: true,  // Don't refetch
-  dontUpdateCache: true,  // Don't use mutation result
+const updatePet = api.useMutation(
+  'updatePet',
+  { petId: '123' },
+  {
+    dontInvalidate: true, // Don't refetch
+    dontUpdateCache: true, // Don't use mutation result
 
-  onSuccess: (data, variables) => {
-    // Manually update specific cache entry
-    queryClient.setQueryData(['getPet', '123'], (old: any) => ({
-      ...old,
-      ...variables.data,
-      ...data,  // Merge with server response
-    }))
+    onSuccess: (data, variables) => {
+      // Manually update specific cache entry
+      queryClient.setQueryData(['getPet', '123'], (old: any) => ({
+        ...old,
+        ...variables.data,
+        ...data, // Merge with server response
+      }))
 
-    // Invalidate other dependent queries
-    queryClient.invalidateQueries({ queryKey: ['listPets'] })
+      // Invalidate other dependent queries
+      queryClient.invalidateQueries({ queryKey: ['listPets'] })
+    },
   },
-})
+)
 ```
 
 ## Cache Debugging
@@ -362,7 +398,7 @@ import { queryClient } from '@qualisero/openapi-endpoint'
 // Get all cached queries
 const cacheData = queryClient.getQueryCache().getAll()
 
-cacheData.forEach(query => {
+cacheData.forEach((query) => {
   console.log('Query:', query.queryKey)
   console.log('State:', query.state)
   console.log('Observers:', query.getObserversCount())

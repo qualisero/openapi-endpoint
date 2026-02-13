@@ -140,27 +140,6 @@ const userPetsQuery = api.useQuery(
 - **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
 - **Backward compatible**: Works alongside existing `axiosOptions.params`
 
-### Automatic Operation Type Detection with `api.useEndpoint`
-
-The `api.useEndpoint` method automatically detects whether an operation is a query (GET/HEAD/OPTIONS) or mutation (POST/PUT/PATCH/DELETE) based on the HTTP method defined in your OpenAPI specification:
-
-```typescript
-import { ref, computed } from 'vue'
-import { api, OperationId } from './api/init'
-
-// Automatically becomes a query for GET operations
-const listEndpoint = api.useEndpoint(OperationId.listPets)
-// TypeScript knows this has query properties like .data, .isLoading, .refetch()
-
-// Automatically becomes a mutation for POST operations
-const createEndpoint = api.useEndpoint(OperationId.createPet)
-// TypeScript knows this has mutation properties like .mutate(), .mutateAsync()
-
-// Use the endpoints according to their detected type
-const petData = listEndpoint.data // Query data
-await createEndpoint.mutateAsync({ data: { name: 'Fluffy' } }) // Mutation execution
-```
-
 ### Automatic Cache Management and Refetching
 
 By default, mutations automatically:

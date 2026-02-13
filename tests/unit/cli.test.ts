@@ -18,9 +18,7 @@ describe('CLI codegen functionality', () => {
       const operationIds: string[] = []
       const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
           const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
           if (!httpMethods.includes(method.toLowerCase())) {
@@ -392,7 +390,6 @@ describe('CLI codegen functionality', () => {
       }
 
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(pathItem as any).forEach(([method, operation]: [string, any]) => {
           const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
           if (!httpMethods.includes(method.toLowerCase())) {
@@ -424,11 +421,10 @@ describe('CLI codegen functionality', () => {
       // Pass empty string to not strip any prefix
       addMissingOperationIds(spec, '')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets/{petId}'] as any).get.operationId).toBe('getPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets/{petId}'] as any).put.operationId).toBe('updatePets')
     })
 
@@ -453,13 +449,12 @@ describe('CLI codegen functionality', () => {
       // Use default prefix '/api'
       addMissingOperationIds(spec)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/api/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}'] as any).get.operationId).toBe('getPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}'] as any).patch.operationId).toBe('updatePets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}/adopt'] as any).post.operationId).toBe('postPetsAdopt')
     })
 
@@ -476,7 +471,6 @@ describe('CLI codegen functionality', () => {
 
       addMissingOperationIds(spec)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('customListPets')
     })
 
@@ -504,9 +498,8 @@ describe('CLI codegen functionality', () => {
       // Use empty string to not strip prefix
       addMissingOperationIds(spec, '')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets'] as any).parameters).toEqual([{ name: 'test' }])
     })
   })
@@ -606,9 +599,7 @@ export type OperationId = keyof OpenApiOperations
         const operationIds: string[] = []
         const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
             const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
             if (!httpMethods.includes(method.toLowerCase())) return
