@@ -429,4 +429,102 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(api).toHaveProperty('useMutation')
     })
   })
+
+  /**
+   * Issue: Mutation isEnabled doesn't prevent execution
+   *
+   * Problem: When path parameters are undefined, mutation.isEnabled is false but
+   * calling mutate() or mutateAsync() still attempts to execute and fails with
+   * an error instead of being silently ignored or returning early.
+   *
+   * Expected behavior: When isEnabled is false, mutations should either:
+   * 1. Return early without attempting the request
+   * 2. Return a rejected promise with a clear message
+   *
+   * Solution: Wrap mutate/mutateAsync to check isEnabled before executing.
+   */
+  describe('Mutation isEnabled Enforcement (GitHub Issue)', () => {
+    it('should have isEnabled=false when path parameters are undefined', () => {
+      const mutation = api.useMutation(OperationId.updatePet, () => ({ petId: undefined }))
+
+      expect(mutation.isEnabled.value).toBe(false)
+    })
+
+    it('should have isEnabled=true when path parameters are provided', () => {
+      const mutation = api.useMutation(OperationId.updatePet, () => ({ petId: '123' }))
+
+      expect(mutation.isEnabled.value).toBe(true)
+    })
+
+    it('should prevent mutate() when isEnabled is false', async () => {
+      const mutation = api.useMutation(OperationId.updatePet, () => ({ petId: undefined }))
+
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Calling mutate() when disabled should not throw, but should not execute either
+      // The onError callback should be called with a clear error message
+      const onError = vi.fn()
+      mutation.mutate(
+        { data: { name: 'Updated Name' } },
+        {
+          onError,
+        },
+      )
+
+      // Wait a tick for async execution
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Verify that onError was called with appropriate error
+      expect(onError).toHaveBeenCalled()
+      const error = onError.mock.calls[0][0]
+      expect(error).toBeInstanceOf(Error)
+      expect(error.message).toContain('path parameters not resolved')
+    })
+
+    it('should reject mutateAsync() when isEnabled is false', async () => {
+      const mutation = api.useMutation(OperationId.updatePet, () => ({ petId: undefined }))
+
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // mutateAsync should reject with a clear error
+      await expect(mutation.mutateAsync({ data: { name: 'Updated Name' } })).rejects.toThrow(
+        /path parameters not resolved/,
+      )
+    })
+
+    it('should allow mutation when isEnabled becomes true', async () => {
+      let petId: string | undefined = undefined
+      const mutation = api.useMutation(OperationId.updatePet, () => ({ petId }))
+
+      // Initially disabled
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Enable by providing path param
+      petId = '123'
+
+      // Note: In a real Vue environment with refs, reactivity would update isEnabled
+      // For this test, we're verifying the structure is correct
+      expect(mutation).toHaveProperty('mutate')
+      expect(mutation).toHaveProperty('mutateAsync')
+      expect(mutation).toHaveProperty('isEnabled')
+    })
+
+    it('should use isEnabled as a guard in practical usage', () => {
+      const selectedRequestRef = { value: undefined as string | undefined }
+
+      const updateRequestTypeMutation = api.useMutation(OperationId.updatePet, () => ({
+        petId: selectedRequestRef.value,
+      }))
+
+      // This is the pattern from the FIXME comment - isEnabled should guard execution
+      expect(updateRequestTypeMutation.isEnabled.value).toBe(false)
+
+      // Set the ref value
+      selectedRequestRef.value = '123'
+
+      // Verify mutation structure
+      expect(updateRequestTypeMutation).toHaveProperty('mutate')
+      expect(updateRequestTypeMutation).toHaveProperty('isEnabled')
+    })
+  })
 })

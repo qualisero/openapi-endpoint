@@ -46,6 +46,7 @@ interface EnumInfo {
   name: string // e.g., "PetStatus"
   values: (string | number)[]
   sourcePath: string // e.g., "components.schemas.Pet.properties.status"
+  aliases?: string[] // Alternative names for this enum (for duplicates)
 }
 
 async function fetchOpenAPISpec(input: string): Promise<string> {
@@ -314,13 +315,31 @@ function parseOperationsFromSpec(openapiContent: string): {
 
 /**
  * Converts a string to PascalCase.
- * Handles snake_case, kebab-case, and space-separated strings.
+ * Handles snake_case, kebab-case, space-separated strings, and preserves existing camelCase.
  */
 function toPascalCase(str: string): string {
+  // If already in PascalCase (starts with uppercase), return as-is
+  if (/^[A-Z]/.test(str) && /[a-z]/.test(str)) {
+    return str
+  }
+
+  // If in camelCase, convert to PascalCase
+  if (/^[a-z]/.test(str) && /[A-Z]/.test(str)) {
+    return str.charAt(0).toUpperCase() + str.slice(1)
+  }
+
+  // Otherwise, handle snake_case, kebab-case, etc.
   return str
     .split(/[-_\s]+/)
     .filter((part) => part.length > 0)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .map((part) => {
+      // If this part is already in camelCase, just capitalize the first letter
+      if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+        return part.charAt(0).toUpperCase() + part.slice(1)
+      }
+      // Otherwise, capitalize and lowercase
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    })
     .join('')
 }
 
@@ -387,58 +406,290 @@ function toEnumMemberName(value: string | number | null): string {
 }
 
 /**
+ * Helper function to add enum values to the enums list with deduplication.
+ * If a duplicate is found, it adds the new name as an alias instead of creating a separate enum.
+ */
+function addEnumIfUnique(
+  enumName: string,
+  enumValues: (string | number)[],
+  sourcePath: string,
+  enums: EnumInfo[],
+  seenEnumValues: Map<string, string>,
+): void {
+  const valuesKey = JSON.stringify(enumValues.sort())
+
+  // Check if we've seen this exact set of values before
+  const existingName = seenEnumValues.get(valuesKey)
+  if (existingName) {
+    // Find the existing enum and add this as an alias
+    const existingEnum = enums.find((e) => e.name === existingName)
+    if (existingEnum) {
+      if (!existingEnum.aliases) {
+        existingEnum.aliases = []
+      }
+      existingEnum.aliases.push(enumName)
+      console.log(`  ↳ Adding alias ${enumName} → ${existingName}`)
+    }
+    return
+  }
+
+  seenEnumValues.set(valuesKey, enumName)
+
+  enums.push({
+    name: enumName,
+    values: enumValues,
+    sourcePath,
+  })
+}
+
+/**
  * Extracts all enums from an OpenAPI spec.
- * Walks through components.schemas and finds all properties with enum values.
- * Deduplicates by creating a unique name based on schema + property name.
+ * Walks through:
+ * 1. components.schemas and their properties
+ * 2. Operation parameters (query, header, path, cookie)
+ * Deduplicates by comparing enum value sets.
  */
 function extractEnumsFromSpec(openApiSpec: OpenAPISpec): EnumInfo[] {
   const enums: EnumInfo[] = []
   const seenEnumValues = new Map<string, string>() // Maps JSON stringified values -> enum name (for deduplication)
 
-  if (!openApiSpec.components?.schemas) {
-    return enums
+  // Extract from components.schemas
+  if (openApiSpec.components?.schemas) {
+    for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+      if (!schema.properties) continue
+
+      for (const [propName, propSchema] of Object.entries(schema.properties)) {
+        if (!propSchema.enum || !Array.isArray(propSchema.enum)) continue
+
+        // Filter out null values from enum array
+        const enumValues = (propSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
+          | string
+          | number
+        )[]
+
+        // Skip if all values were null
+        if (enumValues.length === 0) continue
+
+        // Use schema name as-is (already PascalCase), convert property name from snake_case
+        const enumName = schemaName + toPascalCase(propName)
+        addEnumIfUnique(
+          enumName,
+          enumValues,
+          `components.schemas.${schemaName}.properties.${propName}`,
+          enums,
+          seenEnumValues,
+        )
+      }
+    }
   }
 
-  for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
-    if (!schema.properties) continue
+  // Extract from operation parameters
+  if (openApiSpec.paths) {
+    for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+      for (const [method, operation] of Object.entries(pathItem)) {
+        // Skip non-HTTP methods
+        if (!HTTP_METHODS.includes(method.toLowerCase() as (typeof HTTP_METHODS)[number])) {
+          continue
+        }
 
-    for (const [propName, propSchema] of Object.entries(schema.properties)) {
-      if (!propSchema.enum || !Array.isArray(propSchema.enum)) continue
+        const op = operation as OpenAPIOperation
 
-      // Filter out null values from enum array
-      const enumValues = (propSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
-        | string
-        | number
-      )[]
+        // Check parameters (query, header, path, cookie)
+        if (op.parameters && Array.isArray(op.parameters)) {
+          for (const param of op.parameters) {
+            const paramObj = param as Record<string, unknown>
+            const paramName = paramObj.name as string | undefined
+            const paramIn = paramObj.in as string | undefined
+            const paramSchema = paramObj.schema as OpenAPISchema | undefined
 
-      // Skip if all values were null
-      if (enumValues.length === 0) continue
+            if (!paramName || !paramIn || !paramSchema?.enum) continue
 
-      const enumName = toPascalCase(schemaName) + toPascalCase(propName)
-      const valuesKey = JSON.stringify(enumValues.sort())
+            const enumValues = (paramSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
+              | string
+              | number
+            )[]
 
-      // Check if we've seen this exact set of values before
-      const existingName = seenEnumValues.get(valuesKey)
-      if (existingName) {
-        // Skip - same enum values already extracted with a different name
-        console.log(`  ↳ Skipping ${enumName} (duplicate of ${existingName})`)
-        continue
+            if (enumValues.length === 0) continue
+
+            // Create a descriptive name: OperationName + ParamName
+            const operationName = op.operationId
+              ? toPascalCase(op.operationId)
+              : toPascalCase(pathUrl.split('/').pop() || 'param')
+            const paramNamePascal = toPascalCase(paramName)
+
+            // Rule 1: Don't duplicate suffix if operation name already ends with param name
+            let enumName: string
+            if (operationName.endsWith(paramNamePascal)) {
+              enumName = operationName
+            } else {
+              enumName = operationName + paramNamePascal
+            }
+
+            const sourcePath = `paths.${pathUrl}.${method}.parameters[${paramName}]`
+
+            addEnumIfUnique(enumName, enumValues, sourcePath, enums, seenEnumValues)
+          }
+        }
       }
-
-      seenEnumValues.set(valuesKey, enumName)
-
-      enums.push({
-        name: enumName,
-        values: enumValues,
-        sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
-      })
     }
   }
 
   // Sort by name for consistent output
   enums.sort((a, b) => a.name.localeCompare(b.name))
 
+  // Rule 2: Create short aliases for common suffixes (>2 words, appears >2 times)
+  addCommonSuffixAliases(enums)
+
   return enums
+}
+
+/**
+ * Rule 2: Analyzes enum names and creates short aliases for common suffixes.
+ * Algorithm:
+ * 1. Find all suffixes > 2 words that appear 3+ times
+ * 2. Sort by number of occurrences (descending)
+ * 3. Remove any suffix that is a suffix of a MORE common one
+ * 4. Create aliases for remaining suffixes
+ */
+function addCommonSuffixAliases(enums: EnumInfo[]): void {
+  // Split enum names into words (by capital letters)
+  const splitIntoWords = (name: string): string[] => {
+    return name.split(/(?=[A-Z])/).filter((w) => w.length > 0)
+  }
+
+  // Collect ALL enum names (primary + aliases)
+  const allEnumNames: string[] = []
+  for (const enumInfo of enums) {
+    allEnumNames.push(enumInfo.name)
+    if (enumInfo.aliases) {
+      allEnumNames.push(...enumInfo.aliases)
+    }
+  }
+
+  // Extract all possible multi-word suffixes from ALL names
+  const suffixCounts = new Map<string, Set<string>>() // suffix -> set of full enum names
+
+  for (const name of allEnumNames) {
+    const words = splitIntoWords(name)
+
+    // Try all suffixes with 3+ words
+    for (let wordCount = 3; wordCount <= words.length - 1; wordCount++) {
+      // -1 to exclude the full name
+      const suffix = words.slice(-wordCount).join('')
+
+      if (!suffixCounts.has(suffix)) {
+        suffixCounts.set(suffix, new Set())
+      }
+      suffixCounts.get(suffix)!.add(name)
+    }
+  }
+
+  // Step 1: Find suffixes appearing 3+ times
+  const commonSuffixes: Array<{ suffix: string; count: number; names: string[] }> = []
+
+  for (const [suffix, enumNames] of suffixCounts.entries()) {
+    if (enumNames.size > 2) {
+      // Skip if this suffix is already present as a primary enum name or alias
+      if (allEnumNames.includes(suffix)) {
+        continue
+      }
+
+      commonSuffixes.push({
+        suffix,
+        count: enumNames.size,
+        names: Array.from(enumNames),
+      })
+    }
+  }
+
+  // Step 2: Sort by occurrence count (descending - most common first)
+  commonSuffixes.sort((a, b) => b.count - a.count)
+
+  // Step 3: Remove suffixes that are suffixes of MORE common ones
+  const filteredSuffixes: typeof commonSuffixes = []
+
+  for (const current of commonSuffixes) {
+    let shouldKeep = true
+
+    // Check if this suffix is a suffix of any MORE common suffix already in the filtered list
+    for (const existing of filteredSuffixes) {
+      if (existing.suffix.endsWith(current.suffix)) {
+        // current is a suffix of existing (which is more common)
+        shouldKeep = false
+        break
+      }
+    }
+
+    if (shouldKeep) {
+      filteredSuffixes.push(current)
+    }
+  }
+
+  // Step 4: PROMOTE common suffixes to be PRIMARY enum names
+  // Process promotions from most common to least common
+  const promotions = new Map<EnumInfo, { newName: string; allAliases: string[] }>()
+
+  for (const { suffix, names } of filteredSuffixes) {
+    // Find all primary enums that have this suffix (either as primary name or alias)
+    const affectedEnums: EnumInfo[] = []
+
+    for (const name of names) {
+      const enumInfo = enums.find((e) => e.name === name || (e.aliases && e.aliases.includes(name)))
+      if (enumInfo && !affectedEnums.includes(enumInfo) && !promotions.has(enumInfo)) {
+        affectedEnums.push(enumInfo)
+      }
+    }
+
+    if (affectedEnums.length === 0) continue
+
+    // Use the first affected enum as the base (it has the values we need)
+    const primaryEnum = affectedEnums[0]
+
+    // Collect all names that should become aliases
+    const allAliases = new Set<string>()
+
+    for (const enumInfo of affectedEnums) {
+      // Add the primary name as an alias
+      allAliases.add(enumInfo.name)
+
+      // Add all existing aliases
+      if (enumInfo.aliases) {
+        enumInfo.aliases.forEach((alias) => allAliases.add(alias))
+      }
+    }
+
+    // Remove the suffix itself from aliases (it will be the primary name)
+    allAliases.delete(suffix)
+
+    // Record this promotion to apply later
+    promotions.set(primaryEnum, {
+      newName: suffix,
+      allAliases: Array.from(allAliases),
+    })
+
+    console.log(`  ↳ Promoting ${suffix} to PRIMARY (was ${primaryEnum.name}, ${names.length} occurrences)`)
+
+    // Mark other affected enums for removal
+    for (let i = 1; i < affectedEnums.length; i++) {
+      promotions.set(affectedEnums[i], { newName: '', allAliases: [] }) // Mark for deletion
+    }
+  }
+
+  // Apply all promotions
+  for (const [enumInfo, promotion] of promotions.entries()) {
+    if (promotion.newName === '') {
+      // Remove this enum (it was consolidated)
+      const index = enums.indexOf(enumInfo)
+      if (index > -1) {
+        enums.splice(index, 1)
+      }
+    } else {
+      // Update the enum name and aliases
+      enumInfo.name = promotion.newName
+      enumInfo.aliases = promotion.allAliases
+      enumInfo.sourcePath = `common suffix (promoted)`
+    }
+  }
 }
 
 /**
@@ -453,6 +704,59 @@ function generateApiEnumsContent(enums: EnumInfo[]): string {
 `
   }
 
+  // Generate the generic enum helper utility
+  const helperUtility = `/**
+ * Generic utility for working with enums
+ * 
+ * @example
+ * import { EnumHelper, RequestedValuationType } from './api-enums'
+ * 
+ * // Get all values
+ * const allTypes = EnumHelper.values(RequestedValuationType)
+ * 
+ * // Validate a value
+ * if (EnumHelper.isValid(RequestedValuationType, userInput)) {
+ *   // TypeScript knows userInput is RequestedValuationType
+ * }
+ * 
+ * // Reverse lookup
+ * const key = EnumHelper.getKey(RequestedValuationType, 'cat') // 'Cat'
+ */
+export const EnumHelper = {
+  /**
+   * Get all enum values as an array
+   */
+  values<T extends Record<string, string | number>>(enumObj: T): Array<T[keyof T]> {
+    return Object.values(enumObj) as Array<T[keyof T]>
+  },
+
+  /**
+   * Get all enum keys as an array
+   */
+  keys<T extends Record<string, string | number>>(enumObj: T): Array<keyof T> {
+    return Object.keys(enumObj) as Array<keyof T>
+  },
+
+  /**
+   * Check if a value is valid for the given enum
+   */
+  isValid<T extends Record<string, string | number>>(
+    enumObj: T,
+    value: unknown,
+  ): value is T[keyof T] {
+    return typeof value === 'string' && (Object.values(enumObj) as string[]).includes(value)
+  },
+
+  /**
+   * Get the enum key from a value (reverse lookup)
+   */
+  getKey<T extends Record<string, string | number>>(enumObj: T, value: T[keyof T]): keyof T | undefined {
+    const entry = Object.entries(enumObj).find(([_, v]) => v === value)
+    return entry?.[0] as keyof T | undefined
+  },
+} as const
+`
+
   const enumExports = enums
     .map((enumInfo) => {
       const members = enumInfo.values
@@ -463,7 +767,7 @@ function generateApiEnumsContent(enums: EnumInfo[]): string {
         })
         .join('\n')
 
-      return `/**
+      let output = `/**
  * Enum values from ${enumInfo.sourcePath}
  */
 export const ${enumInfo.name} = {
@@ -472,11 +776,24 @@ ${members}
 
 export type ${enumInfo.name} = typeof ${enumInfo.name}[keyof typeof ${enumInfo.name}]
 `
+
+      // Generate type aliases for duplicates
+      if (enumInfo.aliases && enumInfo.aliases.length > 0) {
+        output += '\n// Type aliases for duplicate enum values\n'
+        for (const alias of enumInfo.aliases) {
+          output += `export const ${alias} = ${enumInfo.name}\n`
+          output += `export type ${alias} = ${enumInfo.name}\n`
+        }
+      }
+
+      return output
     })
     .join('\n')
 
   return `// Auto-generated from OpenAPI specification
 // Do not edit this file manually
+
+${helperUtility}
 
 ${enumExports}
 `
