@@ -83,7 +83,7 @@ vi.mock('@tanstack/vue-query', () => ({
   useMutation: vi.fn((options: any) => {
     // Store the mutationFn so we can call it
     const mutationFn = options?.mutationFn
-    
+
     return {
       mutate: vi.fn((vars: any, mutateOptions?: any) => {
         if (mutationFn) {
