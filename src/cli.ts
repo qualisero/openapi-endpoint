@@ -330,9 +330,41 @@ function toPascalCase(str: string): string {
  * - Invalid identifiers are wrapped in quotes
  * - Numbers are prefixed with underscore
  */
-function toEnumMemberName(value: string | number): string {
+function toEnumMemberName(value: string | number | null): string {
+  if (value === null) {
+    return 'Null' // Handle null enum values
+  }
+
   if (typeof value === 'number') {
     return `_${value}` // Numbers can't be property names, prefix with underscore
+  }
+
+  // Map common operator symbols to readable names
+  const operatorMap: Record<string, string> = {
+    '=': 'Equals',
+    '!=': 'NotEquals',
+    '<': 'LessThan',
+    '>': 'GreaterThan',
+    '<=': 'LessThanOrEqual',
+    '>=': 'GreaterThanOrEqual',
+    '!': 'Not',
+    '&&': 'And',
+    '||': 'Or',
+    '+': 'Plus',
+    '-': 'Minus',
+    '*': 'Multiply',
+    '/': 'Divide',
+    '%': 'Modulo',
+    '^': 'Caret',
+    '&': 'Ampersand',
+    '|': 'Pipe',
+    '~': 'Tilde',
+    '<<': 'LeftShift',
+    '>>': 'RightShift',
+  }
+
+  if (operatorMap[value]) {
+    return operatorMap[value]
   }
 
   // Check if it's a valid TypeScript identifier
@@ -343,9 +375,15 @@ function toEnumMemberName(value: string | number): string {
     return value.charAt(0).toUpperCase() + value.slice(1)
   }
 
-  // For non-identifier strings, we need to use quoted form
-  // But since we're generating const objects, we'll convert to a valid identifier
-  return toPascalCase(value.replace(/[^a-zA-Z0-9_$]/g, '_'))
+  // For non-identifier strings, replace special characters with underscores
+  const cleaned = toPascalCase(value.replace(/[^a-zA-Z0-9_$]/g, '_'))
+
+  // If the result is empty or still invalid, prefix with underscore to make it valid
+  if (cleaned.length === 0 || !/^[a-zA-Z_$]/.test(cleaned)) {
+    return `_Char${value.charCodeAt(0)}`
+  }
+
+  return cleaned
 }
 
 /**
@@ -367,7 +405,15 @@ function extractEnumsFromSpec(openApiSpec: OpenAPISpec): EnumInfo[] {
     for (const [propName, propSchema] of Object.entries(schema.properties)) {
       if (!propSchema.enum || !Array.isArray(propSchema.enum)) continue
 
-      const enumValues = propSchema.enum as (string | number)[]
+      // Filter out null values from enum array
+      const enumValues = (propSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
+        | string
+        | number
+      )[]
+
+      // Skip if all values were null
+      if (enumValues.length === 0) continue
+
       const enumName = toPascalCase(schemaName) + toPascalCase(propName)
       const valuesKey = JSON.stringify(enumValues.sort())
 
