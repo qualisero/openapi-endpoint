@@ -85,14 +85,16 @@ const { data: pets } = api.useQuery(
 // Data is considered fresh for 1 minute, no refetch within that time
 ```
 
-### Cache Time
+### Garbage Collection Time (gcTime)
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   },
 )
 
@@ -102,8 +104,10 @@ const { data: pets } = api.useQuery(
 ### Retry Behavior
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
     retry: 3, // Retry failed requests 3 times
@@ -115,8 +119,10 @@ const { data: pets } = api.useQuery(
 ### Custom Success/Error Handlers
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
     onSuccess: (data) => {
@@ -137,13 +143,13 @@ The `useQuery` hook returns a reactive object with the following properties:
 
 ```typescript
 interface QueryResult {
-  data: Ref<T> // The fetched data
-  isLoading: Ref<boolean> // True while initial fetch is in progress
-  isFetching: Ref<boolean> // True while any fetch is in progress (including refetches)
-  isError: Ref<boolean> // True if an error occurred
-  error: Ref<AxiosError> // Error object if query failed
-  refetch: Function // Manually trigger refetch
-  invalidate: Function // Invalidate cache and refetch
+  data: ComputedRef<T | undefined> // The fetched data
+  isLoading: ComputedRef<boolean> // True while initial fetch is in progress
+  isFetching: ComputedRef<boolean> // True while any fetch is in progress (including refetches)
+  isError: ComputedRef<boolean> // True if an error occurred
+  error: ComputedRef<AxiosError | null> // Error object if query failed
+  refetch: () => Promise<unknown> // Manually trigger refetch
+  invalidate: () => Promise<void> // Invalidate cache and refetch
 }
 ```
 
@@ -202,7 +208,7 @@ const { data: user } = api.useQuery(OperationId.getUser, { userId: '123' })
 
 // Second query depends on first query's result
 const { data: userPets } = api.useQuery(
-  'listUserPets',
+  OperationId.listUserPets,
   { userId: user.value?.id }, // Only fetches when user is loaded
   {
     enabled: computed(() => Boolean(user.value)),

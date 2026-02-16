@@ -48,10 +48,11 @@ await updatePet.mutateAsync({
 
 ```typescript
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Mutation with query parameters
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     queryParams: { userId: '456' },
@@ -103,8 +104,10 @@ try {
 ### Success Handler
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     onSuccess: (data, variables, context) => {
@@ -119,8 +122,10 @@ const createPet = api.useMutation(
 ### Error Handler
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     onError: (error, variables, context) => {
@@ -137,8 +142,10 @@ const createPet = api.useMutation(
 ### Settled Handler
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     onSettled: (data, error, variables, context) => {
@@ -152,19 +159,22 @@ const createPet = api.useMutation(
 ### Optimistic Updates
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
+const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     onMutate: async (variables) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['pets', '123'] })
+      await queryClient.cancelQueries({ queryKey: petQuery.queryKey.value })
 
       // Snapshot previous value
-      const previousPet = queryClient.getQueryData(['pets', '123'])
+      const previousPet = queryClient.getQueryData(petQuery.queryKey.value)
 
       // Optimistically update
-      queryClient.setQueryData(['pets', '123'], variables.data)
+      queryClient.setQueryData(petQuery.queryKey.value, variables.data)
 
       // Return context with snapshot
       return { previousPet }
@@ -172,7 +182,7 @@ const updatePet = api.useMutation(
     onError: (error, variables, context) => {
       // Rollback on error
       if (context?.previousPet) {
-        queryClient.setQueryData(['pets', '123'], context.previousPet)
+        queryClient.setQueryData(petQuery.queryKey.value, context.previousPet)
       }
     },
   },
@@ -216,8 +226,10 @@ const createPet = api.useMutation(OperationId.createPet, { petId: '123' })
 ### Disable Automatic Invalidation
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't auto-invalidate
@@ -229,13 +241,15 @@ const updatePet = api.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   { petId: '123' },
   {
     invalidateOperations: [
-      'listPets', // Invalidate specific operations
-      'getUserPets',
+      OperationId.listPets, // Invalidate specific operations
+      OperationId.getUserPets,
     ],
   },
 )
@@ -244,9 +258,11 @@ const createPet = api.useMutation(
 ### Manually Refetch Endpoints
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const petListQuery = api.useQuery(OperationId.listPets)
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   { petId: '123' },
   {
     refetchEndpoints: [petListQuery], // Refetch these endpoints
@@ -262,12 +278,13 @@ const createPet = api.useMutation(
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 const name = ref('')
 const species = ref('cat')
 
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     onSuccess: () => {
@@ -307,9 +324,10 @@ const handleSubmit = async () => {
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 const deletePet = api.useMutation(
-  'deletePet',
+  OperationId.deletePet,
   { petId: '123' },
   {
     onSuccess: () => {
@@ -338,11 +356,12 @@ const handleDelete = async () => {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 const petName = ref('Fluffy')
 
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     onSuccess: (data) => {

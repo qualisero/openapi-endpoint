@@ -10,7 +10,7 @@ By default, the library provides intelligent cache management for queries and mu
 
 Queries automatically cache their results based on:
 
-- **Query key** - Unique identifier based on operation ID and parameters
+- **Query key** - Unique identifier based on resolved path segments and query parameters
 - **Stale time** - How long data is considered fresh
 - **Cache time** - How long data stays in memory
 
@@ -51,8 +51,10 @@ await createPet.mutateAsync({
 `staleTime` determines how long data is considered "fresh":
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
     staleTime: 60 * 1000, // 1 minute
@@ -69,16 +71,18 @@ const { data: pets } = api.useQuery(
 - `5 * 60 * 1000` (5 min) - Good for frequently changing data
 - `Infinity` - Never refetch automatically (manual control only)
 
-### Cache Time
+### Garbage Collection Time (gcTime)
 
-`cacheTime` (also called `gcTime`) determines how long data stays in memory:
+`gcTime` (formerly `cacheTime`) determines how long data stays in memory:
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const { data: pets } = api.useQuery(
-  'listPets',
+  OperationId.listPets,
   {},
   {
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   },
 )
 
@@ -97,7 +101,7 @@ const customQueryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
       retry: 3,
     },
   },
@@ -125,16 +129,20 @@ refetch()
 
 ```typescript
 import { queryClient } from '@qualisero/openapi-endpoint'
+import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const petsQuery = api.useQuery(OperationId.listPets)
 
 // Invalidate specific queries by key
-queryClient.invalidateQueries({ queryKey: ['listPets'] })
+queryClient.invalidateQueries({ queryKey: petsQuery.queryKey.value })
 
 // Invalidate all queries
 queryClient.invalidateQueries()
 
 // Invalidate with filters
 queryClient.invalidateQueries({
-  queryKey: ['pets'],
+  queryKey: petsQuery.queryKey.value,
   type: 'active', // Only invalidate active queries
 })
 ```
@@ -143,9 +151,13 @@ queryClient.invalidateQueries({
 
 ```typescript
 import { queryClient } from '@qualisero/openapi-endpoint'
+import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
 
 // Manually set data in cache
-queryClient.setQueryData(['getPet', '123'], {
+queryClient.setQueryData(petQuery.queryKey.value, {
   id: '123',
   name: 'Fluffy',
   species: 'cat',
@@ -158,9 +170,13 @@ queryClient.setQueryData(['getPet', '123'], {
 
 ```typescript
 import { queryClient } from '@qualisero/openapi-endpoint'
+import { api } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const petsQuery = api.useQuery(OperationId.listPets)
 
 // Read cached data
-const cachedPets = queryClient.getQueryData(['listPets'])
+const cachedPets = queryClient.getQueryData(petsQuery.queryKey.value)
 
 if (cachedPets) {
   console.log('Pets from cache:', cachedPets)
@@ -172,8 +188,10 @@ if (cachedPets) {
 ### Disable Automatic Invalidation
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't auto-invalidate any queries
@@ -184,8 +202,10 @@ const updatePet = api.useMutation(
 ### Disable Automatic Cache Updates
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     dontUpdateCache: true, // Don't update cache with mutation result
@@ -196,14 +216,16 @@ const updatePet = api.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   { userId: '123' },
   {
     invalidateOperations: [
-      'listPets', // Invalidate specific operations
-      'getUserPets',
-      'getPet', // Won't auto-detect, manually specified
+      OperationId.listPets, // Invalidate specific operations
+      OperationId.getUserPets,
+      OperationId.getPet, // Won't auto-detect, manually specified
     ],
   },
 )
@@ -212,11 +234,13 @@ const createPet = api.useMutation(
 ### Refetch Specific Endpoints
 
 ```typescript
+import { OperationId } from './api/generated/api-operations'
+
 const petListQuery = api.useQuery(OperationId.listPets)
 const userPetsQuery = api.useQuery(OperationId.getUserPets, { userId: '123' })
 
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     refetchEndpoints: [
@@ -235,20 +259,23 @@ Optimistic updates show UI changes immediately, then rollback if the mutation fa
 
 ```typescript
 import { api, queryClient } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const petQueryKey = ['pets', '123']
 
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     onMutate: async (variables) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['getPet', '123'] })
+      await queryClient.cancelQueries({ queryKey: petQueryKey })
 
       // Snapshot previous value
-      const previousPet = queryClient.getQueryData(['getPet', '123'])
+      const previousPet = queryClient.getQueryData(petQueryKey)
 
       // Optimistically update
-      queryClient.setQueryData(['getPet', '123'], (old: any) => ({
+      queryClient.setQueryData(petQueryKey, (old: any) => ({
         ...old,
         ...variables.data,
       }))
@@ -260,13 +287,13 @@ const updatePet = api.useMutation(
     onError: (error, variables, context) => {
       // Rollback on error
       if (context?.previousPet) {
-        queryClient.setQueryData(['getPet', '123'], context.previousPet)
+        queryClient.setQueryData(petQueryKey, context.previousPet)
       }
     },
 
     onSettled: () => {
       // Refetch on completion (success or error)
-      queryClient.invalidateQueries({ queryKey: ['getPet', '123'] })
+      queryClient.invalidateQueries({ queryKey: petQueryKey })
     },
   },
 )
@@ -280,30 +307,33 @@ await updatePet.mutateAsync({
 
 ```typescript
 import { api, queryClient } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const listQueryKey = ['pets']
 
 const createPet = api.useMutation(
-  'createPet',
+  OperationId.createPet,
   {},
   {
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ['listPets'] })
+      await queryClient.cancelQueries({ queryKey: listQueryKey })
 
-      const previousPets = queryClient.getQueryData(['listPets'])
+      const previousPets = queryClient.getQueryData(listQueryKey)
 
       // Optimistically add new item
-      queryClient.setQueryData(['listPets'], (old: any) => [...old, { id: 'temp', ...variables.data }])
+      queryClient.setQueryData(listQueryKey, (old: any) => [...old, { id: 'temp', ...variables.data }])
 
       return { previousPets }
     },
 
     onError: (error, variables, context) => {
       if (context?.previousPets) {
-        queryClient.setQueryData(['listPets'], context.previousPets)
+        queryClient.setQueryData(listQueryKey, context.previousPets)
       }
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['listPets'] })
+      queryClient.invalidateQueries({ queryKey: listQueryKey })
     },
   },
 )
@@ -317,11 +347,12 @@ Load data before it's needed:
 
 ```typescript
 import { api, queryClient } from './api/init'
+import { OperationId } from './api/generated/api-operations'
 
 // Prefetch on hover
 const handleMouseEnter = () => {
   queryClient.prefetchQuery({
-    queryKey: ['getPet', '123'],
+    queryKey: ['pets', '123'],
     queryFn: async () => {
       const result = await api.useQuery(OperationId.getPet, { petId: '123' })
       return result.data.value
@@ -351,7 +382,7 @@ const loadNextPage = () => {
 
   // Prefetch next page
   queryClient.prefetchQuery({
-    queryKey: ['listPets', { page: nextPage, limit: 20 }],
+    queryKey: ['pets', { page: nextPage, limit: 20 }],
     queryFn: async () => {
       const result = await api.useQuery(OperationId.listPets, {
         queryParams: { page: nextPage, limit: 20 },
@@ -368,9 +399,13 @@ const loadNextPage = () => {
 
 ```typescript
 import { api, queryClient } from './api/init'
+import { OperationId } from './api/generated/api-operations'
+
+const petQueryKey = ['pets', '123']
+const listQueryKey = ['pets']
 
 const updatePet = api.useMutation(
-  'updatePet',
+  OperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't refetch
@@ -378,14 +413,14 @@ const updatePet = api.useMutation(
 
     onSuccess: (data, variables) => {
       // Manually update specific cache entry
-      queryClient.setQueryData(['getPet', '123'], (old: any) => ({
+      queryClient.setQueryData(petQueryKey, (old: any) => ({
         ...old,
         ...variables.data,
         ...data, // Merge with server response
       }))
 
       // Invalidate other dependent queries
-      queryClient.invalidateQueries({ queryKey: ['listPets'] })
+      queryClient.invalidateQueries({ queryKey: listQueryKey })
     },
   },
 )
@@ -435,7 +470,7 @@ queryClient.removeQueries({ type: 'inactive' })
 
 5. **Manually control critical data** - Use `refetch` and `invalidateQueries` for critical updates
 
-6. **Monitor cache size** - Large caches can cause memory issues, use appropriate `cacheTime`
+6. **Monitor cache size** - Large caches can cause memory issues, use appropriate `gcTime`
 
 7. **Test cache behavior** - Verify data freshness and invalidation works as expected
 
