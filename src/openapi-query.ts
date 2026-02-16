@@ -165,9 +165,10 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     }
   }
 
+  // Return object spread with data wrapped as ComputedRef for Vue template unwrapping
   return {
     ...query,
-    data: query.data as ComputedRef<ApiResponse<Ops, Op> | undefined>,
+    data: computed(() => query.data.value) as ComputedRef<ApiResponse<Ops, Op> | undefined>,
     isEnabled,
     queryKey,
     onLoad,
