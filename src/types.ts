@@ -25,10 +25,8 @@ export type RequiresPathParameters<Op extends string> = {
  *
  * @internal
  */
-export type HasExcessPathParams<
-  Provided extends Record<string, any>,
-  Expected extends Record<string, any>,
-> = Exclude<keyof Provided, keyof Expected> extends never ? true : false
+export type HasExcessPathParams<Provided extends Record<string, any>, Expected extends Record<string, any>> =
+  Exclude<keyof Provided, keyof Expected> extends never ? true : false
 
 /**
  * Type representing an operation that does NOT require path parameters.
@@ -36,8 +34,8 @@ export type HasExcessPathParams<
  *
  * @internal
  */
-export type NoPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  Op & (ApiPathParams<Ops, Op> extends Record<string, never> ? Op : RequiresPathParameters<Op & string>)
+export type NoPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> = Op &
+  (ApiPathParams<Ops, Op> extends Record<string, never> ? Op : RequiresPathParameters<Op & string>)
 
 /**
  * Type representing an operation that DOES require path parameters.
@@ -45,8 +43,8 @@ export type NoPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> =
  *
  * @internal
  */
-export type WithPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  Op & (ApiPathParams<Ops, Op> extends Record<string, never> ? RequiresPathParameters<Op & string> : Op)
+export type WithPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> = Op &
+  (ApiPathParams<Ops, Op> extends Record<string, never> ? RequiresPathParameters<Op & string> : Op)
 
 /** @internal */
 export type { EndpointQueryReturn, EndpointMutationReturn }
@@ -159,9 +157,7 @@ type IsReadonly<T, K extends keyof T> = IfEquals<Pick<T, K>, { -readonly [Q in K
  * @internal
  */
 type ExtractResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  GetOperation<Ops, Op> extends { responses: { 200: { content: { 'application/json': infer Data } } } }
-    ? Data
-    : unknown
+  GetOperation<Ops, Op> extends { responses: { 200: { content: { 'application/json': infer Data } } } } ? Data : unknown
 
 /**
  * Extract response data type from an operation (all fields required).
@@ -175,9 +171,7 @@ type ExtractResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
  * // { readonly id: string, name: string, ... } - all required
  * ```
  */
-export type ApiResponse<Ops extends Operations<Ops>, Op extends keyof Ops> = RequireAll<
-  ExtractResponseData<Ops, Op>
->
+export type ApiResponse<Ops extends Operations<Ops>, Op extends keyof Ops> = RequireAll<ExtractResponseData<Ops, Op>>
 
 /**
  * Extract response data type with safe typing for unreliable backends.
@@ -251,12 +245,7 @@ export type ApiQueryParams<Ops extends Operations<Ops>, Op extends keyof Ops> = 
 // ============================================================================
 
 type Writable<T> = {
-  -readonly [K in keyof T as IfEquals<
-    Pick<T, K>,
-    { -readonly [Q in K]: T[K] },
-    false,
-    true
-  > extends false
+  -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
     ? K
     : never]: T[K]
 }
@@ -389,8 +378,6 @@ export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = O
 // Utility Types
 // ============================================================================
 
-
-
 // ============================================================================
 // Mutation Variables & Options
 // ============================================================================
@@ -444,18 +431,16 @@ export type MutateAsyncReturn<Ops extends Operations<Ops>, Op extends keyof Ops>
  * @group Types
  * @internal
  */
-export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
-  vars?: {
-    data?: ApiRequest<Ops, Op>
-    pathParams?: ApiPathParams<Ops, Op>
-    axiosOptions?: AxiosRequestConfigExtended
-    queryParams?: ApiQueryParams<Ops, Op>
-    dontInvalidate?: boolean
-    dontUpdateCache?: boolean
-    invalidateOperations?: (keyof Ops)[]
-    refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
-  },
-) => void
+export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (vars?: {
+  data?: ApiRequest<Ops, Op>
+  pathParams?: ApiPathParams<Ops, Op>
+  axiosOptions?: AxiosRequestConfigExtended
+  queryParams?: ApiQueryParams<Ops, Op>
+  dontInvalidate?: boolean
+  dontUpdateCache?: boolean
+  invalidateOperations?: (keyof Ops)[]
+  refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
+}) => void
 
 /**
  * Function signature for mutation.mutateAsync() - async mutation execution.
@@ -466,18 +451,16 @@ export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
  * @group Types
  * @internal
  */
-export type MutateAsyncFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
-  vars?: {
-    data?: ApiRequest<Ops, Op>
-    pathParams?: ApiPathParams<Ops, Op>
-    axiosOptions?: AxiosRequestConfigExtended
-    queryParams?: ApiQueryParams<Ops, Op>
-    dontInvalidate?: boolean
-    dontUpdateCache?: boolean
-    invalidateOperations?: (keyof Ops)[]
-    refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
-  },
-) => MutateAsyncReturn<Ops, Op>
+export type MutateAsyncFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (vars?: {
+  data?: ApiRequest<Ops, Op>
+  pathParams?: ApiPathParams<Ops, Op>
+  axiosOptions?: AxiosRequestConfigExtended
+  queryParams?: ApiQueryParams<Ops, Op>
+  dontInvalidate?: boolean
+  dontUpdateCache?: boolean
+  invalidateOperations?: (keyof Ops)[]
+  refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
+}) => MutateAsyncReturn<Ops, Op>
 
 /**
  * Mutation options for `useMutation` with custom extensions.
@@ -634,7 +617,8 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
 
     <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
       operationId: WithPathParams<Ops, Op>,
-      pathParams: () => PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
+      pathParams: () => PathParams &
+        (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
       options?: QQueryOptions<Ops, Op>,
     ): EndpointQueryReturn<Ops, Op>
   }
@@ -677,7 +661,8 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
 
     <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
       operationId: WithPathParams<Ops, Op>,
-      pathParams: () => PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
+      pathParams: () => PathParams &
+        (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
       options?: QMutationOptions<Ops, Op>,
     ): EndpointMutationReturn<Ops, Op>
   }

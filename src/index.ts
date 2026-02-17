@@ -127,7 +127,8 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
   ): EndpointQueryReturn<Ops, Op>
   function useQuery<Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
     operationId: WithPathParams<Ops, Op>,
-    pathParams: () => (PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never)),
+    pathParams: () => PathParams &
+      (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
     options?: QQueryOptions<Ops, Op>,
   ): EndpointQueryReturn<Ops, Op>
   function useQuery<Op extends keyof Ops>(
@@ -189,7 +190,8 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
   ): EndpointMutationReturn<Ops, Op>
   function useMutation<Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
     operationId: WithPathParams<Ops, Op>,
-    pathParams: () => (PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never)),
+    pathParams: () => PathParams &
+      (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
     options?: QMutationOptions<Ops, Op>,
   ): EndpointMutationReturn<Ops, Op>
   function useMutation<Op extends keyof Ops>(
