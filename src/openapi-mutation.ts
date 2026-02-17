@@ -21,10 +21,15 @@ import { type OpenApiHelpers } from './openapi-helpers'
 import { type AxiosResponse } from 'axios'
 
 /**
- * Return type of `useMutation` with all available reactive properties.
+ * Return type of `useMutation` (created via `useOpenApi`).
  *
- * Includes all properties from TanStack Query's UseMutationResult plus
- * helper properties provided by this library.
+ * Includes all properties from TanStack Query's UseMutationResult plus helpers:
+ * - `mutate(vars)`: Execute mutation (non-blocking)
+ * - `mutateAsync(vars)`: Execute mutation and await the response
+ * - `data`: ComputedRef of the Axios response
+ * - `isEnabled`: ComputedRef indicating if mutation can execute (path resolved)
+ * - `extraPathParams`: Ref for additional path params when calling mutate
+ * - `pathParams`: Resolved path params as a computed ref
  *
  * @template Ops - The operations type from your OpenAPI specification
  * @template Op - The operation key from your operations type
@@ -34,34 +39,36 @@ export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof
 >
 
 /**
- * Composable for performing a strictly typed OpenAPI mutation operation using Vue Query.
- * Ensures the operation is a mutation (POST/PUT/PATCH/DELETE) at runtime.
- * Returns a reactive mutation object, including helpers for query key and enabled state.
+ * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
  *
- * NOTE: By default, the mutation will automatically update cache with returned data and reload
- * any matching GET queries for the same path.
+ * Ensures the operation is a mutation at runtime and returns a reactive mutation object
+ * with helpers for path resolution and cache invalidation.
  *
- * @template T OperationId type representing the OpenAPI operation.
- * @param operationId The OpenAPI operation ID to mutate.
- * @param pathParams Optional path parameters for the endpoint, can be reactive.
- * @param options Optional mutation options, including Vue Query options and custom axios options:
- *   - 'dontUpdateCache': If true, will not update cache with returned data (default: false)
- *   - 'dontInvalidate': If true, will not invalidate matching GET queries (default: false)
- *  - 'invalidateOperations': List of additional OperationIds to invalidate after mutation (can also be a map of OperationId to path parameters)
- * - 'refetchEndpoints': List of additional EndpointQueryReturn objects to refetch after mutation
- *   - `axiosOptions`: Custom axios request options (e.g., headers, params)
- *   - All properties from {@link UseMutationOptions} (from @tanstack/vue-query)
- * @throws Error if the operation is not a mutation operation.
+ * NOTE: By default, the mutation updates cache for PUT/PATCH and invalidates matching
+ * GET queries for the same path.
+ *
+ * @template Ops - The operations type from your OpenAPI specification
+ * @template Op - The operation key from your operations type
+ * @param operationId - The OpenAPI operation ID to mutate
+ * @param h - OpenAPI helpers (internal), provided by useOpenApi
+ * @param pathParamsOrOptions - Path parameters (can be reactive) or mutation options:
+ *   - If the operation has path params, provide them here
+ *   - If the operation has no path params, pass mutation options here instead
+ * @param optionsOrNull - Mutation options when path params are provided separately
+ *   - `dontUpdateCache`: Skip cache update for PUT/PATCH responses
+ *   - `dontInvalidate`: Skip invalidating matching queries
+ *   - `invalidateOperations`: Additional operation IDs to invalidate (array or map of params)
+ *   - `refetchEndpoints`: Additional query results to refetch
+ *   - `queryParams`: Query string parameters (operation-specific)
+ *   - `axiosOptions`: Custom axios request options (headers, params, etc.)
+ *   - Plus all {@link UseMutationOptions} from @tanstack/vue-query
+ * @throws Error if the operation is not a mutation operation
  * @returns Mutation object with
- *   - `data`: ComputedRef of response data.
- *   - `isEnabled`: ComputedRef indicating if mutation can be executed (path resolved).
- *   - `extraPathParams`: Ref to set of additional path parameters when calling mutate.
- *   - `mutate` and `mutateAsync`: Functions to trigger the mutation, taking an object with:
- *     - `data`: The request body data for the mutation.
- *     - `pathParams`: Optional additional path parameters for the mutation.
- *     - `axiosOptions`: Optional axios configuration overrides for this specific mutation call.
- *    - `dontUpdateCache`, `dontInvalidate`, `invalidateOperations`, `refetchEndpoints`: Same as options, but can be set per-mutation.
- *   - All other properties and methods from the underlying Vue Query mutation object.
+ *   - `mutate(vars)` / `mutateAsync(vars)` to trigger the mutation
+ *   - `data`: ComputedRef of Axios response data
+ *   - `isEnabled`: ComputedRef indicating if mutation can execute (path resolved)
+ *   - `extraPathParams`: Ref to set additional path params at call time
+ *   - `pathParams`: Resolved path params as a computed ref
  */
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,

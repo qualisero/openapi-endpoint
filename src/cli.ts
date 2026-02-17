@@ -360,14 +360,6 @@ function toPascalCase(str: string): string {
 }
 
 /**
- * Converts a string to camelCase.
- * Handles snake_case, kebab-case, space-separated strings, and preserves existing PascalCase.
- */
-function toCamelCase(str: string): string {
-  return toCase(str, false)
-}
-
-/**
  * Converts a string value to a valid TypeScript property name.
  * - Strings that are valid identifiers are used as-is (capitalized)
  * - Invalid identifiers are wrapped in quotes

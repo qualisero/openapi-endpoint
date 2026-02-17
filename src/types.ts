@@ -404,29 +404,34 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
   _debugIsQueryOperation: <Op extends keyof Ops>(operationId: Op) => IsQueryOperation<Ops, Op>
 
   /**
-   * Creates a reactive query for GET/HEAD/OPTIONS operations.
+   * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
    *
-   * This method creates a TanStack Query with automatic type inference, caching,
-   * and reactive updates. Only accepts operation IDs that correspond to query operations.
+   * Only accepts operation IDs that correspond to query operations.
    *
    * @template Op - The operation key from your operations type
    * @param operationId - Operation ID (must be a GET/HEAD/OPTIONS operation)
-   * @param pathParamsOrOptions - Path parameters (for parameterized routes) or query options
-   * @param optionsOrNull - Additional query options when path parameters are provided separately
-   * @returns Reactive query result with data, loading state, error handling, etc.
+   * @param pathParamsOrOptions - Path params or query options:
+   *   - If the operation has path params, provide them here (can be reactive)
+   *   - If the operation has no path params, pass query options here instead
+   * @param optionsOrNull - Query options when path params are provided separately
+   * @returns Reactive query result with helpers:
+   *   - `data`, `isPending`, `isSuccess`, `error`, `refetch()`
+   *   - `isEnabled`, `queryKey`, `onLoad(callback)`
    *
    * @example
    * ```typescript
-   * // Simple query without parameters
-   * const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
+   * // Simple list query
+   * const listQuery = api.useQuery(OperationId.listPets, {
+   *   queryParams: { limit: 10 }
+   * })
    *
    * // Query with path parameters
-   * const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
+   * const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
    *
-   * // Query with options
-   * const { data: pets } = api.useQuery(OperationId.listPets, {
-   *   enabled: computed(() => shouldLoad.value),
-   *   onLoad: (data) => console.log('Loaded:', data)
+   * // Conditional query
+   * const id = ref('')
+   * const detailsQuery = api.useQuery(OperationId.getPet, { petId: id }, {
+   *   enabled: computed(() => id.value !== '')
    * })
    * ```
    */
@@ -439,32 +444,28 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
   ) => EndpointQueryReturn<Ops, Op>
 
   /**
-   * Creates a reactive mutation for POST/PUT/PATCH/DELETE operations.
+   * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with cache updates.
    *
-   * This method creates a TanStack Query mutation with automatic cache invalidation,
-   * optimistic updates, and type-safe request/response handling. Only accepts operation IDs
-   * that correspond to mutation operations.
+   * Only accepts operation IDs that correspond to mutation operations.
    *
    * @template Op - The operation key from your operations type
    * @param operationId - Operation ID (must be a POST/PUT/PATCH/DELETE operation)
-   * @param pathParamsOrOptions - Path parameters (for parameterized routes) or mutation options
-   * @param optionsOrNull - Additional mutation options when path parameters are provided separately
-   * @returns Reactive mutation result with mutate, mutateAsync, status, etc.
+   * @param pathParamsOrOptions - Path params or mutation options:
+   *   - If the operation has path params, provide them here (can be reactive)
+   *   - If the operation has no path params, pass mutation options here instead
+   * @param optionsOrNull - Mutation options when path params are provided separately
+   * @returns Reactive mutation result with helpers:
+   *   - `mutate(vars)` / `mutateAsync(vars)`
+   *   - `data`, `isPending`, `isSuccess`, `error`
+   *   - `isEnabled`, `extraPathParams`, `pathParams`
    *
    * @example
    * ```typescript
-   * // Simple mutation without path parameters
-   * const createPet = api.useMutation(OperationId.createPet, {
-   *   onSuccess: (data) => console.log('Created:', data),
-   *   onError: (error) => console.error('Failed:', error)
-   * })
-   *
-   * // Mutation with path parameters
-   * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
-   *
-   * // Execute mutations
+   * const createPet = api.useMutation(OperationId.createPet)
    * await createPet.mutateAsync({ data: { name: 'Fluffy', species: 'cat' } })
-   * await updatePet.mutateAsync({ data: { name: 'Updated Name' } })
+   *
+   * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+   * updatePet.mutate({ data: { name: 'Updated Name' } })
    * ```
    */
   useMutation: <Op extends keyof Ops>(

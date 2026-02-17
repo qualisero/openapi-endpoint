@@ -6,10 +6,14 @@ import { isAxiosError } from 'axios'
 import { type OpenApiHelpers } from './openapi-helpers'
 
 /**
- * Return type of `useQuery` with all available reactive properties.
+ * Return type of `useQuery` (created via `useOpenApi`).
  *
- * Includes all properties from TanStack Query's UseQueryResult plus
- * helper properties provided by this library.
+ * Includes all properties from TanStack Query's UseQueryResult plus helpers:
+ * - `data`: ComputedRef of response data (undefined until loaded)
+ * - `isEnabled`: ComputedRef indicating if the query is enabled
+ * - `queryKey`: ComputedRef of the resolved query key
+ * - `onLoad(callback)`: Register a callback for first successful load
+ * - `pathParams`: Resolved path params as a computed ref
  *
  * @template Ops - The operations type from your OpenAPI specification
  * @template Op - The operation key from your operations type
@@ -22,24 +26,30 @@ export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Op
 }
 
 /**
- * Composable for performing a strictly typed OpenAPI query operation using Vue Query.
- * Ensures the operation is a query (GET/HEAD/OPTIONS) at runtime.
- * Returns a reactive query object, including helpers for query key, enabled state, and an `onLoad` callback.
+ * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
  *
- * @template T OperationId type representing the OpenAPI operation.
- * @param operationId The OpenAPI operation ID to query.
- * @param pathParams Optional path parameters for the endpoint, can be reactive.
- * @param options Optional query options, including:
- *   - All properties from {@link UseQueryOptions} (from @tanstack/vue-query)
- *   - `enabled`: Whether the query should automatically run (boolean or reactive).
- *   - `onLoad`: Callback invoked once when data is loaded (immediately or after fetch).
- *   - `axiosOptions`: Custom axios request options (e.g., headers, params).
- * @throws Error if the operation is not a query operation.
+ * Ensures the operation is a query at runtime and returns a reactive query object,
+ * including helpers for query key, enabled state, and an `onLoad` callback.
+ *
+ * @template Ops - The operations type from your OpenAPI specification
+ * @template Op - The operation key from your operations type
+ * @param operationId - The OpenAPI operation ID to query
+ * @param h - OpenAPI helpers (internal), provided by useOpenApi
+ * @param pathParamsOrOptions - Path parameters (can be reactive) or query options:
+ *   - If the operation has path params, provide them here
+ *   - If the operation has no path params, pass query options here instead
+ * @param optionsOrNull - Query options when path params are provided separately
+ *   - `enabled`: Whether the query should auto-run (boolean or reactive)
+ *   - `queryParams`: Query string parameters (operation-specific)
+ *   - `onLoad`: Callback invoked once when data is loaded
+ *   - `axiosOptions`: Custom axios request options (headers, params, etc.)
+ *   - Plus all {@link UseQueryOptions} from @tanstack/vue-query
+ * @throws Error if the operation is not a query operation
  * @returns Query object with strict typing and helpers:
- *   - `data`: ComputedRef of response data.
- *   - `isEnabled`: ComputedRef indicating if query is enabled.
- *   - `queryKey`: ComputedRef of the query key.
- *   - `onLoad`: Method to register a callback for when data is loaded.
+ *   - `data`: ComputedRef of response data
+ *   - `isEnabled`: ComputedRef indicating if query is enabled
+ *   - `queryKey`: ComputedRef of the query key
+ *   - `onLoad(callback)`: Register a callback for when data is loaded
  */
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,

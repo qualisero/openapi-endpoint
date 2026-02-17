@@ -31,7 +31,7 @@ export { type useEndpointQuery } from './openapi-query'
 export { type useEndpointMutation } from './openapi-mutation'
 
 /**
- * Creates a type-safe OpenAPI client for Vue applications.
+ * Create a type-safe OpenAPI client with Vue Query integration.
  *
  * This is the main entry point for the library. It provides reactive composables
  * for API operations with full TypeScript type safety based on your OpenAPI specification.
@@ -44,7 +44,6 @@ export { type useEndpointMutation } from './openapi-mutation'
  * @example
  * ```typescript
  * import { useOpenApi } from '@qualisero/openapi-endpoint'
- * // See documentation on how to generate types and operations automatically:
  * import { openApiOperations, type OpenApiOperations, OperationId } from './generated/api-operations'
  * import axios from 'axios'
  *
@@ -53,9 +52,14 @@ export { type useEndpointMutation } from './openapi-mutation'
  *   axios: axios.create({ baseURL: 'https://api.example.com' })
  * })
  *
- * // Use in components
- * const { data, isLoading } = api.useQuery(OperationId.listPets, {})
- * const createPet = api.useMutation(OperationId.createPet, {})
+ * // Queries
+ * const listQuery = api.useQuery(OperationId.listPets, {
+ *   queryParams: { limit: 10 }
+ * })
+ *
+ * // Mutations
+ * const createPet = api.useMutation(OperationId.createPet)
+ * createPet.mutate({ data: { name: 'Fluffy' } })
  * ```
  */
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
@@ -88,29 +92,41 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
     },
 
     /**
-     * Creates a reactive query for GET operations.
-     *
-     * This composable wraps TanStack Query for read-only operations with automatic
-     * type inference, caching, and reactive updates.
+     * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
      *
      * @template Op - The operation key from your operations type
-     * @param operationId - Operation ID (must be a GET operation)
-     * @param pathParamsOrOptions - Path parameters or query options
-     * @param optionsOrNull - Additional query options when path params are provided
-     * @returns Reactive query result with data, loading state, error handling, etc.
+     * @param operationId - Operation ID (must be a GET/HEAD/OPTIONS operation)
+     * @param pathParamsOrOptions - Path params or query options:
+     *   - If the operation has path params, provide them here (can be reactive)
+     *   - If the operation has no path params, pass query options here instead
+     * @param optionsOrNull - Query options when path params are provided separately:
+     *   - `enabled`: Whether the query should auto-run (boolean or reactive)
+     *   - `queryParams`: Query string parameters (operation-specific)
+     *   - `onLoad`: Callback invoked when data loads
+     *   - `axiosOptions`: Custom axios request options
+     *   - Plus all {@link UseQueryOptions} from @tanstack/vue-query
+     * @returns Reactive query result with helpers:
+     *   - `data`, `isPending`, `isSuccess`, `error`, `refetch()`
+     *   - `isEnabled`, `queryKey`, `onLoad(callback)`
+     * @throws Error if the operation is not a query operation
      *
      * @example
      * ```typescript
-     * // Query without path parameters
-     * const { data: pets, isLoading } = api.useQuery(OperationId.listPets, {
-     *   enabled: true,
-     *   onLoad: (data) => console.log('Loaded:', data)
+     * // Simple list query
+     * const listQuery = api.useQuery(OperationId.listPets, {
+     *   queryParams: { limit: 10 }
      * })
      *
      * // Query with path parameters
-     * const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' }, {
-     *   enabled: computed(() => Boolean(petId.value))
-     * })
+     * const petId = ref('123')
+     * const petQuery = api.useQuery(
+     *   OperationId.getPet,
+     *   computed(() => ({ petId: petId.value })),
+     *   { enabled: computed(() => petId.value !== '') }
+     * )
+     *
+     * // Manual refetch
+     * await listQuery.refetch()
      * ```
      */
     useQuery: function <Op extends keyof Ops>(
@@ -126,34 +142,34 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
     },
 
     /**
-     * Creates a reactive mutation for POST/PUT/PATCH/DELETE operations.
-     *
-     * This composable wraps TanStack Query's useMutation for data-modifying operations
-     * with automatic cache invalidation and optimistic updates.
+     * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with cache updates.
      *
      * @template Op - The operation key from your operations type
-     * @param operationId - Operation ID (must be a mutation operation)
-     * @param pathParamsOrOptions - Path parameters or mutation options
-     * @param optionsOrNull - Additional mutation options when path params are provided
-     * @returns Reactive mutation result with mutate, mutateAsync, status, etc.
+     * @param operationId - Operation ID (must be a POST/PUT/PATCH/DELETE operation)
+     * @param pathParamsOrOptions - Path params or mutation options:
+     *   - If the operation has path params, provide them here (can be reactive)
+     *   - If the operation has no path params, pass mutation options here instead
+     * @param optionsOrNull - Mutation options when path params are provided separately:
+     *   - `dontUpdateCache`: Skip cache update for PUT/PATCH responses
+     *   - `dontInvalidate`: Skip invalidating matching queries
+     *   - `invalidateOperations`: Additional operations to invalidate (array or map)
+     *   - `refetchEndpoints`: Additional query results to refetch
+     *   - `queryParams`: Query string parameters (operation-specific)
+     *   - `axiosOptions`: Custom axios request options
+     *   - Plus all {@link UseMutationOptions} from @tanstack/vue-query
+     * @returns Reactive mutation result with helpers:
+     *   - `mutate(vars)` / `mutateAsync(vars)`
+     *   - `data`, `isPending`, `isSuccess`, `error`
+     *   - `isEnabled`, `extraPathParams`, `pathParams`
+     * @throws Error if the operation is not a mutation operation
      *
      * @example
      * ```typescript
-     * // Mutation without path parameters
-     * const createPet = api.useMutation(OperationId.createPet, {
-     *   onSuccess: (data) => console.log('Created:', data),
-     *   onError: (error) => console.error('Failed:', error)
-     * })
-     *
-     * // Mutation with path parameters
-     * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' }, {
-     *   onSuccess: async () => {
-     *     // Automatically invalidates related queries
-     *   }
-     * })
-     *
-     * // Execute the mutation
+     * const createPet = api.useMutation(OperationId.createPet)
      * await createPet.mutateAsync({ data: { name: 'Fluffy' } })
+     *
+     * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+     * updatePet.mutate({ data: { name: 'Updated' } })
      * ```
      */
     useMutation: function <Op extends keyof Ops>(
