@@ -787,201 +787,201 @@ export type OperationId = keyof OpenApiOperations
   })
 })
 
-  describe('toCase and case conversion utilities', () => {
-    // Since we can't easily import the internal toCase function, we'll test through the behavior
-    // by simulating the transformation logic
+describe('toCase and case conversion utilities', () => {
+  // Since we can't easily import the internal toCase function, we'll test through the behavior
+  // by simulating the transformation logic
 
-    const toCase = (str: string, capitalize: boolean): string => {
-      // If already camelCase or PascalCase, just adjust first letter
-      if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
-        return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
-      }
-
-      // Handle snake_case, kebab-case, spaces, etc.
-      const parts = str
-        .split(/[-_\s]+/)
-        .filter((part) => part.length > 0)
-        .map((part) => {
-          // If this part is already in camelCase, just capitalize the first letter
-          if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
-            return part.charAt(0).toUpperCase() + part.slice(1)
-          }
-          // Otherwise, capitalize and lowercase to normalize
-          return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-        })
-
-      if (parts.length === 0) return str
-
-      // Apply capitalization rule to first part
-      if (!capitalize) {
-        parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
-      }
-
-      return parts.join('')
+  const toCase = (str: string, capitalize: boolean): string => {
+    // If already camelCase or PascalCase, just adjust first letter
+    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
+      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
     }
 
-    const toPascalCase = (str: string): string => toCase(str, true)
-    const toCamelCase = (str: string): string => toCase(str, false)
-
-    describe('toPascalCase', () => {
-      it('should convert snake_case to PascalCase', () => {
-        expect(toPascalCase('nuts_schema')).toBe('NutsSchema')
-        expect(toPascalCase('pet_status')).toBe('PetStatus')
-        expect(toPascalCase('user_profile_schema')).toBe('UserProfileSchema')
+    // Handle snake_case, kebab-case, spaces, etc.
+    const parts = str
+      .split(/[-_\s]+/)
+      .filter((part) => part.length > 0)
+      .map((part) => {
+        // If this part is already in camelCase, just capitalize the first letter
+        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+          return part.charAt(0).toUpperCase() + part.slice(1)
+        }
+        // Otherwise, capitalize and lowercase to normalize
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
       })
 
-      it('should convert kebab-case to PascalCase', () => {
-        expect(toPascalCase('pet-status')).toBe('PetStatus')
-        expect(toPascalCase('user-profile')).toBe('UserProfile')
-      })
+    if (parts.length === 0) return str
 
-      it('should preserve already PascalCase strings', () => {
-        expect(toPascalCase('Pet')).toBe('Pet')
-        expect(toPascalCase('PetStatus')).toBe('PetStatus')
-        expect(toPascalCase('AssetTypeUpdate')).toBe('AssetTypeUpdate')
-      })
+    // Apply capitalization rule to first part
+    if (!capitalize) {
+      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
+    }
 
-      it('should convert camelCase to PascalCase', () => {
-        expect(toPascalCase('petStatus')).toBe('PetStatus')
-        expect(toPascalCase('userProfile')).toBe('UserProfile')
-      })
+    return parts.join('')
+  }
 
-      it('should handle single words', () => {
-        expect(toPascalCase('pet')).toBe('Pet')
-        expect(toPascalCase('Pet')).toBe('Pet')
-      })
+  const toPascalCase = (str: string): string => toCase(str, true)
+  const toCamelCase = (str: string): string => toCase(str, false)
 
-      it('should handle UPPERCASE strings', () => {
-        expect(toPascalCase('UPPERCASE')).toBe('Uppercase')
-        expect(toPascalCase('PET')).toBe('Pet')
-      })
+  describe('toPascalCase', () => {
+    it('should convert snake_case to PascalCase', () => {
+      expect(toPascalCase('nuts_schema')).toBe('NutsSchema')
+      expect(toPascalCase('pet_status')).toBe('PetStatus')
+      expect(toPascalCase('user_profile_schema')).toBe('UserProfileSchema')
     })
 
-    describe('toCamelCase', () => {
-      it('should convert snake_case to camelCase', () => {
-        expect(toCamelCase('nuts_schema')).toBe('nutsSchema')
-        expect(toCamelCase('pet_status')).toBe('petStatus')
-        expect(toCamelCase('user_profile_schema')).toBe('userProfileSchema')
-      })
+    it('should convert kebab-case to PascalCase', () => {
+      expect(toPascalCase('pet-status')).toBe('PetStatus')
+      expect(toPascalCase('user-profile')).toBe('UserProfile')
+    })
 
-      it('should convert kebab-case to camelCase', () => {
-        expect(toCamelCase('pet-status')).toBe('petStatus')
-        expect(toCamelCase('user-profile')).toBe('userProfile')
-      })
+    it('should preserve already PascalCase strings', () => {
+      expect(toPascalCase('Pet')).toBe('Pet')
+      expect(toPascalCase('PetStatus')).toBe('PetStatus')
+      expect(toPascalCase('AssetTypeUpdate')).toBe('AssetTypeUpdate')
+    })
 
-      it('should convert PascalCase to camelCase', () => {
-        expect(toCamelCase('Pet')).toBe('pet')
-        expect(toCamelCase('PetStatus')).toBe('petStatus')
-        expect(toCamelCase('AssetTypeUpdate')).toBe('assetTypeUpdate')
-      })
+    it('should convert camelCase to PascalCase', () => {
+      expect(toPascalCase('petStatus')).toBe('PetStatus')
+      expect(toPascalCase('userProfile')).toBe('UserProfile')
+    })
 
-      it('should preserve already camelCase strings', () => {
-        expect(toCamelCase('pet')).toBe('pet')
-        expect(toCamelCase('petStatus')).toBe('petStatus')
-      })
+    it('should handle single words', () => {
+      expect(toPascalCase('pet')).toBe('Pet')
+      expect(toPascalCase('Pet')).toBe('Pet')
+    })
 
-      it('should handle single words', () => {
-        expect(toCamelCase('pet')).toBe('pet')
-        expect(toCamelCase('Pet')).toBe('pet')
-      })
-
-      it('should handle UPPERCASE strings', () => {
-        expect(toCamelCase('UPPERCASE')).toBe('uppercase')
-        expect(toCamelCase('PET')).toBe('pet')
-      })
+    it('should handle UPPERCASE strings', () => {
+      expect(toPascalCase('UPPERCASE')).toBe('Uppercase')
+      expect(toPascalCase('PET')).toBe('Pet')
     })
   })
 
-  describe('removeSchemaSuffix', () => {
-    // Simulating the removeSchemaSuffix function
-    const removeSchemaSuffix = (name: string): string => {
-      return name.replace(/(_schema|Schema)$/i, '')
-    }
-
-    it('should remove _schema suffix', () => {
-      expect(removeSchemaSuffix('nuts_schema')).toBe('nuts')
-      expect(removeSchemaSuffix('address_schema')).toBe('address')
-      expect(removeSchemaSuffix('pet_status_schema')).toBe('pet_status')
+  describe('toCamelCase', () => {
+    it('should convert snake_case to camelCase', () => {
+      expect(toCamelCase('nuts_schema')).toBe('nutsSchema')
+      expect(toCamelCase('pet_status')).toBe('petStatus')
+      expect(toCamelCase('user_profile_schema')).toBe('userProfileSchema')
     })
 
-    it('should remove Schema suffix', () => {
-      expect(removeSchemaSuffix('petSchema')).toBe('pet')
-      expect(removeSchemaSuffix('addressSchema')).toBe('address')
-      expect(removeSchemaSuffix('userProfileSchema')).toBe('userProfile')
+    it('should convert kebab-case to camelCase', () => {
+      expect(toCamelCase('pet-status')).toBe('petStatus')
+      expect(toCamelCase('user-profile')).toBe('userProfile')
     })
 
-    it('should handle mixed case Schema suffix', () => {
-      expect(removeSchemaSuffix('petSCHEMA')).toBe('pet') // Case-insensitive regex
-      expect(removeSchemaSuffix('petschema')).toBe('pet') // Matches case-insensitive
-      expect(removeSchemaSuffix('petScheMa')).toBe('pet') // Mixed case also matches
+    it('should convert PascalCase to camelCase', () => {
+      expect(toCamelCase('Pet')).toBe('pet')
+      expect(toCamelCase('PetStatus')).toBe('petStatus')
+      expect(toCamelCase('AssetTypeUpdate')).toBe('assetTypeUpdate')
     })
 
-    it('should not remove suffix if not present', () => {
-      expect(removeSchemaSuffix('Pet')).toBe('Pet')
-      expect(removeSchemaSuffix('borrower_info')).toBe('borrower_info')
-      expect(removeSchemaSuffix('Address')).toBe('Address')
+    it('should preserve already camelCase strings', () => {
+      expect(toCamelCase('pet')).toBe('pet')
+      expect(toCamelCase('petStatus')).toBe('petStatus')
     })
 
-    it('should handle names with schema in the middle', () => {
-      // Should only remove trailing suffix
-      expect(removeSchemaSuffix('schema_pet_schema')).toBe('schema_pet')
-      expect(removeSchemaSuffix('SchemaType')).toBe('SchemaType') // Doesn't end with Schema
+    it('should handle single words', () => {
+      expect(toCamelCase('pet')).toBe('pet')
+      expect(toCamelCase('Pet')).toBe('pet')
+    })
+
+    it('should handle UPPERCASE strings', () => {
+      expect(toCamelCase('UPPERCASE')).toBe('uppercase')
+      expect(toCamelCase('PET')).toBe('pet')
     })
   })
+})
 
-  describe('schema name transformations', () => {
-    const removeSchemaSuffix = (name: string): string => name.replace(/(_schema|Schema)$/i, '')
-    const toPascalCase = (str: string, capitalize: boolean = true): string => {
-      if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
-        return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
-      }
+describe('removeSchemaSuffix', () => {
+  // Simulating the removeSchemaSuffix function
+  const removeSchemaSuffix = (name: string): string => {
+    return name.replace(/(_schema|Schema)$/i, '')
+  }
 
-      const parts = str
-        .split(/[-_\s]+/)
-        .filter((part) => part.length > 0)
-        .map((part) => {
-          if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
-            return part.charAt(0).toUpperCase() + part.slice(1)
-          }
-          return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-        })
-
-      if (parts.length === 0) return str
-
-      if (!capitalize) {
-        parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
-      }
-
-      return parts.join('')
-    }
-
-    const transformSchemaName = (schemaName: string): string => {
-      const cleaned = removeSchemaSuffix(schemaName)
-      return toPascalCase(cleaned)
-    }
-
-    it('should transform nuts_schema to Nuts', () => {
-      expect(transformSchemaName('nuts_schema')).toBe('Nuts')
-    })
-
-    it('should transform address_schema to Address', () => {
-      expect(transformSchemaName('address_schema')).toBe('Address')
-    })
-
-    it('should not change already normalized names', () => {
-      expect(transformSchemaName('Pet')).toBe('Pet')
-      expect(transformSchemaName('BorrowerInfo')).toBe('BorrowerInfo')
-      expect(transformSchemaName('AssetTypeUpdate')).toBe('AssetTypeUpdate')
-    })
-
-    it('should handle names without schema suffix', () => {
-      expect(transformSchemaName('borrower_info')).toBe('BorrowerInfo')
-      expect(transformSchemaName('user_profile')).toBe('UserProfile')
-    })
-
-    it('should handle complex names', () => {
-      expect(transformSchemaName('user_profile_schema')).toBe('UserProfile')
-      expect(transformSchemaName('pet_status_enum_schema')).toBe('PetStatusEnum')
-      expect(transformSchemaName('avm_response_schema')).toBe('AvmResponse')
-    })
+  it('should remove _schema suffix', () => {
+    expect(removeSchemaSuffix('nuts_schema')).toBe('nuts')
+    expect(removeSchemaSuffix('address_schema')).toBe('address')
+    expect(removeSchemaSuffix('pet_status_schema')).toBe('pet_status')
   })
+
+  it('should remove Schema suffix', () => {
+    expect(removeSchemaSuffix('petSchema')).toBe('pet')
+    expect(removeSchemaSuffix('addressSchema')).toBe('address')
+    expect(removeSchemaSuffix('userProfileSchema')).toBe('userProfile')
+  })
+
+  it('should handle mixed case Schema suffix', () => {
+    expect(removeSchemaSuffix('petSCHEMA')).toBe('pet') // Case-insensitive regex
+    expect(removeSchemaSuffix('petschema')).toBe('pet') // Matches case-insensitive
+    expect(removeSchemaSuffix('petScheMa')).toBe('pet') // Mixed case also matches
+  })
+
+  it('should not remove suffix if not present', () => {
+    expect(removeSchemaSuffix('Pet')).toBe('Pet')
+    expect(removeSchemaSuffix('borrower_info')).toBe('borrower_info')
+    expect(removeSchemaSuffix('Address')).toBe('Address')
+  })
+
+  it('should handle names with schema in the middle', () => {
+    // Should only remove trailing suffix
+    expect(removeSchemaSuffix('schema_pet_schema')).toBe('schema_pet')
+    expect(removeSchemaSuffix('SchemaType')).toBe('SchemaType') // Doesn't end with Schema
+  })
+})
+
+describe('schema name transformations', () => {
+  const removeSchemaSuffix = (name: string): string => name.replace(/(_schema|Schema)$/i, '')
+  const toPascalCase = (str: string, capitalize: boolean = true): string => {
+    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
+      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
+    }
+
+    const parts = str
+      .split(/[-_\s]+/)
+      .filter((part) => part.length > 0)
+      .map((part) => {
+        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+          return part.charAt(0).toUpperCase() + part.slice(1)
+        }
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      })
+
+    if (parts.length === 0) return str
+
+    if (!capitalize) {
+      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
+    }
+
+    return parts.join('')
+  }
+
+  const transformSchemaName = (schemaName: string): string => {
+    const cleaned = removeSchemaSuffix(schemaName)
+    return toPascalCase(cleaned)
+  }
+
+  it('should transform nuts_schema to Nuts', () => {
+    expect(transformSchemaName('nuts_schema')).toBe('Nuts')
+  })
+
+  it('should transform address_schema to Address', () => {
+    expect(transformSchemaName('address_schema')).toBe('Address')
+  })
+
+  it('should not change already normalized names', () => {
+    expect(transformSchemaName('Pet')).toBe('Pet')
+    expect(transformSchemaName('BorrowerInfo')).toBe('BorrowerInfo')
+    expect(transformSchemaName('AssetTypeUpdate')).toBe('AssetTypeUpdate')
+  })
+
+  it('should handle names without schema suffix', () => {
+    expect(transformSchemaName('borrower_info')).toBe('BorrowerInfo')
+    expect(transformSchemaName('user_profile')).toBe('UserProfile')
+  })
+
+  it('should handle complex names', () => {
+    expect(transformSchemaName('user_profile_schema')).toBe('UserProfile')
+    expect(transformSchemaName('pet_status_enum_schema')).toBe('PetStatusEnum')
+    expect(transformSchemaName('avm_response_schema')).toBe('AvmResponse')
+  })
+})
