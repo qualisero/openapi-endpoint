@@ -65,33 +65,6 @@ export { type useEndpointMutation } from './openapi-mutation'
 export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Ops>) {
   return {
     /**
-     * Debug utility to inspect operation metadata and verify type inference.
-     *
-     * This method is primarily intended for development and debugging purposes.
-     * It logs operation info to the console and returns a typed empty object
-     * that can be used to verify TypeScript's type inference for operations.
-     *
-     * @param operationId - The operation ID to inspect
-     * @returns An empty object typed as `IsQueryOperation<Ops, Op>` for type checking
-     *
-     * @example
-     * ```typescript
-     * // Verify type inference at compile time
-     * const isQuery: true = api._debugIsQueryOperation(OperationId.getPet)
-     * const isMutation: false = api._debugIsQueryOperation(OperationId.createPet)
-     *
-     * // Also logs operation info to console for runtime inspection
-     * api._debugIsQueryOperation(OperationId.getPet) // logs: { path: '/pets/{petId}', method: 'GET' }
-     * ```
-     */
-    _debugIsQueryOperation: function <Op extends keyof Ops>(operationId: Op) {
-      const helpers = getHelpers<Ops, Op>(config)
-      const info = helpers.getOperationInfo(operationId)
-      console.log('Operation Info:', info)
-      return {} as IsQueryOperation<Ops, Op>
-    },
-
-    /**
      * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
      *
      * @template Op - The operation key from your operations type

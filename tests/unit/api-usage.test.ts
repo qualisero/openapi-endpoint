@@ -39,14 +39,6 @@ describe('API Usage Patterns', () => {
       expect(typeof api.useMutation).toBe('function')
     })
 
-    it('should correctly type operationId parameters', () => {
-      // TypeScript compile-time type assertions
-      const _listPetsIsQuery: true = api._debugIsQueryOperation(OperationId.listPets)
-      const _getPetIsQuery: true = api._debugIsQueryOperation(OperationId.getPet)
-      const _createPetIsQuery: false = api._debugIsQueryOperation(OperationId.createPet)
-      const _createPetIsQueryTyped: false = api._debugIsQueryOperation(OperationId.createPet)
-    })
-
     it('should support OpenApiInstance type for typing API instances', () => {
       // Type assertion test - if this compiles, the types are working
       const typedApi: OpenApiInstance<OpenApiOperations> = api
