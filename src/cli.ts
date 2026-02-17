@@ -276,7 +276,10 @@ function addMissingOperationIds(openApiSpec: OpenAPISpec, prefixToStrip: string 
   })
 }
 
-function parseOperationsFromSpec(openapiContent: string): {
+function parseOperationsFromSpec(
+  openapiContent: string,
+  excludePrefix: string | null = '_deprecated',
+): {
   operationIds: string[]
   operationInfoMap: Record<string, OperationInfo>
 } {
@@ -299,6 +302,12 @@ function parseOperationsFromSpec(openapiContent: string): {
 
       const op = operation as OpenAPIOperation
       if (op.operationId) {
+        // Skip operations with excluded prefix
+        if (excludePrefix && op.operationId.startsWith(excludePrefix)) {
+          console.log(`⏭️  Excluding operation: ${op.operationId} (matches prefix '${excludePrefix}')`)
+          return
+        }
+
         operationIds.push(op.operationId)
         operationInfoMap[op.operationId] = {
           path: pathUrl,
@@ -818,7 +827,11 @@ ${enumExports}
 /**
  * Generates the api-enums.ts file from the OpenAPI spec.
  */
-async function generateApiEnums(openapiContent: string, outputDir: string): Promise<void> {
+async function generateApiEnums(
+  openapiContent: string,
+  outputDir: string,
+  _excludePrefix: string | null = '_deprecated',
+): Promise<void> {
   console.log('🔨 Generating api-enums.ts file...')
 
   const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
@@ -891,7 +904,11 @@ import type { components } from './openapi-types'
 /**
  * Generates the api-schemas.ts file from the OpenAPI spec.
  */
-async function generateApiSchemas(openapiContent: string, outputDir: string): Promise<void> {
+async function generateApiSchemas(
+  openapiContent: string,
+  outputDir: string,
+  _excludePrefix: string | null = '_deprecated',
+): Promise<void> {
   console.log('🔨 Generating api-schemas.ts file...')
 
   const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
@@ -1026,10 +1043,14 @@ ${opTypeContent}
 `
 }
 
-async function generateApiOperations(openapiContent: string, outputDir: string): Promise<void> {
+async function generateApiOperations(
+  openapiContent: string,
+  outputDir: string,
+  excludePrefix: string | null = '_deprecated',
+): Promise<void> {
   console.log('🔨 Generating openapi-typed-operations.ts file...')
 
-  const { operationIds, operationInfoMap } = parseOperationsFromSpec(openapiContent)
+  const { operationIds, operationInfoMap } = parseOperationsFromSpec(openapiContent, excludePrefix)
 
   // Generate TypeScript content
   const tsContent = generateApiOperationsContent(operationIds, operationInfoMap)
@@ -1044,15 +1065,23 @@ async function generateApiOperations(openapiContent: string, outputDir: string):
 
 function printUsage(): void {
   console.log(`
-Usage: npx @qualisero/openapi-endpoint <openapi-input> <output-directory>
+Usage: npx @qualisero/openapi-endpoint <openapi-input> <output-directory> [options]
 
 Arguments:
   openapi-input      Path to OpenAPI JSON file or URL to fetch it from
   output-directory   Directory where generated files will be saved
 
+Options:
+  --exclude-prefix PREFIX   Exclude operations with operationId starting with PREFIX
+                            (default: '_deprecated')
+  --no-exclude              Disable operation exclusion (include all operations)
+  --help, -h                Show this help message
+
 Examples:
   npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
   npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix _internal
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-exclude
 
 This command will generate:
   - openapi-types.ts              (TypeScript types from OpenAPI spec)
@@ -1070,19 +1099,44 @@ async function main(): Promise<void> {
     process.exit(0)
   }
 
-  if (args.length !== 2) {
-    console.error('❌ Error: Exactly 2 arguments are required')
+  if (args.length < 2) {
+    console.error('❌ Error: At least 2 arguments are required')
     printUsage()
     process.exit(1)
   }
 
-  const [openapiInput, outputDir] = args
+  const [openapiInput, outputDir, ...optionArgs] = args
+
+  // Parse options
+  let excludePrefix: string | null = '_deprecated' // default
+
+  for (let i = 0; i < optionArgs.length; i++) {
+    if (optionArgs[i] === '--no-exclude') {
+      excludePrefix = null
+    } else if (optionArgs[i] === '--exclude-prefix') {
+      if (i + 1 < optionArgs.length) {
+        excludePrefix = optionArgs[i + 1]
+        i++ // Skip next arg since we consumed it
+      } else {
+        console.error('❌ Error: --exclude-prefix requires a value')
+        printUsage()
+        process.exit(1)
+      }
+    }
+  }
 
   try {
     // Ensure output directory exists
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true })
       console.log(`📁 Created output directory: ${outputDir}`)
+    }
+
+    // Log exclusion settings
+    if (excludePrefix) {
+      console.log(`🚫 Excluding operations with operationId prefix: '${excludePrefix}'`)
+    } else {
+      console.log(`✅ Including all operations (no exclusion filter)`)
     }
 
     // Fetch OpenAPI spec content
@@ -1096,9 +1150,9 @@ async function main(): Promise<void> {
     // Generate all files
     await Promise.all([
       generateTypes(openapiContent, outputDir),
-      generateApiOperations(openapiContent, outputDir),
-      generateApiEnums(openapiContent, outputDir),
-      generateApiSchemas(openapiContent, outputDir),
+      generateApiOperations(openapiContent, outputDir, excludePrefix),
+      generateApiEnums(openapiContent, outputDir, excludePrefix),
+      generateApiSchemas(openapiContent, outputDir, excludePrefix),
     ])
 
     console.log('🎉 Code generation completed successfully!')
