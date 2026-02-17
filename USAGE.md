@@ -5,7 +5,12 @@
 ```typescript
 // api/init.ts
 import { useOpenApi } from '@qualisero/openapi-endpoint'
-import { openApiOperations, type OpenApiOperations, OperationId } from './generated/api-operations'
+import {
+  openApiOperations,
+  type OpenApiOperations,
+  QueryOperationId,
+  MutationOperationId,
+} from './generated/api-operations'
 
 const api = useOpenApi<OpenApiOperations>({
   operations: openApiOperations,
@@ -17,34 +22,34 @@ const api = useOpenApi<OpenApiOperations>({
 
 ```typescript
 // Simple query - no path params
-const { data: pets, isLoading, isEnabled } = api.useQuery(OperationId.listPets)
+const { data: pets, isLoading, isEnabled } = api.useQuery(QueryOperationId.listPets)
 
 // With path params
-const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
+const { data: pet } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
 // Reactive path params
 const petId = ref('123')
 const { data, refetch } = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   computed(() => ({ petId: petId.value })),
 )
 
 // With query params - use enum for type safety
 import { PetStatus } from './generated/api-enums'
 
-const { data } = api.useQuery(OperationId.listPets, {
+const { data } = api.useQuery(QueryOperationId.listPets, {
   queryParams: { limit: 10, status: PetStatus.Available },
 })
 
 // With options
-const { data, onLoad } = api.useQuery(OperationId.listPets, {
+const { data, onLoad } = api.useQuery(QueryOperationId.listPets, {
   enabled: computed(() => isLoggedIn.value),
   staleTime: 5000,
   onLoad: (data) => console.log('Loaded:', data),
 })
 
 // onLoad as method
-const query = api.useQuery(OperationId.getPet, { petId: '123' })
+const query = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 query.onLoad((pet) => console.log('Pet:', pet.name))
 ```
 
@@ -52,21 +57,21 @@ query.onLoad((pet) => console.log('Pet:', pet.name))
 
 ```typescript
 // Simple mutation
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 await createPet.mutateAsync({ data: { name: 'Fluffy' } })
 
 // With path params
-const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
 await updatePet.mutateAsync({ data: { name: 'Updated' } })
 
 // Override path params at call time
-const deletePet = api.useMutation(OperationId.deletePet)
+const deletePet = api.useMutation(MutationOperationId.deletePet)
 await deletePet.mutateAsync({ pathParams: { petId: '123' } })
 
 // Cache control
-const mutation = api.useMutation(OperationId.createPet, {
+const mutation = api.useMutation(MutationOperationId.createPet, {
   dontInvalidate: true, // skip auto-invalidation
-  invalidateOperations: [OperationId.listPets], // manual invalidation
+  invalidateOperations: [QueryOperationId.listPets], // manual invalidation
   onSuccess: (response) => console.log('Created:', response.data),
 })
 ```
@@ -133,7 +138,7 @@ The CLI extracts enum values from your OpenAPI spec and generates type-safe cons
 import { PetStatus } from './generated/api-enums'
 
 // Use enum constant for query params - intellisense + typo safety
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: { status: PetStatus.Available },
 })
 
@@ -146,7 +151,7 @@ await createPet.mutateAsync({
 const status: PetStatus = PetStatus.Available // type: 'available'
 
 // Still works with string literals
-const { data } = api.useQuery(OperationId.listPets, {
+const { data } = api.useQuery(QueryOperationId.listPets, {
   queryParams: { status: 'available' }, // also valid
 })
 ```
@@ -182,20 +187,4 @@ const tag: string = pet.tag // OK - guaranteed to exist
 type Response = ApiResponseSafe<OpType.getPet>
 const pet: Response = { id: '1', name: 'Fluffy' } // tag and status can be omitted
 const tag: string | undefined = pet.tag // May be undefined
-```
-
-## Constants
-
-```typescript
-import { HttpMethod, QUERY_METHODS, MUTATION_METHODS } from '@qualisero/openapi-endpoint'
-
-// HTTP methods enum
-HttpMethod.GET
-HttpMethod.POST
-HttpMethod.PUT
-// ...
-
-// Method categorization arrays
-QUERY_METHODS // [GET, HEAD, OPTIONS]
-MUTATION_METHODS // [POST, PUT, PATCH, DELETE]
 ```

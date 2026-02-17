@@ -1,17 +1,52 @@
 import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { UseMutationOptions, type UseQueryOptions } from '@tanstack/vue-query'
-import type { MaybeRef, MaybeRefOrGetter } from 'vue'
+import type { MaybeRefOrGetter, ComputedRef, Ref } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
 
 /**
  * Extended Axios request configuration that allows custom properties.
- *
- * This type extends the standard AxiosRequestConfig to support custom properties
- * that users might add through module augmentation. It ensures compatibility with
- * both standard axios options and user-defined custom properties.
  */
 export type AxiosRequestConfigExtended = AxiosRequestConfig & Record<string, unknown>
+
+/**
+ * Error type shown when an operation requires path parameters but they weren't provided.
+ *
+ * @internal
+ */
+export type RequiresPathParameters<Op extends string> = {
+  readonly __error: `Operation '${Op}' requires path parameters as the second argument`
+  readonly __fix: 'Provide path parameters as the second argument'
+  readonly __see: 'Check the operation path definition (e.g., /pets/{petId}) or JSDoc'
+}
+
+/**
+ * Validates that path parameters have no excess properties.
+ *
+ * @internal
+ */
+export type HasExcessPathParams<
+  Provided extends Record<string, any>,
+  Expected extends Record<string, any>,
+> = Exclude<keyof Provided, keyof Expected> extends never ? true : false
+
+/**
+ * Type representing an operation that does NOT require path parameters.
+ * Used in function signatures to restrict which operations can be called without path params.
+ *
+ * @internal
+ */
+export type NoPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  Op & (ApiPathParams<Ops, Op> extends Record<string, never> ? Op : RequiresPathParameters<Op & string>)
+
+/**
+ * Type representing an operation that DOES require path parameters.
+ * Used in function signatures to restrict which operations must be called with path params.
+ *
+ * @internal
+ */
+export type WithPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  Op & (ApiPathParams<Ops, Op> extends Record<string, never> ? RequiresPathParameters<Op & string> : Op)
 
 /** @internal */
 export type { EndpointQueryReturn, EndpointMutationReturn }
@@ -21,30 +56,12 @@ export type { EndpointQueryReturn, EndpointMutationReturn }
  *
  * This interface ensures compatibility with different versions of @tanstack/vue-query
  * by only requiring the specific methods that are actually used internally.
- * This prevents version compatibility issues where internal implementation details
- * (like private properties) might differ between versions.
  *
  * @group Types
  */
 export interface QueryClientLike {
-  /**
-   * Cancel running queries that match the provided filters.
-   * Used to prevent race conditions when mutations affect data.
-   */
   cancelQueries(filters: { queryKey: unknown[]; exact?: boolean }): Promise<void>
-
-  /**
-   * Set query data for a specific query key.
-   * Used for optimistic updates after successful mutations.
-   */
   setQueryData(queryKey: unknown[], data: unknown): void
-
-  /**
-   * Invalidate queries that match the provided filters.
-   * Used to trigger refetches of related data after mutations.
-   *
-   * @param filters - Filters can include queryKey, exact, and/or a predicate function
-   */
   invalidateQueries(filters: {
     queryKey?: unknown[]
     exact?: boolean
@@ -58,56 +75,24 @@ export type Operations<Ops> = object & { [K in keyof Ops]: OperationInfo }
 /**
  * Configuration object for initializing the OpenAPI client.
  *
- * This interface defines the required configuration to set up a type-safe OpenAPI client
- * with Vue Query integration. It requires both the operations metadata (typically generated
- * from your OpenAPI specification) and an Axios instance for making HTTP requests.
- *
  * @template Ops - The operations type, typically generated from your OpenAPI specification
- * @template AxiosConfig - The axios request configuration type (defaults to AxiosRequestConfig)
  *
  * @example
  * ```typescript
- * import { OpenApiConfig } from '@qualisero/openapi-endpoint'
+ * import { useOpenApi } from '@qualisero/openapi-endpoint'
  * import { openApiOperations, type OpenApiOperations } from './generated/api-operations'
  * import axios from 'axios'
  *
- * // Basic usage with default axios config
  * const config: OpenApiConfig<OpenApiOperations> = {
  *   operations: openApiOperations,
- *   axios: axios.create({
- *     baseURL: 'https://api.example.com',
- *     headers: { 'Authorization': 'Bearer token' }
- *   }),
+ *   axios: axios.create({ baseURL: 'https://api.example.com' }),
  *   queryClient: customQueryClient // optional
- * }
- *
- * // With custom axios config type (for module augmentation)
- * const configWithCustomAxios: OpenApiConfig<OpenApiOperations, MyCustomAxiosRequestConfig> = {
- *   operations: openApiOperations,
- *   axios: customAxiosInstance
  * }
  * ```
  */
 export interface OpenApiConfig<Ops extends Operations<Ops>> {
-  /**
-   * The operations metadata object, typically generated from your OpenAPI specification.
-   * This contains type information and HTTP method details for each API endpoint.
-   */
   operations: Ops
-
-  /**
-   * Axios instance for making HTTP requests.
-   * Configure this with your base URL, authentication, and any global request/response interceptors.
-   */
   axios: AxiosInstance
-
-  /**
-   * Optional TanStack Query client instance.
-   * If not provided, a default QueryClient with sensible defaults will be used.
-   *
-   * Note: This accepts any QueryClient-like object that implements the required methods,
-   * ensuring compatibility across different versions of @tanstack/vue-query.
-   */
   queryClient?: QueryClientLike
 }
 
@@ -153,168 +138,103 @@ export interface OperationInfo {
 /** @internal */
 export type GetOperation<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op]
 
-// Utility: Make ALL properties required (for ApiResponse)
-type RequireAll<T> = {
-  [K in keyof T]-?: T[K]
-}
+// ============================================================================
+// Response Type Extraction (DRY)
+// ============================================================================
 
-// Utility: Make readonly properties required, keep others as-is (for ApiResponseSafe)
+type RequireAll<T> = { [K in keyof T]-?: T[K] }
+
 type RequireReadonly<T> = {
   [K in keyof T as IsReadonly<T, K> extends true ? K : never]-?: T[K]
 } & {
   [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
 }
 
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B
+
+type IsReadonly<T, K extends keyof T> = IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true>
+
 /**
- * Extract response data type from an operation.
+ * Extract the raw response data type from an operation without modifications.
+ * @internal
+ */
+type ExtractResponseData<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  GetOperation<Ops, Op> extends { responses: { 200: { content: { 'application/json': infer Data } } } }
+    ? Data
+    : unknown
+
+/**
+ * Extract response data type from an operation (all fields required).
  *
  * All fields are REQUIRED regardless of their `required` status in the OpenAPI schema.
- * This assumes the server always returns complete objects for GET/list endpoints.
+ * This assumes the server always returns complete objects.
  *
  * @example
  * ```typescript
- * type PetResponse = ApiResponse<OpenApiOperations, OpType.getPet>
- * // { readonly id: string, name: string, tag: string, status: 'available' | ... }
- * // All fields required - no null checks needed
+ * type PetResponse = ApiResponse<OpenApiOperations, 'getPet'>
+ * // { readonly id: string, name: string, ... } - all required
  * ```
  */
-export type ApiResponse<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  GetOperation<Ops, Op> extends {
-    responses: { 200: { content: { 'application/json': infer Data } } }
-  }
-    ? RequireAll<Data>
-    : unknown
+export type ApiResponse<Ops extends Operations<Ops>, Op extends keyof Ops> = RequireAll<
+  ExtractResponseData<Ops, Op>
+>
 
 /**
  * Extract response data type with safe typing for unreliable backends.
  *
- * Only readonly properties are REQUIRED. Other properties preserve their
- * optional status from the OpenAPI schema. Use this when the backend may
- * omit optional fields in responses.
+ * Only readonly properties are REQUIRED. Other properties preserve their optional status.
  *
  * @example
  * ```typescript
- * type PetResponse = ApiResponseSafe<OpenApiOperations, OpType.getPet>
- * // { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
- * // tag and status optional - null checks required
+ * type PetResponse = ApiResponseSafe<OpenApiOperations, 'getPet'>
+ * // { readonly id: string, name?: string, ... } - only readonly required
  * ```
  */
-export type ApiResponseSafe<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  GetOperation<Ops, Op> extends {
-    responses: { 200: { content: { 'application/json': infer Data } } }
-  }
-    ? RequireReadonly<Data>
-    : unknown
+export type ApiResponseSafe<Ops extends Operations<Ops>, Op extends keyof Ops> = RequireReadonly<
+  ExtractResponseData<Ops, Op>
+>
 
-type OmitMaybeRef<T, K extends PropertyKey> =
-  T extends MaybeRef<infer U>
-    ? MaybeRef<Omit<U, K> & Partial<Pick<U, K & keyof U>>>
-    : Omit<T, K> & Partial<Pick<T, K & keyof T>>
+// ============================================================================
+// Reactive Patterns (Standardized)
+// ============================================================================
 
 /**
- * Query options for `useQuery` that extend TanStack Query options.
+ * A value that can be reactive (ref, computed) or direct.
+ * Standardized pattern for all reactive values across the library.
  *
- * Combines TanStack Query's UseQueryOptions with custom options for reactive
- * query parameters, custom error handling, and axios configuration.
- *
- * @template Ops - The operations type from your OpenAPI specification
- * @template Op - The operation key from your operations type
- *
- * @example
- * ```typescript
- * const { data } = api.useQuery(OperationId.listPets, {
- *   enabled: computed(() => isLoggedIn.value),
- *   staleTime: 5000,
- *   queryParams: { limit: 10, status: PetStatus.Available },
- *   onLoad: (data) => console.log('Loaded:', data)
- * })
- * ```
+ * @internal
  */
-export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
-  UseQueryOptions<ApiResponse<Ops, Op>, Error, ApiResponse<Ops, Op>, ApiResponse<Ops, Op>>,
-  'queryKey' | 'queryFn' | 'enabled'
-> & {
-  /** Whether the query should execute. Can be reactive. */
-  enabled?: MaybeRefOrGetter<boolean>
-  /** Callback when data is successfully loaded. */
-  onLoad?: (data: ApiResponse<Ops, Op>) => void
-  /** Additional axios configuration for this request. */
-  axiosOptions?: AxiosRequestConfigExtended
-  /** Custom error handler. Return data to use as fallback, or void to use default error. */
-  errorHandler?: (error: AxiosError) => ApiResponse<Ops, Op> | void | Promise<ApiResponse<Ops, Op> | void>
-  /** Query parameters for the request. Can be reactive. */
-  queryParams?: MaybeRefOrGetter<ApiQueryParams<Ops, Op>>
-}
+export type ReactiveOr<T> = T | Ref<T> | ComputedRef<T> | (() => T)
 
-/** @internal */
-type MutationOnSuccessOptions<Ops extends Operations<Ops>> = {
-  dontInvalidate?: boolean
-  dontUpdateCache?: boolean
-  invalidateOperations?: (keyof Ops)[] | Partial<{ [K in keyof Ops]: ApiPathParams<Ops, K> }>
-  refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
-}
-
-/** @internal */
-export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = MutationOnSuccessOptions<Ops> & {
-  data?: ApiRequest<Ops, Op>
-  pathParams?: ApiPathParams<Ops, Op>
-  axiosOptions?: AxiosRequestConfigExtended
-  queryParams?: ApiQueryParams<Ops, Op>
-}
+// ============================================================================
+// Path Parameters (now truly required, not optional)
+// ============================================================================
 
 /**
- * Mutation options for `useMutation` that extend TanStack Query options.
+ * Extract path parameters type from an operation (truly required).
  *
- * Combines TanStack Query's UseMutationOptions with custom options for cache
- * management, such as controlling automatic cache updates and specifying
- * operations to invalidate after the mutation.
- *
- * @template Ops - The operations type from your OpenAPI specification
- * @template Op - The operation key from your operations type
+ * All path parameters from the OpenAPI schema are required - they cannot be undefined.
+ * This matches the runtime behavior where missing path params cause errors.
  *
  * @example
  * ```typescript
- * const mutation = api.useMutation(OperationId.createPet, {
- *   onSuccess: (data) => console.log('Created', data),
- *   dontInvalidate: false,  // default: auto-invalidate
- *   invalidateOperations: [OperationId.listPets]  // manual invalidation
- * })
- * ```
- */
-export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = OmitMaybeRef<
-  UseMutationOptions<
-    AxiosResponse<ApiResponse<Ops, Op>>,
-    Error,
-    ApiRequest<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
-  >,
-  'mutationFn' | 'mutationKey'
-> &
-  MutationOnSuccessOptions<Ops> & {
-    /** Additional axios configuration for this request. */
-    axiosOptions?: AxiosRequestConfigExtended
-    /** Query parameters for the request. Can be reactive. */
-    queryParams?: MaybeRefOrGetter<ApiQueryParams<Ops, Op>>
-  }
-
-/**
- * Extract path parameters type from an operation.
- * @example
- * ```typescript
- * type Params = ApiPathParams<OpenApiOperations, OpType.getPet>
- * // { petId: string | undefined }
+ * type Params = ApiPathParams<OpenApiOperations, 'getPet'>
+ * // { petId: string } - all params required
  * ```
  */
 export type ApiPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
 }
-  ? { [K in keyof PathParams]: PathParams[K] | undefined }
+  ? PathParams extends Record<string, any>
+    ? PathParams
+    : Record<string, never>
   : Record<string, never>
 
 /**
  * Extract query parameters type from an operation.
  * @example
  * ```typescript
- * type Params = ApiQueryParams<OpenApiOperations, OpType.listPets>
+ * type Params = ApiQueryParams<OpenApiOperations, 'listPets'>
  * // { limit?: number, status?: string }
  * ```
  */
@@ -326,56 +246,353 @@ export type ApiQueryParams<Ops extends Operations<Ops>, Op extends keyof Ops> = 
     : Record<string, never>
   : Record<string, never>
 
-type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B
-type IsReadonly<T, K extends keyof T> = IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true>
+// ============================================================================
+// Request Body
+// ============================================================================
+
 type Writable<T> = {
-  -readonly [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
+  -readonly [K in keyof T as IfEquals<
+    Pick<T, K>,
+    { -readonly [Q in K]: T[K] },
+    false,
+    true
+  > extends false
+    ? K
+    : never]: T[K]
 }
 
 /**
  * Extract request body type from an operation.
  * @example
  * ```typescript
- * type Body = ApiRequest<OpenApiOperations, OpType.createPet>
+ * type Body = ApiRequest<OpenApiOperations, 'createPet'>
  * // { name: string, species?: string }
  * ```
  */
 export type ApiRequest<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  GetOperation<Ops, Op> extends {
-    requestBody: { content: { 'application/json': infer Body } }
-  }
+  GetOperation<Ops, Op> extends { requestBody: { content: { 'application/json': infer Body } } }
     ? Writable<Body>
-    : GetOperation<Ops, Op> extends {
-          requestBody: { content: { 'multipart/form-data': infer Body } }
-        }
+    : GetOperation<Ops, Op> extends { requestBody: { content: { 'multipart/form-data': infer Body } } }
       ? Writable<Body> | FormData
       : never
 
-export type IsQueryOperation<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
-  method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
+// ============================================================================
+// Cache Invalidation Options (consolidated, well-documented)
+// ============================================================================
+
+/**
+ * Options for controlling automatic cache invalidation and updates after mutations.
+ *
+ * By default, mutations automatically:
+ * - Update cache for PUT/PATCH responses with the returned data
+ * - Invalidate matching GET queries to trigger refetches
+ *
+ * @group Types
+ */
+export interface CacheInvalidationOptions<Ops extends Operations<Ops>> {
+  /**
+   * Skip automatic cache invalidation after mutation completes.
+   *
+   * @default false
+   */
+  dontInvalidate?: boolean
+
+  /**
+   * Skip automatic cache update for PUT/PATCH responses.
+   *
+   * @default false
+   */
+  dontUpdateCache?: boolean
+
+  /**
+   * Additional operations to invalidate after mutation succeeds.
+   *
+   * Can be either:
+   * - Array of operation IDs: `['listPets', 'getPetStats']`
+   * - Map of operation ID to path params: `{ getPet: { petId: '123' } }`
+   *
+   * @example
+   * ```typescript
+   * // Invalidate list when creating
+   * { invalidateOperations: ['listPets'] }
+   *
+   * // Invalidate specific item
+   * { invalidateOperations: { getPet: { petId: '123' } } }
+   * ```
+   */
+  invalidateOperations?: (keyof Ops)[] | Partial<{ [K in keyof Ops]: ApiPathParams<Ops, K> }>
+
+  /**
+   * Specific query endpoints to refetch after mutation succeeds.
+   *
+   * Use when you have specific query results that need to be refetched.
+   *
+   * @example
+   * ```typescript
+   * const listQuery = api.useQuery('listPets')
+   * { refetchEndpoints: [listQuery] }
+   * ```
+   */
+  refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
 }
-  ? true
-  : false
+
+// ============================================================================
+// Query Options
+// ============================================================================
+
+/**
+ * Query options for `useQuery` with custom extensions.
+ *
+ * Supports all TanStack Query options plus:
+ * - `enabled`: Reactive boolean to control when query runs
+ * - `queryParams`: Reactive query string parameters
+ * - `onLoad`: Callback when data loads successfully
+ * - `errorHandler`: Custom error handler with fallback support
+ * - `axiosOptions`: Additional axios configuration
+ *
+ * @template Ops - The operations type from your OpenAPI specification
+ * @template Op - The operation key
+ *
+ * @example
+ * ```typescript
+ * const { data } = api.useQuery('listPets', {
+ *   queryParams: { limit: 10 },
+ *   enabled: computed(() => isLoggedIn.value),
+ *   staleTime: 5000,
+ *   onLoad: (data) => console.log('Loaded:', data.length)
+ * })
+ * ```
+ *
+ * @group Types
+ */
+export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
+  UseQueryOptions<ApiResponse<Ops, Op>, Error, ApiResponse<Ops, Op>, ApiResponse<Ops, Op>>,
+  'queryKey' | 'queryFn' | 'enabled'
+> & {
+  /** Whether the query should execute. Can be reactive (ref/computed/function). */
+  enabled?: ReactiveOr<boolean>
+
+  /** Callback when data is successfully loaded for the first time. */
+  onLoad?: (data: ApiResponse<Ops, Op>) => void
+
+  /** Additional axios configuration for this request. */
+  axiosOptions?: AxiosRequestConfigExtended
+
+  /** Custom error handler. Return data to use as fallback, or void to use default error. */
+  errorHandler?: (error: AxiosError) => ApiResponse<Ops, Op> | void | Promise<ApiResponse<Ops, Op> | void>
+
+  /** Query parameters for the request. Can be reactive (ref/computed/function). */
+  queryParams?: ReactiveOr<ApiQueryParams<Ops, Op>>
+}
+
+// ============================================================================
+// Utility Types
+// ============================================================================
+
+
+
+// ============================================================================
+// Mutation Variables & Options
+// ============================================================================
+
+/**
+ * Variables passed to mutation.mutate() or mutation.mutateAsync().
+ *
+ * Combines cache invalidation options with mutation-specific data:
+ * - `data`: Request body (when operation accepts one)
+ * - `pathParams`: Path parameters (can override those from useMutation call)
+ * - `queryParams`: Query string parameters
+ * - `axiosOptions`: Additional axios configuration
+ *
+ * Plus all cache invalidation options (dontInvalidate, invalidateOperations, etc.)
+ *
+ * @template Ops - The operations type
+ * @template Op - The operation key
+ *
+ * @example
+ * ```typescript
+ * const mutation = api.useMutation('createPet')
+ * mutation.mutate({
+ *   data: { name: 'Fluffy' },
+ *   invalidateOperations: ['listPets']
+ * })
+ * ```
+ *
+ * @group Types
+ */
+export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = CacheInvalidationOptions<Ops> & {
+  data?: ApiRequest<Ops, Op>
+  pathParams?: ApiPathParams<Ops, Op>
+  axiosOptions?: AxiosRequestConfigExtended
+  queryParams?: ApiQueryParams<Ops, Op>
+}
+
+/**
+ * Resolved return type for mutateAsync to avoid showing full operations union in tooltips.
+ * @internal
+ */
+export type MutateAsyncReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = Promise<
+  AxiosResponse<ApiResponse<Ops, Op>>
+>
+
+/**
+ * Function signature for mutation.mutate() - non-blocking mutation execution.
+ *
+ * Inlined types allow TypeScript to resolve specific operation types in tooltips
+ * instead of showing the entire operations union.
+ *
+ * @group Types
+ * @internal
+ */
+export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
+  vars?: {
+    data?: ApiRequest<Ops, Op>
+    pathParams?: ApiPathParams<Ops, Op>
+    axiosOptions?: AxiosRequestConfigExtended
+    queryParams?: ApiQueryParams<Ops, Op>
+    dontInvalidate?: boolean
+    dontUpdateCache?: boolean
+    invalidateOperations?: (keyof Ops)[]
+    refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
+  },
+) => void
+
+/**
+ * Function signature for mutation.mutateAsync() - async mutation execution.
+ *
+ * Inlined types allow TypeScript to resolve specific operation types in tooltips
+ * instead of showing the entire operations union.
+ *
+ * @group Types
+ * @internal
+ */
+export type MutateAsyncFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
+  vars?: {
+    data?: ApiRequest<Ops, Op>
+    pathParams?: ApiPathParams<Ops, Op>
+    axiosOptions?: AxiosRequestConfigExtended
+    queryParams?: ApiQueryParams<Ops, Op>
+    dontInvalidate?: boolean
+    dontUpdateCache?: boolean
+    invalidateOperations?: (keyof Ops)[]
+    refetchEndpoints?: EndpointQueryReturn<Ops, keyof Ops>[]
+  },
+) => MutateAsyncReturn<Ops, Op>
+
+/**
+ * Mutation options for `useMutation` with custom extensions.
+ *
+ * Supports all TanStack Query mutation options plus:
+ * - Cache invalidation options (dontInvalidate, invalidateOperations, etc.)
+ * - `queryParams`: Reactive query string parameters
+ * - `axiosOptions`: Additional axios configuration
+ *
+ * @template Ops - The operations type
+ * @template Op - The operation key
+ *
+ * @example
+ * ```typescript
+ * const mutation = api.useMutation('createPet', {
+ *   onSuccess: () => console.log('Created!'),
+ *   invalidateOperations: ['listPets']
+ * })
+ * ```
+ *
+ * @group Types
+ */
+export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
+  UseMutationOptions<
+    AxiosResponse<ApiResponse<Ops, Op>>,
+    Error,
+    ApiRequest<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
+  >,
+  'mutationFn' | 'mutationKey'
+> &
+  CacheInvalidationOptions<Ops> & {
+    axiosOptions?: AxiosRequestConfigExtended
+    queryParams?: ReactiveOr<ApiQueryParams<Ops, Op>>
+  }
+
+/**
+ * Runtime type validator for mutation parameters.
+ *
+ * This helper is a pass-through function that helps TypeScript narrow parameter types.
+ *
+ * @example
+ * ```typescript
+ * const mutation = api.useMutation(MutationOperationId.createPet)
+ * await mutation.mutateAsync(
+ *   validateMutationParams(MutationOperationId.createPet, {
+ *     data: { name: 'Fluffy' }
+ *   })
+ * )
+ * ```
+ */
+export function validateMutationParams<Ops extends Operations<Ops>, Op extends keyof Ops>(
+  _operationId: Op,
+  params: QMutationVars<Ops, Op>,
+): QMutationVars<Ops, Op> {
+  return params
+}
+
+// ============================================================================
+// Operation Filtering Types (internal)
+// ============================================================================
+
+/** @internal */
+export type QueryOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
+  [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
+    ? ApiPathParams<Ops, Op> extends Record<string, never>
+      ? Op
+      : never
+    : never
+}[keyof Ops]
+
+/** @internal */
+export type QueryOperationsWithPathParams<Ops extends Operations<Ops>> = {
+  [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
+    ? ApiPathParams<Ops, Op> extends Record<string, never>
+      ? never
+      : Op
+    : never
+}[keyof Ops]
+
+/** @internal */
+export type MutationOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
+  [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH | HttpMethod.DELETE
+    ? ApiPathParams<Ops, Op> extends Record<string, never>
+      ? Op
+      : never
+    : never
+}[keyof Ops]
+
+/** @internal */
+export type MutationOperationsWithPathParams<Ops extends Operations<Ops>> = {
+  [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH | HttpMethod.DELETE
+    ? ApiPathParams<Ops, Op> extends Record<string, never>
+      ? never
+      : Op
+    : never
+}[keyof Ops]
+
+// ============================================================================
+// Main API Instance Type
+// ============================================================================
 
 /**
  * Type representing an instance of the OpenAPI client returned by useOpenApi.
  *
- * This interface defines all the methods available on the API client instance,
- * providing type-safe access to queries and mutations based
- * on your OpenAPI specification.
+ * This interface defines all the methods available on the API client instance.
  *
  * @group Types
  * @template Ops - The operations type from your OpenAPI specification
  *
  * @example
  * ```typescript
- * import { OpenApiInstance } from '@qualisero/openapi-endpoint'
+ * import { useOpenApi } from '@qualisero/openapi-endpoint'
  * import { type OpenApiOperations } from './generated/api-operations'
  *
- * // Type your API instance for better IntelliSense
  * const api: OpenApiInstance<OpenApiOperations> = useOpenApi(config)
- *
- * // All methods are now fully typed
  * const query = api.useQuery('getPet', { petId: '123' })
  * const mutation = api.useMutation('createPet')
  * ```
@@ -384,73 +601,84 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
   /**
    * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
    *
-   * Only accepts operation IDs that correspond to query operations.
-   *
-   * @template Op - The operation key from your operations type
-   * @param operationId - Operation ID (must be a GET/HEAD/OPTIONS operation)
-   * @param pathParamsOrOptions - Path params or query options:
-   *   - If the operation has path params, provide them here (can be reactive)
-   *   - If the operation has no path params, pass query options here instead
-   * @param optionsOrNull - Query options when path params are provided separately
-   * @returns Reactive query result with helpers:
-   *   - `data`, `isPending`, `isSuccess`, `error`, `refetch()`
-   *   - `isEnabled`, `queryKey`, `onLoad(callback)`
+   * @template Op - The operation key
+   * @param operationId - Query operation ID
+   * @param pathParamsOrOptions - Path params or query options
+   * @param optionsOrNull - Query options when path params are provided
+   * @returns Reactive query result
    *
    * @example
    * ```typescript
-   * // Simple list query
-   * const listQuery = api.useQuery(OperationId.listPets, {
-   *   queryParams: { limit: 10 }
-   * })
+   * // No path params
+   * const listQuery = api.useQuery('listPets', { queryParams: { limit: 10 } })
    *
-   * // Query with path parameters
-   * const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
+   * // With path params (direct object)
+   * const petQuery = api.useQuery('getPet', { petId: '123' })
    *
-   * // Conditional query
+   * // With path params (reactive function)
    * const id = ref('')
-   * const detailsQuery = api.useQuery(OperationId.getPet, { petId: id }, {
-   *   enabled: computed(() => id.value !== '')
-   * })
+   * const detailsQuery = api.useQuery('getPet', () => ({ petId: id.value }))
    * ```
    */
-  useQuery: <Op extends keyof Ops>(
-    operationId: IsQueryOperation<Ops, Op> extends true ? Op : never,
-    pathParamsOrOptions?: ApiPathParams<Ops, Op> extends Record<string, never>
-      ? QQueryOptions<Ops, Op>
-      : MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
-    optionsOrNull?: QQueryOptions<Ops, Op>,
-  ) => EndpointQueryReturn<Ops, Op>
+  useQuery: {
+    <Op extends keyof Ops>(
+      operationId: NoPathParams<Ops, Op>,
+      options?: QQueryOptions<Ops, Op>,
+    ): EndpointQueryReturn<Ops, Op>
+
+    <Op extends keyof Ops>(
+      operationId: WithPathParams<Ops, Op>,
+      pathParams: ApiPathParams<Ops, Op>,
+      options?: QQueryOptions<Ops, Op>,
+    ): EndpointQueryReturn<Ops, Op>
+
+    <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
+      operationId: WithPathParams<Ops, Op>,
+      pathParams: () => PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
+      options?: QQueryOptions<Ops, Op>,
+    ): EndpointQueryReturn<Ops, Op>
+  }
 
   /**
-   * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with cache updates.
+   * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
    *
-   * Only accepts operation IDs that correspond to mutation operations.
-   *
-   * @template Op - The operation key from your operations type
-   * @param operationId - Operation ID (must be a POST/PUT/PATCH/DELETE operation)
-   * @param pathParamsOrOptions - Path params or mutation options:
-   *   - If the operation has path params, provide them here (can be reactive)
-   *   - If the operation has no path params, pass mutation options here instead
-   * @param optionsOrNull - Mutation options when path params are provided separately
-   * @returns Reactive mutation result with helpers:
-   *   - `mutate(vars)` / `mutateAsync(vars)`
-   *   - `data`, `isPending`, `isSuccess`, `error`
-   *   - `isEnabled`, `extraPathParams`, `pathParams`
+   * @template Op - The operation key
+   * @param operationId - Mutation operation ID
+   * @param pathParamsOrOptions - Path params or mutation options
+   * @param optionsOrNull - Mutation options when path params are provided
+   * @returns Reactive mutation result
    *
    * @example
    * ```typescript
-   * const createPet = api.useMutation(OperationId.createPet)
-   * await createPet.mutateAsync({ data: { name: 'Fluffy', species: 'cat' } })
+   * // No path params
+   * const createPet = api.useMutation('createPet')
+   * createPet.mutate({ data: { name: 'Fluffy' } })
    *
-   * const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
-   * updatePet.mutate({ data: { name: 'Updated Name' } })
+   * // With path params (direct object)
+   * const updatePet = api.useMutation('updatePet', { petId: '123' })
+   * updatePet.mutate({ data: { name: 'Updated' } })
+   *
+   * // With path params (reactive function)
+   * const id = ref('')
+   * const deletePet = api.useMutation('deletePet', () => ({ petId: id.value }))
    * ```
    */
-  useMutation: <Op extends keyof Ops>(
-    operationId: IsQueryOperation<Ops, Op> extends false ? Op : never,
-    pathParamsOrOptions?: ApiPathParams<Ops, Op> extends Record<string, never>
-      ? QMutationOptions<Ops, Op>
-      : MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
-    optionsOrNull?: QMutationOptions<Ops, Op>,
-  ) => EndpointMutationReturn<Ops, Op>
+  useMutation: {
+    <Op extends keyof Ops>(
+      operationId: NoPathParams<Ops, Op>,
+      options?: QMutationOptions<Ops, Op>,
+    ): EndpointMutationReturn<Ops, Op>
+
+    <Op extends keyof Ops>(
+      operationId: WithPathParams<Ops, Op>,
+      pathParams: ApiPathParams<Ops, Op>,
+      options?: QMutationOptions<Ops, Op>,
+    ): EndpointMutationReturn<Ops, Op>
+
+    <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
+      operationId: WithPathParams<Ops, Op>,
+      pathParams: () => PathParams & (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
+      options?: QMutationOptions<Ops, Op>,
+    ): EndpointMutationReturn<Ops, Op>
+  }
 }

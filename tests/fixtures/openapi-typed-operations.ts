@@ -55,23 +55,35 @@ const operationsBase = {
 } as const
 
 // Merge with operations type to maintain OpenAPI type information
-export const openApiOperations = operationsBase as typeof operationsBase & operations
+export const openApiOperations = operationsBase as typeof operationsBase & Pick<operations, keyof typeof operationsBase>
 
 export type OpenApiOperations = typeof openApiOperations
 
-// Dynamically generate OperationId enum from the operations keys
-export const OperationId = {
-  createPet: 'createPet' as const,
-  deletePet: 'deletePet' as const,
+// Query operations only - use with useQuery() for better autocomplete
+export const QueryOperationId = {
   getPet: 'getPet' as const,
   listPets: 'listPets' as const,
   listUserPets: 'listUserPets' as const,
+} satisfies Partial<Record<keyof typeof operationsBase, keyof typeof operationsBase>>
+
+export type QueryOperationId = keyof typeof QueryOperationId
+
+// Mutation operations only - use with useMutation() for better autocomplete
+export const MutationOperationId = {
+  createPet: 'createPet' as const,
+  deletePet: 'deletePet' as const,
   updatePet: 'updatePet' as const,
   uploadPetPic: 'uploadPetPic' as const,
-} satisfies Record<keyof typeof operationsBase, keyof typeof operationsBase>
+} satisfies Partial<Record<keyof typeof operationsBase, keyof typeof operationsBase>>
 
-// Export the type for TypeScript inference
-export type OperationId = keyof OpenApiOperations
+export type MutationOperationId = keyof typeof MutationOperationId
+
+/**
+ * Union type of all operation IDs (queries and mutations).
+ * Used for generic type constraints in helper types.
+ * @internal
+ */
+export type AllOperationIds = QueryOperationId | MutationOperationId
 
 // ============================================================================
 // Type-safe API Helpers - Use OpType.XXX for type-safe access with intellisense
@@ -83,7 +95,7 @@ export type OperationId = keyof OpenApiOperations
  * @example
  *   type Response = ApiResponse<OpType.getPet>
  */
-export type ApiResponse<K extends OperationId> = ApiResponseBase<OpenApiOperations, K>
+export type ApiResponse<K extends AllOperationIds> = ApiResponseBase<OpenApiOperations, K>
 
 /**
  * Response data type with safe typing for unreliable backends.
@@ -91,35 +103,35 @@ export type ApiResponse<K extends OperationId> = ApiResponseBase<OpenApiOperatio
  * @example
  *   type Response = ApiResponseSafe<OpType.getPet>
  */
-export type ApiResponseSafe<K extends OperationId> = ApiResponseSafeBase<OpenApiOperations, K>
+export type ApiResponseSafe<K extends AllOperationIds> = ApiResponseSafeBase<OpenApiOperations, K>
 
 /**
  * Request body type for a mutation operation.
  * @example
  *   type Request = ApiRequest<OpType.createPet>
  */
-export type ApiRequest<K extends OperationId> = ApiRequestBase<OpenApiOperations, K>
+export type ApiRequest<K extends AllOperationIds> = ApiRequestBase<OpenApiOperations, K>
 
 /**
  * Path parameters type for an operation.
  * @example
  *   type Params = ApiPathParams<OpType.getPet>
  */
-export type ApiPathParams<K extends OperationId> = ApiPathParamsBase<OpenApiOperations, K>
+export type ApiPathParams<K extends AllOperationIds> = ApiPathParamsBase<OpenApiOperations, K>
 
 /**
  * Query parameters type for an operation.
  * @example
  *   type Params = ApiQueryParams<OpType.listPets>
  */
-export type ApiQueryParams<K extends OperationId> = ApiQueryParamsBase<OpenApiOperations, K>
+export type ApiQueryParams<K extends AllOperationIds> = ApiQueryParamsBase<OpenApiOperations, K>
 
 // ============================================================================
 // OpType namespace - enables dot notation: ApiResponse<OpType.getPet>
 // ============================================================================
 
 /**
- * Namespace that mirrors OperationId properties as types.
+ * Namespace that mirrors operation IDs as types.
  * Enables dot notation syntax: ApiResponse<OpType.getPet>
  *
  * This is the idiomatic TypeScript pattern for enabling dot notation
@@ -132,11 +144,31 @@ export type ApiQueryParams<K extends OperationId> = ApiQueryParamsBase<OpenApiOp
  */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace OpType {
-  export type getPet = typeof OperationId.getPet
-  export type createPet = typeof OperationId.createPet
-  export type updatePet = typeof OperationId.updatePet
-  export type deletePet = typeof OperationId.deletePet
-  export type listPets = typeof OperationId.listPets
-  export type listUserPets = typeof OperationId.listUserPets
-  export type uploadPetPic = typeof OperationId.uploadPetPic
+  export type getPet = typeof QueryOperationId.getPet
+  export type createPet = typeof MutationOperationId.createPet
+  export type updatePet = typeof MutationOperationId.updatePet
+  export type deletePet = typeof MutationOperationId.deletePet
+  export type listPets = typeof QueryOperationId.listPets
+  export type listUserPets = typeof QueryOperationId.listUserPets
+  export type uploadPetPic = typeof MutationOperationId.uploadPetPic
 }
+
+// ============================================================================
+// LEGACY: OperationId (auto-derived from union for backward compatibility)
+// ============================================================================
+// Use QueryOperationId or MutationOperationId directly for better type safety
+
+/**
+ * @deprecated Use QueryOperationId or MutationOperationId instead.
+ * Auto-derived from their union for backward compatibility.
+ */
+export type OperationId = AllOperationIds
+
+/**
+ * @deprecated Use QueryOperationId or MutationOperationId instead.
+ * Auto-derived from their union for backward compatibility.
+ */
+export const OperationId = {
+  ...QueryOperationId,
+  ...MutationOperationId,
+} satisfies Record<AllOperationIds, AllOperationIds>

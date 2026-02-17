@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import {
+  QueryOperationId,
+  MutationOperationId,
+  openApiOperations,
+  type OpenApiOperations,
+} from '../fixtures/openapi-typed-operations'
 
 /**
  * Consolidated Axios Configuration Tests
@@ -38,11 +43,11 @@ describe('Axios Configuration Integration', () => {
         'Content-Type': 'application/json',
       }
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { headers: customHeaders },
       })
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: { headers: customHeaders },
       })
 
@@ -51,11 +56,11 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle timeout configurations', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { timeout: 5000 },
       })
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: { timeout: 10000 },
       })
 
@@ -64,7 +69,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle baseURL override', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { baseURL: 'https://custom-api.example.com' },
       })
 
@@ -73,7 +78,7 @@ describe('Axios Configuration Integration', () => {
 
     it('should handle axios options with path parameters', () => {
       const query = api.useQuery(
-        OperationId.getPet,
+        QueryOperationId.getPet,
         { petId: '123' },
         {
           axiosOptions: {
@@ -84,7 +89,7 @@ describe('Axios Configuration Integration', () => {
       )
 
       const mutation = api.useMutation(
-        OperationId.updatePet,
+        MutationOperationId.updatePet,
         { petId: '123' },
         {
           axiosOptions: {
@@ -104,11 +109,11 @@ describe('Axios Configuration Integration', () => {
       const transformRequest = vi.fn((data) => JSON.stringify(data))
       const transformResponse = vi.fn((data) => JSON.parse(data))
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { transformResponse },
       })
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: { transformRequest },
       })
 
@@ -119,7 +124,7 @@ describe('Axios Configuration Integration', () => {
     it('should support custom validateStatus function', () => {
       const validateStatus = vi.fn((status: number) => status >= 200 && status < 300)
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { validateStatus },
       })
 
@@ -127,7 +132,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support response configuration options', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           responseType: 'json',
           responseEncoding: 'utf8',
@@ -135,7 +140,7 @@ describe('Axios Configuration Integration', () => {
         },
       })
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: {
           maxBodyLength: 1000,
         },
@@ -154,11 +159,11 @@ describe('Axios Configuration Integration', () => {
         console.log('Download progress:', progressEvent)
       })
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { onDownloadProgress },
       })
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: { onUploadProgress },
       })
 
@@ -169,7 +174,7 @@ describe('Axios Configuration Integration', () => {
 
   describe('Authentication and Security', () => {
     it('should support CORS and credentials configuration', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           withCredentials: true,
           xsrfCookieName: 'XSRF-TOKEN',
@@ -181,7 +186,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support custom auth configuration', () => {
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: {
           auth: {
             username: 'user',
@@ -199,7 +204,7 @@ describe('Axios Configuration Integration', () => {
         'X-API-Key': 'secret-api-key',
       }
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { headers: authHeaders },
       })
 
@@ -209,7 +214,7 @@ describe('Axios Configuration Integration', () => {
 
   describe('Network and Proxy Configuration', () => {
     it('should support proxy configuration', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           proxy: {
             protocol: 'http',
@@ -223,7 +228,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support redirect and compression settings', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           maxRedirects: 3,
           decompress: true,
@@ -236,7 +241,7 @@ describe('Axios Configuration Integration', () => {
     it('should support custom parameters serialization', () => {
       const paramsSerializer = vi.fn((params) => new URLSearchParams(params).toString())
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { paramsSerializer },
       })
 
@@ -247,7 +252,7 @@ describe('Axios Configuration Integration', () => {
   describe('Custom Properties Support', () => {
     it('should accept custom axios properties like manualErrorHandling', () => {
       // This addresses the original issue with custom axios properties
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           // Standard axios properties
           timeout: 5000,
@@ -264,7 +269,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should accept custom properties with various data types', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           // Custom properties of various types
           stringProperty: 'test',
@@ -291,7 +296,7 @@ describe('Axios Configuration Integration', () => {
       }
 
       const query = api.useQuery(
-        OperationId.getPet,
+        QueryOperationId.getPet,
         { petId: '123' },
         {
           axiosOptions: {
@@ -310,7 +315,7 @@ describe('Axios Configuration Integration', () => {
 
   describe('Axios Options in Mutation Calls', () => {
     it('should support axios options override in mutate calls', () => {
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: {
           timeout: 5000,
           headers: { 'X-Setup-Header': 'setup-value' },
@@ -329,7 +334,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support axios options in mutateAsync calls', async () => {
-      const mutation = api.useMutation(OperationId.createPet)
+      const mutation = api.useMutation(MutationOperationId.createPet)
 
       await expect(
         mutation.mutateAsync({
@@ -349,7 +354,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should merge axios options from setup and runtime calls', () => {
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: {
           timeout: 5000,
           maxRedirects: 3,
@@ -375,7 +380,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle complex custom properties in mutation calls', () => {
-      const mutation = api.useMutation(OperationId.createPet)
+      const mutation = api.useMutation(MutationOperationId.createPet)
 
       expect(() => {
         mutation.mutate({
@@ -405,7 +410,7 @@ describe('Axios Configuration Integration', () => {
 
   describe('Environment and Browser-Specific Configuration', () => {
     it('should support Node.js specific options', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           // Node.js specific options
           maxRedirects: 5,
@@ -417,7 +422,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support browser specific options', () => {
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           // Browser specific options
           withCredentials: true,
@@ -441,7 +446,7 @@ describe('Axios Configuration Integration', () => {
       }
 
       const apiWithGlobal = useOpenApi(configWithGlobalAxios)
-      const query = apiWithGlobal.useQuery(OperationId.listPets, {
+      const query = apiWithGlobal.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           headers: { 'Request-Specific': 'request-value' },
         },
@@ -467,7 +472,7 @@ describe('Axios Configuration Integration', () => {
         (error) => Promise.reject(error),
       )
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           headers: { 'Custom-Header': 'value' },
         },
@@ -481,11 +486,11 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle empty or undefined axios options gracefully', () => {
-      const queryWithEmpty = api.useQuery(OperationId.listPets, {
+      const queryWithEmpty = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {},
       })
 
-      const queryWithUndefined = api.useQuery(OperationId.listPets, {
+      const queryWithUndefined = api.useQuery(QueryOperationId.listPets, {
         enabled: true,
         // axiosOptions is intentionally undefined
       })
@@ -496,7 +501,7 @@ describe('Axios Configuration Integration', () => {
 
     it('should support request cancellation with AbortController', () => {
       const controller = new AbortController()
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: {
           signal: controller.signal,
         },
@@ -514,7 +519,7 @@ describe('Axios Configuration Integration', () => {
       const onSuccess = vi.fn()
       const customHeaders = { 'X-Custom': 'value' }
 
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         // TanStack Query options
         onSuccess,
         retry: 3,
@@ -533,7 +538,7 @@ describe('Axios Configuration Integration', () => {
       const onLoad = vi.fn()
 
       const query = api.useQuery(
-        OperationId.getPet,
+        QueryOperationId.getPet,
         { petId: '123' },
         {
           // Custom options

@@ -1,4 +1,4 @@
-import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useQuery, QueryClient } from '@tanstack/vue-query'
 import { Operations, type ApiPathParams, type ApiResponse, type QQueryOptions } from './types'
 import { getParamsOptionsFrom, useResolvedOperation } from './openapi-utils'
@@ -8,20 +8,61 @@ import { type OpenApiHelpers } from './openapi-helpers'
 /**
  * Return type of `useQuery` (created via `useOpenApi`).
  *
- * Includes all properties from TanStack Query's UseQueryResult plus helpers:
- * - `data`: ComputedRef of response data (undefined until loaded)
- * - `isEnabled`: ComputedRef indicating if the query is enabled
- * - `queryKey`: ComputedRef of the resolved query key
- * - `onLoad(callback)`: Register a callback for first successful load
- * - `pathParams`: Resolved path params as a computed ref
+ * Reactive query result with automatic caching, error handling, and helpers.
+ *
+ * All properties are reactive (ComputedRef) and auto-unwrap in Vue templates.
  *
  * @template Ops - The operations type from your OpenAPI specification
  * @template Op - The operation key from your operations type
+ *
+ * @example
+ * ```typescript
+ * const query = api.useQuery('listPets', { queryParams: { limit: 10 } })
+ *
+ * // Reactive properties
+ * if (query.isPending.value) console.log('Loading...')
+ * if (query.isError.value) console.log('Error:', query.error.value)
+ * if (query.isSuccess.value) console.log('Data:', query.data.value)
+ *
+ * // Helpers
+ * query.refetch()  // Manual refetch
+ * query.onLoad((data) => console.log('First load:', data))
+ * ```
+ *
+ * @group Types
  */
-export type EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
-  typeof useEndpointQuery<Ops, Op>
-> & {
-  /** Register a callback for when data loads successfully. */
+export interface EndpointQueryReturn<Ops extends Operations<Ops>, Op extends keyof Ops> {
+  /** The response data (undefined until loaded). */
+  data: ComputedRef<ApiResponse<Ops, Op> | undefined>
+
+  /** The error if the query failed. */
+  error: Ref<Error | null>
+
+  /** True while the query is loading. */
+  isPending: Ref<boolean>
+
+  /** True while loading (same as isPending, for compatibility). */
+  isLoading: Ref<boolean>
+
+  /** True when the query succeeded. */
+  isSuccess: Ref<boolean>
+
+  /** True when the query failed. */
+  isError: Ref<boolean>
+
+  /** Manually trigger a refetch. */
+  refetch: () => Promise<void>
+
+  /** Whether the query is currently enabled. */
+  isEnabled: ComputedRef<boolean>
+
+  /** The resolved query key for manual cache access. */
+  queryKey: ComputedRef<string[] | (string | unknown)[]>
+
+  /** The resolved path parameters. */
+  pathParams: ComputedRef<ApiPathParams<Ops, Op>>
+
+  /** Register a callback for when data loads successfully for the first time. */
   onLoad: (callback: (data: ApiResponse<Ops, Op>) => void) => void
 }
 
@@ -97,7 +138,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
 
   const query = useQuery(
     {
-      queryKey,
+      queryKey: queryKey as ComputedRef<string[]>,
       queryFn: async () => {
         try {
           const response = await h.axios({
@@ -119,7 +160,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
             // If errorHandler returns undefined and doesn't throw,
             // we consider this a "recovered" state and return undefined
             // TanStack Query will handle this as a successful query with no data
-            return undefined as ApiResponse<Ops, Op>
+            return undefined as unknown as ApiResponse<Ops, Op>
           } else {
             throw error
           }
@@ -183,5 +224,5 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     queryKey,
     onLoad,
     pathParams: resolvedPathParams,
-  }
+  } as unknown as EndpointQueryReturn<Ops, Op>
 }

@@ -18,17 +18,17 @@ Reactive parameters allow your API calls to automatically refetch when their dep
 ```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const selectedPetId = ref<string | null>(null)
 
 const { data: pet } = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   { petId: selectedPetId.value }, // Static value - won't refetch
 )
 
 const { data: reactivePet } = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   computed(() => ({ petId: selectedPetId.value })), // Reactive!
 )
 
@@ -41,13 +41,13 @@ selectedPetId.value = '123' // Triggers refetch
 ```typescript
 import { computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const userId = ref('123')
 const includeArchived = ref(false)
 
 const { data: userPets } = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => ({ userId: userId.value })), // Reactive path param
   {
     queryParams: computed(() => ({
@@ -68,13 +68,13 @@ includeArchived.value = true // Refetches with ?includeArchived=true
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 const searchTerm = ref('')
 const statusFilter = ref<PetStatus>(PetStatus.Available)
 
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: computed(() => ({
     search: searchTerm.value,
     status: statusFilter.value,
@@ -95,7 +95,7 @@ import { api } from './api/init'
 const page = ref(1)
 const limit = ref(20)
 
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: computed(() => ({
     page: page.value,
     limit: limit.value,
@@ -120,14 +120,14 @@ const prevPage = () => {
 ```typescript
 import { computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // First query
-const { data: user } = api.useQuery(OperationId.getUser, { userId: '123' })
+const { data: user } = api.useQuery(QueryOperationId.getUser, { userId: '123' })
 
 // Second query depends on first query's result
 const { data: userPets } = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => ({
     userId: user.value?.id, // Only runs when user is loaded
   })),
@@ -139,13 +139,13 @@ const { data: userPets } = api.useQuery(
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const selectedUserId = ref<string | undefined>(undefined)
 const shouldFetchPets = ref(true)
 
 const { data: userPets } = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => {
     if (!selectedUserId.value || !shouldFetchPets.value) {
       return null // Return null to disable query
@@ -164,12 +164,12 @@ shouldFetchPets.value = false // Disables query
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const isAuthenticated = ref(false)
 
 const { data: profile } = api.useQuery(
-  OperationId.getProfile,
+  QueryOperationId.getProfile,
   {},
   {
     enabled: computed(() => isAuthenticated.value),
@@ -187,12 +187,12 @@ isAuthenticated.value = true // Starts fetching
 ```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const selectedPetId = ref('123')
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: selectedPetId.value }, // Not reactive - static value
 )
 
@@ -224,7 +224,7 @@ watch(searchTerm, (newValue) => {
   }, 300)
 })
 
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: computed(() => ({
     search: debouncedSearch.value,
   })),
@@ -246,7 +246,7 @@ const filters = ref({
   sortOrder: 'asc',
 })
 
-const { data: products } = api.useQuery(OperationId.listProducts, {
+const { data: products } = api.useQuery(QueryOperationId.listProducts, {
   queryParams: computed(() => {
     const params: Record<string, any> = {}
 
@@ -272,13 +272,13 @@ filters.value.sortOrder = 'desc'
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const showDetails = ref(false)
 const petId = ref('123')
 
 const { data: pet } = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   computed(() => {
     // Return null when details shouldn't be shown
     if (!showDetails.value) return null
@@ -298,13 +298,13 @@ const toggleDetails = () => {
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const shouldLoad = ref(false)
 const petId = ref('123')
 
 const { data: pet, refetch } = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   computed(() => {
     if (!shouldLoad.value) return null
     return { petId: petId.value }

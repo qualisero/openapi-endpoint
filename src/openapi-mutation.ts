@@ -6,9 +6,11 @@ import {
   type QMutationVars,
   type ApiResponse,
   type QMutationOptions,
+  type ApiRequest,
+  type MutateFn,
+  type MutateAsyncFn,
   HttpMethod,
   Operations,
-  ApiRequest,
 } from './types'
 import {
   isPathResolved,
@@ -23,20 +25,62 @@ import { type AxiosResponse } from 'axios'
 /**
  * Return type of `useMutation` (created via `useOpenApi`).
  *
- * Includes all properties from TanStack Query's UseMutationResult plus helpers:
- * - `mutate(vars)`: Execute mutation (non-blocking)
- * - `mutateAsync(vars)`: Execute mutation and await the response
- * - `data`: ComputedRef of the Axios response
- * - `isEnabled`: ComputedRef indicating if mutation can execute (path resolved)
- * - `extraPathParams`: Ref for additional path params when calling mutate
- * - `pathParams`: Resolved path params as a computed ref
+ * Reactive mutation result with automatic cache management and helpers.
+ *
+ * All properties are reactive (ComputedRef/Ref) and auto-unwrap in Vue templates.
  *
  * @template Ops - The operations type from your OpenAPI specification
  * @template Op - The operation key from your operations type
+ *
+ * @example
+ * ```typescript
+ * const mutation = api.useMutation('createPet')
+ *
+ * // Reactive properties
+ * if (mutation.isPending.value) console.log('Saving...')
+ * if (mutation.isSuccess.value) console.log('Created:', mutation.data.value)
+ *
+ * // Execute
+ * mutation.mutate({ data: { name: 'Fluffy' } })
+ * await mutation.mutateAsync({ data: { name: 'Fluffy' } })
+ * ```
+ *
+ * @group Types
  */
-export type EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> = ReturnType<
-  typeof useEndpointMutation<Ops, Op>
->
+export interface EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> {
+  /** The Axios response (undefined until mutation completes). */
+  data: ComputedRef<AxiosResponse<ApiResponse<Ops, Op>> | undefined>
+
+  /** The error if the mutation failed. */
+  error: Ref<Error | null>
+
+  /** True while the mutation is in progress. */
+  isPending: Ref<boolean>
+
+  /** True when the mutation succeeded. */
+  isSuccess: Ref<boolean>
+
+  /** True when the mutation failed. */
+  isError: Ref<boolean>
+
+  /** Execute the mutation (non-blocking). */
+  mutate: MutateFn<Ops, Op>
+
+  /** Execute the mutation and wait for the response. */
+  mutateAsync: MutateAsyncFn<Ops, Op>
+
+  /** Reset the mutation state. */
+  reset: () => void
+
+  /** Whether the mutation can execute (path parameters resolved). */
+  isEnabled: ComputedRef<boolean>
+
+  /** The resolved path parameters. */
+  pathParams: ComputedRef<ApiPathParams<Ops, Op>>
+
+  /** Additional path parameters that can be provided at mutation time. */
+  extraPathParams: Ref<ApiPathParams<Ops, Op>>
+}
 
 /**
  * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
@@ -258,5 +302,5 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
     extraPathParams,
     pathParams: allPathParams,
-  }
+  } as unknown as EndpointMutationReturn<Ops, Op>
 }

@@ -13,9 +13,9 @@ Turns your `openapi.json` into typesafe API composables using Vue Query (TanStac
 Let's you get TanStack Vue Query composables that enforce consistency (name of endpoints, typing) with your API's `openapi.json` file:
 
 ```typescript
-const { data, isLoading } = api.useQuery(OperationId.getPet, { petId: '123' })
+const { data, isLoading } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
-const createPetMutation = api.useMutation(OperationId.createPet)
+const createPetMutation = api.useMutation(MutationOperationId.createPet)
 createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
 ```
 
@@ -52,7 +52,12 @@ import { useOpenApi } from '@qualisero/openapi-endpoint'
 import axios from 'axios'
 
 // Import your auto-generated operations (includes both metadata and types)
-import { OperationId, openApiOperations, type OpenApiOperations } from './generated/api-operations'
+import {
+  QueryOperationId,
+  MutationOperationId,
+  openApiOperations,
+  type OpenApiOperations,
+} from './generated/api-operations'
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -66,21 +71,21 @@ const api = useOpenApi<OpenApiOperations>({
 })
 
 // Export for use in other parts of your application
-export { api, OperationId }
+export { api, QueryOperationId, MutationOperationId, OperationId }
 ```
 
 ### 2. Use the API in your components
 
 ```typescript
 // In your Vue components
-import { api, OperationId } from './api/init'
+import { api, QueryOperationId, MutationOperationId } from './api/init'
 
 // Use queries for GET operations
-const { data: pets, isLoading } = api.useQuery(OperationId.listPets)
-const { data: pet } = api.useQuery(OperationId.getPet, { petId: '123' })
+const { data: pets, isLoading } = api.useQuery(QueryOperationId.listPets)
+const { data: pet } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
 // Use mutations for POST/PUT/PATCH/DELETE operations
-const createPetMutation = api.useMutation(OperationId.createPet)
+const createPetMutation = api.useMutation(MutationOperationId.createPet)
 
 // Execute mutations
 await createPetMutation.mutateAsync({
@@ -96,10 +101,10 @@ The library supports type-safe, reactive query parameters that automatically tri
 
 ```typescript
 import { ref, computed } from 'vue'
-import { api, OperationId } from './api/init'
+import { api, QueryOperationId } from './api/init'
 
 // Static query parameters
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: { limit: 10 },
 })
 // Results in: GET /pets?limit=10
@@ -108,7 +113,7 @@ const { data: pets } = api.useQuery(OperationId.listPets, {
 const limit = ref(10)
 const status = ref<'available' | 'pending' | 'sold'>('available')
 
-const petsQuery = api.useQuery(OperationId.listPets, {
+const petsQuery = api.useQuery(QueryOperationId.listPets, {
   queryParams: computed(() => ({
     limit: limit.value,
     status: status.value,
@@ -122,7 +127,7 @@ status.value = 'pending'
 
 // Combine with path parameters
 const userPetsQuery = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => ({ userId: userId.value })),
   {
     queryParams: computed(() => ({
@@ -150,19 +155,19 @@ By default, mutations automatically:
 
 ```typescript
 // Default behavior: automatic cache management
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 // No additional configuration needed - cache management is automatic
 
 // Manual control over cache invalidation
-const updatePet = api.useMutation(OperationId.updatePet, {
+const updatePet = api.useMutation(MutationOperationId.updatePet, {
   dontInvalidate: true, // Disable automatic invalidation
   dontUpdateCache: true, // Disable automatic cache updates
-  invalidateOperations: [OperationId.listPets], // Manually specify operations to invalidate
+  invalidateOperations: [QueryOperationId.listPets], // Manually specify operations to invalidate
 })
 
 // Refetch specific endpoints after mutation
-const petListQuery = api.useQuery(OperationId.listPets)
-const createPetWithRefetch = api.useMutation(OperationId.createPet, {
+const petListQuery = api.useQuery(QueryOperationId.listPets)
+const createPetWithRefetch = api.useMutation(MutationOperationId.createPet, {
   refetchEndpoints: [petListQuery], // Manually refetch these endpoints
 })
 ```
@@ -177,7 +182,7 @@ async function uploadPetPicture(petId: string, file: File) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId })
+  const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -191,7 +196,7 @@ async function uploadPetPicture(petId: string, file: File) {
 
 // Alternative: using the object structure (if your API supports binary strings)
 async function uploadPetPictureAsString(petId: string, binaryData: string) {
-  const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId })
+  const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId })
 
   return uploadMutation.mutateAsync({
     data: {
@@ -210,10 +215,10 @@ async function handleFileUpload(event: Event, petId: string) {
   formData.append('file', file)
 
   const uploadMutation = api.useMutation(
-    OperationId.uploadPetPic,
+    MutationOperationId.uploadPetPic,
     { petId },
     {
-      invalidateOperations: [OperationId.getPet, OperationId.listPets],
+      invalidateOperations: [QueryOperationId.getPet, QueryOperationId.listPets],
       onSuccess: (data) => {
         console.log('Upload successful:', data)
       },
@@ -233,17 +238,17 @@ async function handleFileUpload(event: Event, petId: string) {
 
 ### Reactive Enabling/Disabling Based on Path Parameters
 
-One powerful feature is chaining queries where one query provides the parameters for another:
+You can chain queries where one query provides the parameters for another:
 
 ```typescript
 import { ref, computed } from 'vue'
 
 // First query to get user information
-const userQuery = api.useQuery(OperationId.getUser, { userId: 123 })
+const userQuery = api.useQuery(QueryOperationId.getUser, { userId: 123 })
 
 // Second query that depends on the first query's result
 const userPetsQuery = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => ({
     userId: userQuery.data.value?.id, // Chain: use ID from first query
   })),
@@ -254,7 +259,7 @@ const selectedPetId = ref<string | undefined>(undefined)
 
 // Query automatically enables/disables based on parameter availability
 const petQuery = api.useQuery(
-  OperationId.getPet,
+  QueryOperationId.getPet,
   computed(() => ({ petId: selectedPetId.value })),
 )
 
@@ -270,7 +275,7 @@ const userId = ref<string>('user1')
 const shouldFetchPets = ref(true)
 
 const userPetsQuery = api.useQuery(
-  OperationId.listUserPets,
+  QueryOperationId.listUserPets,
   computed(() => ({ userId: userId.value })),
   {
     enabled: computed(
@@ -287,7 +292,7 @@ import { ref } from 'vue'
 
 // Use reactive query parameters
 const limit = ref(10)
-const petsQuery = api.useQuery(OperationId.listPets, {
+const petsQuery = api.useQuery(QueryOperationId.listPets, {
   queryParams: { limit: limit.value },
 })
 

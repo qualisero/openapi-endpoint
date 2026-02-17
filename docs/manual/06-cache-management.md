@@ -16,9 +16,9 @@ Queries automatically cache their results based on:
 
 ```typescript
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const { data: pets } = api.useQuery(OperationId.listPets)
+const { data: pets } = api.useQuery(QueryOperationId.listPets)
 
 // First call: fetches from API
 // Second call (with same params): returns cached data immediately
@@ -33,7 +33,7 @@ Mutations automatically:
 3. **Trigger refetch** - Stale queries automatically refetch
 
 ```typescript
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 await createPet.mutateAsync({
   data: { name: 'Fluffy', species: 'cat' },
@@ -51,10 +51,10 @@ await createPet.mutateAsync({
 `staleTime` determines how long data is considered "fresh":
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const { data: pets } = api.useQuery(
-  OperationId.listPets,
+  QueryOperationId.listPets,
   {},
   {
     staleTime: 60 * 1000, // 1 minute
@@ -76,10 +76,10 @@ const { data: pets } = api.useQuery(
 `gcTime` (formerly `cacheTime`) determines how long data stays in memory:
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const { data: pets } = api.useQuery(
-  OperationId.listPets,
+  QueryOperationId.listPets,
   {},
   {
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -94,7 +94,7 @@ const { data: pets } = api.useQuery(
 Set defaults for all queries:
 
 ```typescript
-import { useOpenApi, queryClient } from '@qualisero/openapi-endpoint'
+import { useOpenApi } from '@qualisero/openapi-endpoint'
 import { QueryClient } from '@tanstack/vue-query'
 
 const customQueryClient = new QueryClient({
@@ -119,7 +119,7 @@ const api = useOpenApi<OpenApiOperations>({
 ### Manual Refetch
 
 ```typescript
-const { data: pets, refetch } = api.useQuery(OperationId.listPets)
+const { data: pets, refetch } = api.useQuery(QueryOperationId.listPets)
 
 // Manually trigger refetch
 refetch()
@@ -128,11 +128,14 @@ refetch()
 ### Manual Invalidation
 
 ```typescript
-import { queryClient } from '@qualisero/openapi-endpoint'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petsQuery = api.useQuery(OperationId.listPets)
+// Get the query client instance
+const queryClient = useQueryClient()
+
+const petsQuery = api.useQuery(QueryOperationId.listPets)
 
 // Invalidate specific queries by key
 queryClient.invalidateQueries({ queryKey: petsQuery.queryKey.value })
@@ -150,11 +153,12 @@ queryClient.invalidateQueries({
 ### Set Query Data
 
 ```typescript
-import { queryClient } from '@qualisero/openapi-endpoint'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
+const queryClient = useQueryClient()
+const petQuery = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
 // Manually set data in cache
 queryClient.setQueryData(petQuery.queryKey.value, {
@@ -169,11 +173,12 @@ queryClient.setQueryData(petQuery.queryKey.value, {
 ### Get Query Data
 
 ```typescript
-import { queryClient } from '@qualisero/openapi-endpoint'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petsQuery = api.useQuery(OperationId.listPets)
+const queryClient = useQueryClient()
+const petsQuery = api.useQuery(QueryOperationId.listPets)
 
 // Read cached data
 const cachedPets = queryClient.getQueryData(petsQuery.queryKey.value)
@@ -188,10 +193,10 @@ if (cachedPets) {
 ### Disable Automatic Invalidation
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't auto-invalidate any queries
@@ -202,10 +207,10 @@ const updatePet = api.useMutation(
 ### Disable Automatic Cache Updates
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     dontUpdateCache: true, // Don't update cache with mutation result
@@ -216,16 +221,16 @@ const updatePet = api.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   { userId: '123' },
   {
     invalidateOperations: [
-      OperationId.listPets, // Invalidate specific operations
-      OperationId.getUserPets,
-      OperationId.getPet, // Won't auto-detect, manually specified
+      QueryOperationId.listPets, // Invalidate specific operations
+      QueryOperationId.getUserPets,
+      QueryOperationId.getPet, // Won't auto-detect, manually specified
     ],
   },
 )
@@ -234,13 +239,13 @@ const createPet = api.useMutation(
 ### Refetch Specific Endpoints
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petListQuery = api.useQuery(OperationId.listPets)
-const userPetsQuery = api.useQuery(OperationId.getUserPets, { userId: '123' })
+const petListQuery = api.useQuery(QueryOperationId.listPets)
+const userPetsQuery = api.useQuery(QueryOperationId.getUserPets, { userId: '123' })
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     refetchEndpoints: [
@@ -258,13 +263,15 @@ Optimistic updates show UI changes immediately, then rollback if the mutation fa
 ### Basic Optimistic Update
 
 ```typescript
-import { api, queryClient } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
+const queryClient = useQueryClient()
 const petQueryKey = ['pets', '123']
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     onMutate: async (variables) => {
@@ -306,13 +313,15 @@ await updatePet.mutateAsync({
 ### Optimistic List Update
 
 ```typescript
-import { api, queryClient } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
+const queryClient = useQueryClient()
 const listQueryKey = ['pets']
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     onMutate: async (variables) => {
@@ -346,15 +355,18 @@ const createPet = api.useMutation(
 Load data before it's needed:
 
 ```typescript
-import { api, queryClient } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const queryClient = useQueryClient()
 
 // Prefetch on hover
 const handleMouseEnter = () => {
   queryClient.prefetchQuery({
     queryKey: ['pets', '123'],
     queryFn: async () => {
-      const result = await api.useQuery(OperationId.getPet, { petId: '123' })
+      const result = await api.useQuery(QueryOperationId.getPet, { petId: '123' })
       return result.data.value
     },
     staleTime: 60 * 1000, // Fresh for 1 minute
@@ -365,11 +377,14 @@ const handleMouseEnter = () => {
 ### Pagination Cache Management
 
 ```typescript
-import { api, queryClient } from './api/init'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId } from './api/generated/api-operations'
 
+const queryClient = useQueryClient()
 const page = ref(1)
 
-const { data: pets } = api.useQuery(OperationId.listPets, {
+const { data: pets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: computed(() => ({
     page: page.value,
     limit: 20,
@@ -384,7 +399,7 @@ const loadNextPage = () => {
   queryClient.prefetchQuery({
     queryKey: ['pets', { page: nextPage, limit: 20 }],
     queryFn: async () => {
-      const result = await api.useQuery(OperationId.listPets, {
+      const result = await api.useQuery(QueryOperationId.listPets, {
         queryParams: { page: nextPage, limit: 20 },
       })
       return result.data.value
@@ -398,14 +413,16 @@ const loadNextPage = () => {
 ### Server-Side Updates Without Refetch
 
 ```typescript
-import { api, queryClient } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
+const queryClient = useQueryClient()
 const petQueryKey = ['pets', '123']
 const listQueryKey = ['pets']
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't refetch
@@ -431,7 +448,9 @@ const updatePet = api.useMutation(
 ### Monitor Cache State
 
 ```typescript
-import { queryClient } from '@qualisero/openapi-endpoint'
+import { useQueryClient } from '@tanstack/vue-query'
+
+const queryClient = useQueryClient()
 
 // Get all cached queries
 const cacheData = queryClient.getQueryCache().getAll()
@@ -446,7 +465,9 @@ cacheData.forEach((query) => {
 ### Clear Cache
 
 ```typescript
-import { queryClient } from '@qualisero/openapi-endpoint'
+import { useQueryClient } from '@tanstack/vue-query'
+
+const queryClient = useQueryClient()
 
 // Clear all cache
 queryClient.clear()

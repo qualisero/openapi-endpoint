@@ -13,7 +13,8 @@ import { useOpenApi } from '@/index'
 import { type OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 import {
-  OperationId,
+  QueryOperationId,
+  MutationOperationId,
   OpType,
   openApiOperations,
   type OpenApiOperations,
@@ -327,7 +328,7 @@ describe('Integration with useOpenApi', () => {
 
   it('should enforce type safety with useMutation', () => {
     const api = useOpenApi(mockConfig)
-    const createPet = api.useMutation(OperationId.createPet)
+    const createPet = api.useMutation(MutationOperationId.createPet)
 
     expect(createPet).toHaveProperty('mutate')
     expect(createPet).toHaveProperty('mutateAsync')
@@ -338,7 +339,7 @@ describe('Integration with useOpenApi', () => {
 
   it('should enforce type safety with useMutation for updatePet', () => {
     const api = useOpenApi(mockConfig)
-    const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+    const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
 
     expect(updatePet).toBeTruthy()
 
@@ -348,21 +349,21 @@ describe('Integration with useOpenApi', () => {
 
   it('should work with useQuery for listPets', () => {
     const api = useOpenApi(mockConfig)
-    const listPets = api.useQuery(OperationId.listPets)
+    const listPets = api.useQuery(QueryOperationId.listPets)
 
     expect(listPets).toHaveProperty('data')
   })
 
   it('should work with useQuery for getPet', () => {
     const api = useOpenApi(mockConfig)
-    const getPet = api.useQuery(OperationId.getPet, { petId: '123' })
+    const getPet = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
     expect(getPet).toBeTruthy()
   })
 
   it('should return data with all fields required from useQuery', () => {
     const api = useOpenApi(mockConfig)
-    const result = api.useQuery(OperationId.getPet, { petId: '123' })
+    const result = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 
     // ApiResponse makes ALL fields required
     if (result.data.value) {

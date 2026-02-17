@@ -2,7 +2,14 @@ import { vi, expect } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from './setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from './fixtures/openapi-typed-operations'
+import {
+  QueryOperationId,
+  MutationOperationId,
+  OperationId,
+  AllOperationIds,
+  openApiOperations,
+  type OpenApiOperations,
+} from './fixtures/openapi-typed-operations'
 
 /**
  * Shared Test Utilities and Fixtures
@@ -193,7 +200,7 @@ export const testScenarios = {
    * Standard query test scenario
    */
   basicQuery: (api: OpenApiInstance<OpenApiOperations>) => {
-    const query = api.useQuery(OperationId.listPets)
+    const query = api.useQuery(QueryOperationId.listPets)
     testPatterns.assertQueryResult(query)
     return query
   },
@@ -202,7 +209,7 @@ export const testScenarios = {
    * Query with path parameters test scenario
    */
   queryWithParams: (api: OpenApiInstance<OpenApiOperations>, petId = '123') => {
-    const query = api.useQuery(OperationId.getPet, { petId })
+    const query = api.useQuery(QueryOperationId.getPet, { petId })
     testPatterns.assertQueryResult(query)
     expect(query.queryKey.value).toEqual(['pets', petId])
     return query
@@ -212,7 +219,7 @@ export const testScenarios = {
    * Standard mutation test scenario
    */
   basicMutation: (api: OpenApiInstance<OpenApiOperations>) => {
-    const mutation = api.useMutation(OperationId.createPet)
+    const mutation = api.useMutation(MutationOperationId.createPet)
     testPatterns.assertMutationResult(mutation)
     return mutation
   },
@@ -221,7 +228,7 @@ export const testScenarios = {
    * Mutation with path parameters test scenario
    */
   mutationWithParams: (api: OpenApiInstance<OpenApiOperations>, petId = '123') => {
-    const mutation = api.useMutation(OperationId.updatePet, { petId })
+    const mutation = api.useMutation(MutationOperationId.updatePet, { petId })
     testPatterns.assertMutationResult(mutation)
     expect(mutation.isEnabled.value).toBe(true)
     return mutation
@@ -233,14 +240,14 @@ export const testScenarios = {
  */
 export const operationExamples = {
   queries: {
-    simple: OperationId.listPets,
-    withParams: OperationId.getPet,
-    nested: OperationId.listUserPets,
+    simple: QueryOperationId.listPets,
+    withParams: QueryOperationId.getPet,
+    nested: QueryOperationId.listUserPets,
   },
   mutations: {
-    create: OperationId.createPet,
-    update: OperationId.updatePet,
-    delete: OperationId.deletePet,
+    create: MutationOperationId.createPet,
+    update: MutationOperationId.updatePet,
+    delete: MutationOperationId.deletePet,
   },
 }
 
@@ -273,4 +280,11 @@ export const axiosConfigExamples = {
   },
 }
 
-export { OperationId, openApiOperations, type OpenApiOperations }
+export {
+  QueryOperationId,
+  MutationOperationId,
+  OperationId,
+  openApiOperations,
+  type OpenApiOperations,
+  type AllOperationIds,
+}

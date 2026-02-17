@@ -121,9 +121,9 @@ const api = useOpenApi<OpenApiOperations>({
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const { data: pets, isLoading, error } = api.useQuery(OperationId.listPets)
+const { data: pets, isLoading, error } = api.useQuery(QueryOperationId.listPets)
 
 if (error.value) {
   console.error('Failed to load pets:', error.value)
@@ -145,11 +145,11 @@ if (error.value) {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const name = ref('')
 
-const createPet = api.useMutation(OperationId.createPet, {
+const createPet = api.useMutation(MutationOperationId.createPet, {
   onSuccess: () => {
     console.log('Pet created!')
     name.value = ''
@@ -181,15 +181,15 @@ The CLI generates type-safe enum constants from your OpenAPI spec:
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Use enum constants for intellisense and typo safety
-const { data: availablePets } = api.useQuery(OperationId.listPets, {
+const { data: availablePets } = api.useQuery(QueryOperationId.listPets, {
   queryParams: { status: PetStatus.Available },
 })
 
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 const handleSubmit = async () => {
   await createPet.mutateAsync({

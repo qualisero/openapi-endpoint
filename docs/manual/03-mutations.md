@@ -12,10 +12,10 @@ Mutations are used for creating, updating, or deleting data on your API. They wr
 
 ```typescript
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Simple mutation for creating data
-const createPet = api.useMutation(OperationId.createPet, {
+const createPet = api.useMutation(MutationOperationId.createPet, {
   onSuccess: (data) => {
     console.log('Pet created:', data)
   },
@@ -36,7 +36,7 @@ await createPet.mutateAsync({
 import { api } from './api/init'
 
 // Mutation with path parameters
-const updatePet = api.useMutation(OperationId.updatePet, { petId: '123' })
+const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
 
 // Execute mutation
 await updatePet.mutateAsync({
@@ -48,11 +48,11 @@ await updatePet.mutateAsync({
 
 ```typescript
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Mutation with query parameters
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     queryParams: { userId: '456' },
@@ -74,7 +74,7 @@ The mutation object provides two methods for executing the mutation:
 Executes mutation imperatively (fire and forget):
 
 ```typescript
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 createPet.mutate({
   data: { name: 'Fluffy' },
@@ -87,7 +87,7 @@ createPet.mutate({
 Executes mutation and returns a promise:
 
 ```typescript
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 try {
   const result = await createPet.mutateAsync({
@@ -104,10 +104,10 @@ try {
 ### Success Handler
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     onSuccess: (data, variables, context) => {
@@ -122,10 +122,10 @@ const createPet = api.useMutation(
 ### Error Handler
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     onError: (error, variables, context) => {
@@ -142,10 +142,10 @@ const createPet = api.useMutation(
 ### Settled Handler
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     onSettled: (data, error, variables, context) => {
@@ -159,11 +159,14 @@ const createPet = api.useMutation(
 ### Optimistic Updates
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petQuery = api.useQuery(OperationId.getPet, { petId: '123' })
+const queryClient = useQueryClient()
+const petQuery = api.useQuery(QueryOperationId.getPet, { petId: '123' })
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     onMutate: async (variables) => {
@@ -194,7 +197,7 @@ const updatePet = api.useMutation(
 The mutation object provides reactive state properties:
 
 ```typescript
-const createPet = api.useMutation(OperationId.createPet)
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 console.log(createPet.isPending.value) // true while mutation is in progress
 console.log(createPet.isSuccess.value) // true if mutation succeeded
@@ -213,7 +216,7 @@ By default, mutations automatically:
 
 ```typescript
 // Automatic cache management (default)
-const createPet = api.useMutation(OperationId.createPet, { petId: '123' })
+const createPet = api.useMutation(MutationOperationId.createPet, { petId: '123' })
 
 // This will:
 // 1. Update cache for getPet/123 with returned data
@@ -226,10 +229,10 @@ const createPet = api.useMutation(OperationId.createPet, { petId: '123' })
 ### Disable Automatic Invalidation
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     dontInvalidate: true, // Don't auto-invalidate
@@ -241,15 +244,15 @@ const updatePet = api.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   { petId: '123' },
   {
     invalidateOperations: [
-      OperationId.listPets, // Invalidate specific operations
-      OperationId.getUserPets,
+      QueryOperationId.listPets, // Invalidate specific operations
+      QueryQueryOperationId.getUserPets,
     ],
   },
 )
@@ -258,11 +261,11 @@ const createPet = api.useMutation(
 ### Manually Refetch Endpoints
 
 ```typescript
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const petListQuery = api.useQuery(OperationId.listPets)
+const petListQuery = api.useQuery(QueryOperationId.listPets)
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   { petId: '123' },
   {
     refetchEndpoints: [petListQuery], // Refetch these endpoints
@@ -278,13 +281,13 @@ const createPet = api.useMutation(
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const name = ref('')
 const species = ref('cat')
 
 const createPet = api.useMutation(
-  OperationId.createPet,
+  MutationOperationId.createPet,
   {},
   {
     onSuccess: () => {
@@ -324,10 +327,10 @@ const handleSubmit = async () => {
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const deletePet = api.useMutation(
-  OperationId.deletePet,
+  MutationOperationId.deletePet,
   { petId: '123' },
   {
     onSuccess: () => {
@@ -356,12 +359,12 @@ const handleDelete = async () => {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { OperationId } from './api/generated/api-operations'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const petName = ref('Fluffy')
 
 const updatePet = api.useMutation(
-  OperationId.updatePet,
+  MutationOperationId.updatePet,
   { petId: '123' },
   {
     onSuccess: (data) => {

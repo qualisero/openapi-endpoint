@@ -28,7 +28,7 @@ const OPTION_PROPERTIES = [
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
   path: string,
-  pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
+  pathParams?: MaybeRefOrGetter<Record<string, string | number> | null | undefined>,
 ): string {
   if (pathParams === null || pathParams === undefined) return path
   const pathParamsValue = toValue(pathParams)
@@ -36,7 +36,7 @@ export function resolvePath(
 
   let resolvedPath = path
   Object.entries(pathParamsValue).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
+    if (value !== null && value !== undefined) {
       resolvedPath = resolvedPath.replace(`{${key}}`, String(value))
     }
   })
@@ -44,7 +44,7 @@ export function resolvePath(
   return resolvedPath
 }
 
-function isPathParams(path: string, pathParams: Record<string, string | number | undefined>): boolean {
+function isPathParams(path: string, pathParams: Record<string, string | number>): boolean {
   if (!pathParams) return false
   const paramNames = Object.keys(pathParams)
 
@@ -91,7 +91,7 @@ export interface ResolvedOperation<PathParams, QueryParams> {
  * @param extraPathParams - Optional ref for additional path params (used by mutations)
  */
 export function useResolvedOperation<
-  PathParams extends Record<string, string | number | undefined>,
+  PathParams extends Record<string, string | number> = Record<string, never>,
   QueryParams extends Record<string, unknown> = Record<string, never>,
 >(
   path: string,
@@ -163,7 +163,7 @@ export function getParamsOptionsFrom<
       pathParamsOrOptions !== null &&
       pathParamsOrOptionsValue &&
       typeof pathParamsOrOptionsValue === 'object' &&
-      isPathParams(path, pathParamsOrOptionsValue as Record<string, string | number | undefined>)
+      isPathParams(path, pathParamsOrOptionsValue as Record<string, string | number>)
     ) {
       // Called as: useEndpointQuery(operationId, pathParams)
       pathParams = pathParamsOrOptions as PathParams
