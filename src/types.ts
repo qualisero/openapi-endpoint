@@ -1,6 +1,6 @@
 import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { UseMutationOptions, type UseQueryOptions } from '@tanstack/vue-query'
-import type { MaybeRefOrGetter, ComputedRef, Ref } from 'vue'
+import type { MaybeRefOrGetter as _MaybeRefOrGetter, ComputedRef, Ref } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
 
@@ -25,7 +25,7 @@ export type RequiresPathParameters<Op extends string> = {
  *
  * @internal
  */
-export type HasExcessPathParams<Provided extends Record<string, any>, Expected extends Record<string, any>> =
+export type HasExcessPathParams<Provided extends Record<string, unknown>, Expected extends Record<string, unknown>> =
   Exclude<keyof Provided, keyof Expected> extends never ? true : false
 
 /**
@@ -219,7 +219,7 @@ export type ReactiveOr<T> = T | Ref<T> | ComputedRef<T> | (() => T)
 export type ApiPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
   parameters: { path: infer PathParams }
 }
-  ? PathParams extends Record<string, any>
+  ? PathParams extends Record<string, unknown>
     ? PathParams
     : Record<string, never>
   : Record<string, never>
