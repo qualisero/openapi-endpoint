@@ -5,13 +5,17 @@ import { type EndpointMutationReturn, useEndpointMutation } from './openapi-muta
 import {
   Operations,
   ApiPathParams,
+  ApiPathParamsInput,
   OpenApiConfig,
   OpenApiInstance,
   QQueryOptions,
   QMutationOptions,
-  NoPathParams,
-  WithPathParams,
+  QueryOpsNoPathParams,
+  QueryOpsWithPathParams,
+  MutationOpsNoPathParams,
+  MutationOpsWithPathParams,
   HasExcessPathParams,
+  ReactiveValue,
 } from './types'
 import { getHelpers } from './openapi-helpers'
 
@@ -23,6 +27,7 @@ export type {
   ApiResponseSafe,
   ApiRequest,
   ApiPathParams,
+  ApiPathParamsInput,
   ApiQueryParams,
   QueryClientLike,
   QQueryOptions,
@@ -35,8 +40,13 @@ export type {
   HasExcessPathParams,
   NoPathParams,
   WithPathParams,
+  QueryOpsNoPathParams,
+  QueryOpsWithPathParams,
+  MutationOpsNoPathParams,
+  MutationOpsWithPathParams,
   AxiosRequestConfigExtended,
   ReactiveOr,
+  ReactiveValue,
   MutateFn,
   MutateAsyncFn,
   MutateAsyncReturn,
@@ -116,29 +126,40 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
    *   { enabled: computed(() => petId.value !== '') }
    * )
    */
-  function useQuery<Op extends keyof Ops>(
-    operationId: NoPathParams<Ops, Op>,
+  function useQuery<Op extends QueryOpsNoPathParams<Ops>>(
+    operationId: Op,
     options?: QQueryOptions<Ops, Op>,
   ): EndpointQueryReturn<Ops, Op>
-  function useQuery<Op extends keyof Ops>(
-    operationId: WithPathParams<Ops, Op>,
-    pathParams: ApiPathParams<Ops, Op>,
+  function useQuery<Op extends QueryOpsWithPathParams<Ops>>(
+    operationId: Op,
+    pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
     options?: QQueryOptions<Ops, Op>,
   ): EndpointQueryReturn<Ops, Op>
-  function useQuery<Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
-    operationId: WithPathParams<Ops, Op>,
+  function useQuery<Op extends QueryOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
+    operationId: Op,
     pathParams: () => PathParams &
       (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
     options?: QQueryOptions<Ops, Op>,
   ): EndpointQueryReturn<Ops, Op>
-  function useQuery<Op extends keyof Ops>(
+  function useQuery<Op extends QueryOpsNoPathParams<Ops> | QueryOpsWithPathParams<Ops>>(
     operationId: Op,
-    pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
+    pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
     optionsOrNull?: QQueryOptions<Ops, Op>,
   ): EndpointQueryReturn<Ops, Op> {
     const helpers = getHelpers<Ops, Op>(config)
+    const { path } = helpers.getOperationInfo(operationId)
+    const hasPathParams = path.includes('{')
 
-    return useEndpointQuery<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+    if (hasPathParams) {
+      return useEndpointQuery<Ops, Op>(
+        operationId,
+        helpers,
+        pathParamsOrOptions as MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined>,
+        optionsOrNull,
+      )
+    }
+
+    return useEndpointQuery<Ops, Op>(operationId, helpers, undefined, pathParamsOrOptions as QQueryOptions<Ops, Op>)
   }
 
   /**
@@ -179,29 +200,45 @@ export function useOpenApi<Ops extends Operations<Ops>>(config: OpenApiConfig<Op
    * )
    * updatePet.mutate({ data: { name: 'Updated' } })
    */
-  function useMutation<Op extends keyof Ops>(
-    operationId: NoPathParams<Ops, Op>,
+  function useMutation<Op extends MutationOpsNoPathParams<Ops>>(
+    operationId: Op,
     options?: QMutationOptions<Ops, Op>,
   ): EndpointMutationReturn<Ops, Op>
-  function useMutation<Op extends keyof Ops>(
-    operationId: WithPathParams<Ops, Op>,
-    pathParams: ApiPathParams<Ops, Op>,
+  function useMutation<Op extends MutationOpsWithPathParams<Ops>>(
+    operationId: Op,
+    pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
     options?: QMutationOptions<Ops, Op>,
   ): EndpointMutationReturn<Ops, Op>
-  function useMutation<Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
-    operationId: WithPathParams<Ops, Op>,
+  function useMutation<Op extends MutationOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
+    operationId: Op,
     pathParams: () => PathParams &
       (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
     options?: QMutationOptions<Ops, Op>,
   ): EndpointMutationReturn<Ops, Op>
-  function useMutation<Op extends keyof Ops>(
+  function useMutation<Op extends MutationOpsNoPathParams<Ops> | MutationOpsWithPathParams<Ops>>(
     operationId: Op,
-    pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
+    pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
     optionsOrNull?: QMutationOptions<Ops, Op>,
   ): EndpointMutationReturn<Ops, Op> {
     const helpers = getHelpers<Ops, Op>(config)
+    const { path } = helpers.getOperationInfo(operationId)
+    const hasPathParams = path.includes('{')
 
-    return useEndpointMutation<Ops, Op>(operationId, helpers, pathParamsOrOptions, optionsOrNull)
+    if (hasPathParams) {
+      return useEndpointMutation<Ops, Op>(
+        operationId,
+        helpers,
+        pathParamsOrOptions as MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined>,
+        optionsOrNull,
+      )
+    }
+
+    return useEndpointMutation<Ops, Op>(
+      operationId,
+      helpers,
+      undefined,
+      pathParamsOrOptions as QMutationOptions<Ops, Op>,
+    )
   }
 
   return { useQuery, useMutation }

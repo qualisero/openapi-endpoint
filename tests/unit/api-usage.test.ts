@@ -113,7 +113,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should automatically disable queries with unresolved path parameters', () => {
-      const query = api.useQuery(QueryOperationId.getPet, { petId: undefined })
+      const query = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('isEnabled')
@@ -488,14 +488,18 @@ describe('API Usage Patterns', () => {
         },
       })
 
-      const updatePet = api.useMutation(MutationOperationId.updatePet, {
-        dontInvalidate: false, // Allow automatic invalidation
-        invalidateOperations: [QueryOperationId.listPets],
-        onSuccess: (data, variables) => {
-          console.log('Pet updated:', data, variables)
+      const updatePet = api.useMutation(
+        MutationOperationId.updatePet,
+        computed(() => ({ petId: selectedPetId.value })),
+        {
+          dontInvalidate: false, // Allow automatic invalidation
+          invalidateOperations: [QueryOperationId.listPets],
+          onSuccess: (data: unknown, variables: unknown) => {
+            console.log('Pet updated:', data, variables)
+          },
+          retry: 3,
         },
-        retry: 3,
-      })
+      )
 
       // Verify all components work
       expect(petListQuery).toBeTruthy()
@@ -520,11 +524,15 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support manual control over cache invalidation workflows', () => {
-      const updatePet = api.useMutation(MutationOperationId.updatePet, {
-        dontInvalidate: true, // Disable automatic invalidation
-        dontUpdateCache: true, // Disable automatic cache updates
-        invalidateOperations: [QueryOperationId.listPets], // Manually specify operations to invalidate
-      })
+      const updatePet = api.useMutation(
+        MutationOperationId.updatePet,
+        { petId: '123' },
+        {
+          dontInvalidate: true, // Disable automatic invalidation
+          dontUpdateCache: true, // Disable automatic cache updates
+          invalidateOperations: [QueryOperationId.listPets], // Manually specify operations to invalidate
+        },
+      )
 
       expect(updatePet).toBeTruthy()
       expect(updatePet).toHaveProperty('mutate')
@@ -559,16 +567,17 @@ describe('API Usage Patterns', () => {
 
       // Create pet mutation with comprehensive options
       const createPetMutation = api.useMutation(MutationOperationId.createPet, {
-        onSuccess: async (newPet, _variables) => {
+        onSuccess: async (newPet: unknown, _variables: unknown) => {
           // Invalidate user's pets list
           await userPetsQuery.refetch()
 
+          const newPetResponse = newPet as { data?: { id?: string } }
           // Select the newly created pet
-          if (newPet?.data?.id) {
-            selectedPet.value = newPet.data.id
+          if (newPetResponse.data?.id) {
+            selectedPet.value = newPetResponse.data.id
           }
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           console.error('Failed to create pet:', error)
         },
         retry: 2,
@@ -578,15 +587,19 @@ describe('API Usage Patterns', () => {
       })
 
       // Update pet mutation with cache management
-      const updatePetMutation = api.useMutation(MutationOperationId.updatePet, {
-        invalidateOperations: {
-          [QueryOperationId.listUserPets]: { userId: currentUser.value.id },
-          [QueryOperationId.listPets]: {},
+      const updatePetMutation = api.useMutation(
+        MutationOperationId.updatePet,
+        computed(() => ({ petId: selectedPet.value })),
+        {
+          invalidateOperations: {
+            [QueryOperationId.listUserPets]: { userId: currentUser.value.id },
+            [QueryOperationId.listPets]: {},
+          },
+          onSuccess: (updatedPet: unknown) => {
+            console.log('Pet updated successfully:', updatedPet)
+          },
         },
-        onSuccess: (updatedPet) => {
-          console.log('Pet updated successfully:', updatedPet)
-        },
-      })
+      )
 
       // Verify all queries and mutations are properly configured
       expect(userPetsQuery).toBeTruthy()

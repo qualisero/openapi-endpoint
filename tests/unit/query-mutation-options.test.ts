@@ -256,12 +256,16 @@ describe('Query and Mutation Options', () => {
 
     it('should support combining different cache management options', () => {
       const petListQuery = api.useQuery(QueryOperationId.listPets)
-      const mutation = api.useMutation(MutationOperationId.updatePet, {
-        invalidateOperations: [QueryOperationId.listPets],
-        refetchEndpoints: [petListQuery],
-        dontInvalidate: false,
-        dontUpdateCache: false,
-      })
+      const mutation = api.useMutation(
+        MutationOperationId.updatePet,
+        { petId: '123' },
+        {
+          invalidateOperations: [QueryOperationId.listPets],
+          refetchEndpoints: [petListQuery],
+          dontInvalidate: false,
+          dontUpdateCache: false,
+        },
+      )
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -292,21 +296,9 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should handle different HTTP methods in mutations', () => {
-      const postMutation = useEndpointMutation<OpenApiOperations, 'createPet'>(MutationOperationId.createPet, helpers)
-      const putMutation = useEndpointMutation<OpenApiOperations, OpType.updatePet>(
-        MutationOperationId.updatePet,
-        helpers,
-        {
-          petId: '123',
-        },
-      )
-      const deleteMutation = useEndpointMutation<OpenApiOperations, 'deletePet'>(
-        MutationOperationId.deletePet,
-        helpers,
-        {
-          petId: '123',
-        },
-      )
+      const postMutation = api.useMutation(MutationOperationId.createPet)
+      const putMutation = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
+      const deleteMutation = api.useMutation(MutationOperationId.deletePet, { petId: '123' })
 
       expect(postMutation).toHaveProperty('mutate')
       expect(putMutation).toHaveProperty('mutate')
@@ -314,45 +306,33 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should handle path parameters correctly in advanced composables', () => {
-      const queryWithParams = useEndpointQuery<OpenApiOperations, 'getPet'>(QueryOperationId.getPet, helpers, {
-        petId: '123',
-      })
+      const queryWithParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
       expect(queryWithParams.queryKey.value).toEqual(['pets', '123'])
       expect(queryWithParams.isEnabled.value).toBe(true)
 
-      const queryWithoutParams = useEndpointQuery<OpenApiOperations, 'getPet'>(QueryOperationId.getPet, helpers)
+      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
       expect(queryWithoutParams.isEnabled.value).toBe(false)
 
-      const mutationWithParams = useEndpointMutation<OpenApiOperations, 'updatePet'>(
-        MutationOperationId.updatePet,
-        helpers,
-        {
-          petId: '123',
-        },
-      )
+      const mutationWithParams = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
       expect(mutationWithParams.isEnabled.value).toBe(true)
     })
 
     it('should support complex scenarios with advanced composables', () => {
       // Use existing nested operation from fixtures
-      const query = useEndpointQuery<OpenApiOperations, 'listUserPets'>(QueryOperationId.listUserPets, helpers, {
-        userId: 'user1',
-      })
+      const query = api.useQuery(QueryOperationId.listUserPets, { userId: 'user1' })
 
       expect(query.queryKey.value).toEqual(['users', 'user1', 'pets'])
       expect(query.isEnabled.value).toBe(true)
     })
 
     it('should handle missing path parameters gracefully in advanced composables', () => {
-      const query = useEndpointQuery<OpenApiOperations, 'getPet'>(QueryOperationId.getPet, helpers, {
-        petId: undefined,
-      })
+      const query = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
       expect(query.isEnabled.value).toBe(false)
     })
 
     it('should support options in advanced composables', () => {
       const onLoad = vi.fn()
-      const query = useEndpointQuery<OpenApiOperations, OpType.listPets>(QueryOperationId.listPets, helpers, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         onLoad,
         axiosOptions: { headers: { 'X-Test': 'value' } },
         staleTime: 3600,
@@ -360,16 +340,12 @@ describe('Query and Mutation Options', () => {
       expect(query).toHaveProperty('onLoad')
 
       const onSuccess = vi.fn()
-      const mutation = useEndpointMutation<OpenApiOperations, OpType.createPet>(
-        MutationOperationId.createPet,
-        helpers,
-        {
-          onSuccess,
-          invalidateOperations: [QueryOperationId.listPets],
-          axiosOptions: { headers: { 'X-Test': 'value' } },
-          retry: 3,
-        },
-      )
+      const mutation = api.useMutation(MutationOperationId.createPet, {
+        onSuccess,
+        invalidateOperations: [QueryOperationId.listPets],
+        axiosOptions: { headers: { 'X-Test': 'value' } },
+        retry: 3,
+      })
       expect(mutation).toBeTruthy()
     })
   })
@@ -377,25 +353,19 @@ describe('Query and Mutation Options', () => {
   describe('Type Safety and Parameter Validation', () => {
     it('should enforce correct parameter types', () => {
       // These should work at runtime with proper types
-      const queryWithCorrectParams = useEndpointQuery<OpenApiOperations, 'getPet'>(QueryOperationId.getPet, helpers, {
-        petId: '123',
-      })
+      const queryWithCorrectParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
       expect(queryWithCorrectParams).toBeTruthy()
 
-      const mutationWithCorrectParams = useEndpointMutation<OpenApiOperations, 'updatePet'>(
-        MutationOperationId.updatePet,
-        helpers,
-        { petId: '123' },
-      )
+      const mutationWithCorrectParams = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
       expect(mutationWithCorrectParams).toBeTruthy()
     })
 
     it('should handle optional parameters correctly', () => {
       // Test with operations that don't require path parameters
-      const query = useEndpointQuery<OpenApiOperations, 'listPets'>(QueryOperationId.listPets, helpers)
+      const query = api.useQuery(QueryOperationId.listPets)
       expect(query.isEnabled.value).toBe(true)
 
-      const mutation = useEndpointMutation<OpenApiOperations, 'createPet'>(MutationOperationId.createPet, helpers)
+      const mutation = api.useMutation(MutationOperationId.createPet)
       expect(mutation).toBeTruthy()
     })
 
@@ -403,20 +373,16 @@ describe('Query and Mutation Options', () => {
       // This is a compile-time type test - using ApiPathParams with OpType namespace
       type UpdatePetParams = ApiPathParams<OpType.updatePet>
 
-      const mutation = useEndpointMutation<OpenApiOperations, OpType.updatePet>(
-        MutationOperationId.updatePet,
-        helpers,
-        {
-          petId: '123',
-        } as UpdatePetParams,
-      )
+      const mutation = api.useMutation(MutationOperationId.updatePet, {
+        petId: '123',
+      } as UpdatePetParams)
       expect(mutation).toBeTruthy()
     })
 
     it('should support reactive parameters with proper typing', () => {
       // Create a ref-like object for testing
       const reactiveParams = { petId: '123' }
-      const query = useEndpointQuery<OpenApiOperations, OpType.getPet>(QueryOperationId.getPet, helpers, reactiveParams)
+      const query = api.useQuery(QueryOperationId.getPet, reactiveParams)
 
       expect(query.queryKey.value).toEqual(['pets', '123'])
       expect(query.isEnabled.value).toBe(true)
@@ -493,7 +459,7 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should automatically disable queries with unresolved path parameters', () => {
-      const query = api.useQuery(QueryOperationId.getPet, { petId: undefined })
+      const query = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('isEnabled')
@@ -501,15 +467,10 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should handle enabled state based on path resolution in advanced composables', () => {
-      const queryWithParams = useEndpointQuery<OpenApiOperations, 'getPet'>(
-        QueryOperationId.getPet,
-        helpers,
-        { petId: '123' },
-        {},
-      )
+      const queryWithParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
       expect(queryWithParams.isEnabled).toBeTruthy()
 
-      const queryWithoutParams = useEndpointQuery<OpenApiOperations, 'getPet'>(QueryOperationId.getPet, helpers)
+      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
       expect(queryWithoutParams.isEnabled).toBeTruthy()
       expect(queryWithoutParams.isEnabled.value).toBe(false)
     })
@@ -564,7 +525,7 @@ describe('Query and Mutation Options', () => {
 
     it('should support different axios options in advanced composables', () => {
       const customHeaders = { Authorization: 'Bearer token' }
-      const query = useEndpointQuery<OpenApiOperations, 'listPets'>(QueryOperationId.listPets, helpers, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         axiosOptions: { headers: customHeaders },
       })
 

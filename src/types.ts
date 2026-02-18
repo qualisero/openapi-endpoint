@@ -1,6 +1,6 @@
 import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import { UseMutationOptions, type UseQueryOptions } from '@tanstack/vue-query'
-import type { MaybeRefOrGetter as _MaybeRefOrGetter, ComputedRef, Ref } from 'vue'
+import type { MutationObserverOptions, QueryKey, QueryObserverOptions } from '@tanstack/query-core'
+import type { ComputedRef, Ref } from 'vue'
 import type { EndpointQueryReturn } from './openapi-query'
 import type { EndpointMutationReturn } from './openapi-mutation'
 
@@ -200,6 +200,28 @@ export type ApiResponseSafe<Ops extends Operations<Ops>, Op extends keyof Ops> =
  */
 export type ReactiveOr<T> = T | Ref<T> | ComputedRef<T> | (() => T)
 
+/**
+ * Reactive value that excludes function getters.
+ * Useful for path params where function overloads have stricter checks.
+ *
+ * @internal
+ */
+export type ReactiveValue<T> = T | Ref<T> | ComputedRef<T>
+
+/** @internal */
+type MaybeRefLeaf<T> = T | Ref<T> | ComputedRef<T>
+
+type MaybeRefDeep<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends object
+    ? { [K in keyof T]: MaybeRefDeep<T[K]> }
+    : MaybeRefLeaf<T>
+
+/** @internal */
+type ShallowOption = {
+  shallow?: boolean
+}
+
 // ============================================================================
 // Path Parameters (now truly required, not optional)
 // ============================================================================
@@ -223,6 +245,15 @@ export type ApiPathParams<Ops extends Operations<Ops>, Op extends keyof Ops> = O
     ? PathParams
     : Record<string, never>
   : Record<string, never>
+
+/**
+ * Path params input type that allows undefined values for reactive resolution.
+ *
+ * @internal
+ */
+export type ApiPathParamsInput<Ops extends Operations<Ops>, Op extends keyof Ops> = {
+  [K in keyof ApiPathParams<Ops, Op>]: ApiPathParams<Ops, Op>[K] | undefined
+}
 
 /**
  * Extract query parameters type from an operation.
@@ -354,8 +385,13 @@ export interface CacheInvalidationOptions<Ops extends Operations<Ops>> {
  *
  * @group Types
  */
+type BaseQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = MaybeRefDeep<
+  QueryObserverOptions<ApiResponse<Ops, Op>, Error, ApiResponse<Ops, Op>, ApiResponse<Ops, Op>, QueryKey>
+> &
+  ShallowOption
+
 export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseQueryOptions<ApiResponse<Ops, Op>, Error, ApiResponse<Ops, Op>, ApiResponse<Ops, Op>>,
+  BaseQueryOptions<Ops, Op>,
   'queryKey' | 'queryFn' | 'enabled'
 > & {
   /** Whether the query should execute. Can be reactive (ref/computed/function). */
@@ -409,7 +445,7 @@ export type QQueryOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = O
  */
 export type QMutationVars<Ops extends Operations<Ops>, Op extends keyof Ops> = CacheInvalidationOptions<Ops> & {
   data?: ApiRequest<Ops, Op>
-  pathParams?: ApiPathParams<Ops, Op>
+  pathParams?: ApiPathParamsInput<Ops, Op>
   axiosOptions?: AxiosRequestConfigExtended
   queryParams?: ApiQueryParams<Ops, Op>
 }
@@ -433,7 +469,7 @@ export type MutateAsyncReturn<Ops extends Operations<Ops>, Op extends keyof Ops>
  */
 export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (vars?: {
   data?: ApiRequest<Ops, Op>
-  pathParams?: ApiPathParams<Ops, Op>
+  pathParams?: ApiPathParamsInput<Ops, Op>
   axiosOptions?: AxiosRequestConfigExtended
   queryParams?: ApiQueryParams<Ops, Op>
   dontInvalidate?: boolean
@@ -453,7 +489,7 @@ export type MutateFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (vars?
  */
 export type MutateAsyncFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (vars?: {
   data?: ApiRequest<Ops, Op>
-  pathParams?: ApiPathParams<Ops, Op>
+  pathParams?: ApiPathParamsInput<Ops, Op>
   axiosOptions?: AxiosRequestConfigExtended
   queryParams?: ApiQueryParams<Ops, Op>
   dontInvalidate?: boolean
@@ -483,12 +519,16 @@ export type MutateAsyncFn<Ops extends Operations<Ops>, Op extends keyof Ops> = (
  *
  * @group Types
  */
+type MutationVarsInput<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  ApiRequest<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
+
+type BaseMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = MaybeRefDeep<
+  MutationObserverOptions<AxiosResponse<ApiResponse<Ops, Op>>, Error, MutationVarsInput<Ops, Op>, unknown>
+> &
+  ShallowOption
+
 export type QMutationOptions<Ops extends Operations<Ops>, Op extends keyof Ops> = Omit<
-  UseMutationOptions<
-    AxiosResponse<ApiResponse<Ops, Op>>,
-    Error,
-    ApiRequest<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>
-  >,
+  BaseMutationOptions<Ops, Op>,
   'mutationFn' | 'mutationKey'
 > &
   CacheInvalidationOptions<Ops> & {
@@ -523,7 +563,7 @@ export function validateMutationParams<Ops extends Operations<Ops>, Op extends k
 // ============================================================================
 
 /** @internal */
-export type QueryOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
+export type QueryOpsNoPathParams<Ops extends Operations<Ops>> = {
   [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
     ? ApiPathParams<Ops, Op> extends Record<string, never>
       ? Op
@@ -532,7 +572,7 @@ export type QueryOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
 }[keyof Ops]
 
 /** @internal */
-export type QueryOperationsWithPathParams<Ops extends Operations<Ops>> = {
+export type QueryOpsWithPathParams<Ops extends Operations<Ops>> = {
   [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
     ? ApiPathParams<Ops, Op> extends Record<string, never>
       ? never
@@ -541,7 +581,7 @@ export type QueryOperationsWithPathParams<Ops extends Operations<Ops>> = {
 }[keyof Ops]
 
 /** @internal */
-export type MutationOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
+export type MutationOpsNoPathParams<Ops extends Operations<Ops>> = {
   [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH | HttpMethod.DELETE
     ? ApiPathParams<Ops, Op> extends Record<string, never>
       ? Op
@@ -550,7 +590,7 @@ export type MutationOperationsWithoutPathParams<Ops extends Operations<Ops>> = {
 }[keyof Ops]
 
 /** @internal */
-export type MutationOperationsWithPathParams<Ops extends Operations<Ops>> = {
+export type MutationOpsWithPathParams<Ops extends Operations<Ops>> = {
   [Op in keyof Ops]: Ops[Op]['method'] extends HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH | HttpMethod.DELETE
     ? ApiPathParams<Ops, Op> extends Record<string, never>
       ? never
@@ -586,8 +626,8 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
    *
    * @template Op - The operation key
    * @param operationId - Query operation ID
-   * @param pathParamsOrOptions - Path params or query options
-   * @param optionsOrNull - Query options when path params are provided
+   * @param pathParams - Path params for operations that require them
+   * @param options - Query options
    * @returns Reactive query result
    *
    * @example
@@ -603,33 +643,29 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
    * const detailsQuery = api.useQuery('getPet', () => ({ petId: id.value }))
    * ```
    */
-  useQuery: {
-    <Op extends keyof Ops>(
-      operationId: NoPathParams<Ops, Op>,
+  useQuery: (<Op extends QueryOpsNoPathParams<Ops>>(
+    operationId: Op,
+    options?: QQueryOptions<Ops, Op>,
+  ) => EndpointQueryReturn<Ops, Op>) &
+    (<Op extends QueryOpsWithPathParams<Ops>>(
+      operationId: Op,
+      pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
       options?: QQueryOptions<Ops, Op>,
-    ): EndpointQueryReturn<Ops, Op>
-
-    <Op extends keyof Ops>(
-      operationId: WithPathParams<Ops, Op>,
-      pathParams: ApiPathParams<Ops, Op>,
-      options?: QQueryOptions<Ops, Op>,
-    ): EndpointQueryReturn<Ops, Op>
-
-    <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
-      operationId: WithPathParams<Ops, Op>,
+    ) => EndpointQueryReturn<Ops, Op>) &
+    (<Op extends QueryOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
+      operationId: Op,
       pathParams: () => PathParams &
         (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
       options?: QQueryOptions<Ops, Op>,
-    ): EndpointQueryReturn<Ops, Op>
-  }
+    ) => EndpointQueryReturn<Ops, Op>)
 
   /**
    * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
    *
    * @template Op - The operation key
    * @param operationId - Mutation operation ID
-   * @param pathParamsOrOptions - Path params or mutation options
-   * @param optionsOrNull - Mutation options when path params are provided
+   * @param pathParams - Path params for operations that require them
+   * @param options - Mutation options
    * @returns Reactive mutation result
    *
    * @example
@@ -647,23 +683,19 @@ export type OpenApiInstance<Ops extends Operations<Ops>> = {
    * const deletePet = api.useMutation('deletePet', () => ({ petId: id.value }))
    * ```
    */
-  useMutation: {
-    <Op extends keyof Ops>(
-      operationId: NoPathParams<Ops, Op>,
+  useMutation: (<Op extends MutationOpsNoPathParams<Ops>>(
+    operationId: Op,
+    options?: QMutationOptions<Ops, Op>,
+  ) => EndpointMutationReturn<Ops, Op>) &
+    (<Op extends MutationOpsWithPathParams<Ops>>(
+      operationId: Op,
+      pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
       options?: QMutationOptions<Ops, Op>,
-    ): EndpointMutationReturn<Ops, Op>
-
-    <Op extends keyof Ops>(
-      operationId: WithPathParams<Ops, Op>,
-      pathParams: ApiPathParams<Ops, Op>,
-      options?: QMutationOptions<Ops, Op>,
-    ): EndpointMutationReturn<Ops, Op>
-
-    <Op extends keyof Ops, PathParams extends ApiPathParams<Ops, Op>>(
-      operationId: WithPathParams<Ops, Op>,
+    ) => EndpointMutationReturn<Ops, Op>) &
+    (<Op extends MutationOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
+      operationId: Op,
       pathParams: () => PathParams &
         (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
       options?: QMutationOptions<Ops, Op>,
-    ): EndpointMutationReturn<Ops, Op>
-  }
+    ) => EndpointMutationReturn<Ops, Op>)
 }

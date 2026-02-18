@@ -1,34 +1,9 @@
 import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import { type ApiPathParams, type QMutationOptions, type QQueryOptions, Operations } from './types'
-
-// Known option-like properties to distinguish from path parameters
-const OPTION_PROPERTIES = [
-  'enabled',
-  'onSuccess',
-  'onError',
-  'onSettled',
-  'select',
-  'retry',
-  'staleTime',
-  'cacheTime',
-  'refetchOnWindowFocus',
-  'refetchOnReconnect',
-  'refetchOnMount',
-  'suspense',
-  'useErrorBoundary',
-  'meta',
-  'mutationKey',
-  'mutationFn',
-  'queryKey',
-  'queryFn',
-  'initialData',
-  'context',
-]
 
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
   path: string,
-  pathParams?: MaybeRefOrGetter<Record<string, string | number> | null | undefined>,
+  pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
 ): string {
   if (pathParams === null || pathParams === undefined) return path
   const pathParamsValue = toValue(pathParams)
@@ -42,17 +17,6 @@ export function resolvePath(
   })
 
   return resolvedPath
-}
-
-function isPathParams(path: string, pathParams: Record<string, string | number>): boolean {
-  if (!pathParams) return false
-  const paramNames = Object.keys(pathParams)
-
-  // If any option-like property is present, it's not path params
-  if (paramNames.some((name) => OPTION_PROPERTIES.includes(name))) {
-    return false
-  }
-  return paramNames.every((paramName) => path.includes(`{${paramName}}`))
 }
 
 // Helper to check if all required path parameters are provided
@@ -91,7 +55,7 @@ export interface ResolvedOperation<PathParams, QueryParams> {
  * @param extraPathParams - Optional ref for additional path params (used by mutations)
  */
 export function useResolvedOperation<
-  PathParams extends Record<string, string | number> = Record<string, never>,
+  PathParams extends Record<string, string | number | undefined> = Record<string, never>,
   QueryParams extends Record<string, unknown> = Record<string, never>,
 >(
   path: string,
@@ -139,46 +103,15 @@ export function useResolvedOperation<
   }
 }
 
-export function getParamsOptionsFrom<
-  Ops extends Operations<Ops>,
-  Op extends keyof Ops,
-  Options extends QMutationOptions<Ops, Op> | QQueryOptions<Ops, Op>,
->(
-  path: string,
-  pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | Options,
-  optionsOrNull?: Options,
+export function normalizeParamsOptions<PathParams extends Record<string, unknown>, Options>(
+  pathParams?: MaybeRefOrGetter<PathParams | null | undefined>,
+  options?: Options,
 ): {
-  pathParams: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined>
+  pathParams: MaybeRefOrGetter<PathParams | null | undefined>
   options: Options
 } {
-  type PathParams = MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined>
-
-  let pathParams: PathParams | undefined = undefined
-  let options: Options | undefined = undefined
-
-  if (optionsOrNull === undefined) {
-    const pathParamsOrOptionsValue = toValue(pathParamsOrOptions)
-    if (
-      (typeof pathParamsOrOptions === 'object' || typeof pathParamsOrOptions === 'function') &&
-      pathParamsOrOptions !== null &&
-      pathParamsOrOptionsValue &&
-      typeof pathParamsOrOptionsValue === 'object' &&
-      isPathParams(path, pathParamsOrOptionsValue as Record<string, string | number>)
-    ) {
-      // Called as: useEndpointQuery(operationId, pathParams)
-      pathParams = pathParamsOrOptions as PathParams
-    } else {
-      // Called as: useEndpointQuery(operationId, [options])
-      options = pathParamsOrOptions as Options
-    }
-  } else {
-    // Called as: useEndpointQuery(operationId, pathParams, options)
-    pathParams = pathParamsOrOptions as PathParams
-    options = optionsOrNull
-  }
-
   return {
-    pathParams: pathParams ?? ({} as PathParams),
+    pathParams: pathParams ?? ({} as MaybeRefOrGetter<PathParams | null | undefined>),
     options: options ?? ({} as Options),
   }
 }

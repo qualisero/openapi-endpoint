@@ -243,7 +243,9 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should support reactive enabling based on parameter availability', () => {
       // Test automatic disabling when path parameters are undefined
-      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, { petId: undefined })
+      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, () => ({
+        petId: undefined,
+      }))
       expect(queryWithoutParams.isEnabled.value).toBe(false)
 
       const queryWithParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
@@ -251,7 +253,9 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle missing path parameters gracefully', () => {
-      const query = api.useQuery(QueryOperationId.getPet, { petId: undefined })
+      const query = api.useQuery(QueryOperationId.getPet, () => ({
+        petId: undefined,
+      }))
       expect(query.isEnabled.value).toBe(false)
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
@@ -462,19 +466,14 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should prevent mutate() when isEnabled is false', async () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }))
+      const onError = vi.fn()
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }), { onError })
 
       expect(mutation.isEnabled.value).toBe(false)
 
       // Calling mutate() when disabled should not throw, but should not execute either
       // The onError callback should be called with a clear error message
-      const onError = vi.fn()
-      mutation.mutate(
-        { data: { name: 'Updated Name' } },
-        {
-          onError,
-        },
-      )
+      mutation.mutate({ data: { name: 'Updated Name' } })
 
       // Wait a tick for async execution
       await new Promise((resolve) => setTimeout(resolve, 10))

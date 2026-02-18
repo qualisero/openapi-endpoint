@@ -1,7 +1,7 @@
 import { computed, watch, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useQuery, QueryClient } from '@tanstack/vue-query'
-import { Operations, type ApiPathParams, type ApiResponse, type QQueryOptions } from './types'
-import { getParamsOptionsFrom, useResolvedOperation } from './openapi-utils'
+import { Operations, type ApiPathParams, type ApiPathParamsInput, type ApiResponse, type QQueryOptions } from './types'
+import { normalizeParamsOptions, useResolvedOperation } from './openapi-utils'
 import { isAxiosError } from 'axios'
 import { type OpenApiHelpers } from './openapi-helpers'
 
@@ -76,10 +76,8 @@ export interface EndpointQueryReturn<Ops extends Operations<Ops>, Op extends key
  * @template Op - The operation key from your operations type
  * @param operationId - The OpenAPI operation ID to query
  * @param h - OpenAPI helpers (internal), provided by useOpenApi
- * @param pathParamsOrOptions - Path parameters (can be reactive) or query options:
- *   - If the operation has path params, provide them here
- *   - If the operation has no path params, pass query options here instead
- * @param optionsOrNull - Query options when path params are provided separately
+ * @param pathParams - Path parameters (can be reactive). Omit for operations without path params.
+ * @param options - Query options (enabled, staleTime, queryParams, etc.)
  *   - `enabled`: Whether the query should auto-run (boolean or reactive)
  *   - `queryParams`: Query string parameters (operation-specific)
  *   - `onLoad`: Callback invoked once when data is loaded
@@ -95,8 +93,8 @@ export interface EndpointQueryReturn<Ops extends Operations<Ops>, Op extends key
 export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
   h: OpenApiHelpers<Ops, Op>,
-  pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QQueryOptions<Ops, Op>,
-  optionsOrNull?: QQueryOptions<Ops, Op>,
+  pathParams?: MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined>,
+  options?: QQueryOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a query operation
   if (!h.isQueryOperation(operationId)) {
@@ -107,11 +105,10 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     )
   }
   const { path, method } = h.getOperationInfo(operationId)
-  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QQueryOptions<Ops, Op>>(
-    path,
-    pathParamsOrOptions,
-    optionsOrNull,
-  )
+  const { pathParams: resolvedPathParamsInput, options: resolvedOptions } = normalizeParamsOptions<
+    ApiPathParamsInput<Ops, Op>,
+    QQueryOptions<Ops, Op>
+  >(pathParams, options)
   const {
     enabled: enabledInit,
     onLoad: onLoadInit,
@@ -119,7 +116,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     errorHandler,
     queryParams,
     ...useQueryOptions
-  } = options
+  } = resolvedOptions
 
   // Use the consolidated operation resolver
   const {
@@ -128,7 +125,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     isResolved,
     queryParams: resolvedQueryParams,
     pathParams: resolvedPathParams,
-  } = useResolvedOperation(path, pathParams, queryParams)
+  } = useResolvedOperation(path, resolvedPathParamsInput, queryParams)
 
   // Check if path is fully resolved for enabling the query
   const isEnabled = computed(() => {
@@ -136,50 +133,49 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     return baseEnabled && isResolved.value
   })
 
-  const query = useQuery(
-    {
-      queryKey: queryKey as ComputedRef<string[]>,
-      queryFn: async () => {
-        try {
-          const response = await h.axios({
-            method: method.toLowerCase(),
-            url: resolvedPath.value,
-            ...axiosOptions,
-            params: {
-              ...(axiosOptions?.params || {}),
-              ...(resolvedQueryParams.value || {}),
-            },
-          })
-          return response.data
-        } catch (error: unknown) {
-          if (errorHandler && isAxiosError(error)) {
-            const result = await errorHandler(error)
-            if (result !== undefined) {
-              return result
-            }
-            // If errorHandler returns undefined and doesn't throw,
-            // we consider this a "recovered" state and return undefined
-            // TanStack Query will handle this as a successful query with no data
-            return undefined as unknown as ApiResponse<Ops, Op>
-          } else {
-            throw error
+  const queryOptions = {
+    queryKey: queryKey as ComputedRef<readonly unknown[]>,
+    queryFn: async () => {
+      try {
+        const response = await h.axios({
+          method: method.toLowerCase(),
+          url: resolvedPath.value,
+          ...axiosOptions,
+          params: {
+            ...(axiosOptions?.params || {}),
+            ...(resolvedQueryParams.value || {}),
+          },
+        })
+        return response.data
+      } catch (error: unknown) {
+        if (errorHandler && isAxiosError(error)) {
+          const result = await errorHandler(error)
+          if (result !== undefined) {
+            return result
           }
+          // If errorHandler returns undefined and doesn't throw,
+          // we consider this a "recovered" state and return undefined
+          // TanStack Query will handle this as a successful query with no data
+          return undefined as unknown as ApiResponse<Ops, Op>
+        } else {
+          throw error
         }
-      },
-      enabled: isEnabled,
-      staleTime: 1000 * 60,
-      retry: (_failureCount: number, error: Error) => {
-        // Don't retry 4xx errors if error is AxiosError
-        if (isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
-          return false
-        }
-        // Retry up to 3 times for other errors
-        return _failureCount < 3
-      },
-      ...useQueryOptions,
+      }
     },
-    h.queryClient as QueryClient,
-  )
+    enabled: isEnabled,
+    staleTime: 1000 * 60,
+    retry: (_failureCount: number, error: Error) => {
+      // Don't retry 4xx errors if error is AxiosError
+      if (isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
+        return false
+      }
+      // Retry up to 3 times for other errors
+      return _failureCount < 3
+    },
+    ...useQueryOptions,
+  } as unknown as Parameters<typeof useQuery>[0]
+
+  const query = useQuery(queryOptions, h.queryClient as QueryClient)
 
   // onLoad callback management using a Set for efficient tracking
   const onLoadCallbacks = new Set<(data: ApiResponse<Ops, Op>) => void>()
@@ -199,7 +195,7 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     watch(query.data, (newData) => {
       if (newData !== undefined && onLoadCallbacks.size > 0) {
         // Call all pending callbacks
-        onLoadCallbacks.forEach((cb) => cb(newData))
+        onLoadCallbacks.forEach((cb) => cb(newData as ApiResponse<Ops, Op>))
         onLoadCallbacks.clear()
       }
     })

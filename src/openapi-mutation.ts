@@ -3,6 +3,7 @@ import { useMutation, QueryClient } from '@tanstack/vue-query'
 
 import {
   type ApiPathParams,
+  type ApiPathParamsInput,
   type QMutationVars,
   type ApiResponse,
   type QMutationOptions,
@@ -14,7 +15,7 @@ import {
 } from './types'
 import {
   isPathResolved,
-  getParamsOptionsFrom,
+  normalizeParamsOptions,
   useResolvedOperation,
   resolvePath,
   generateQueryKey,
@@ -95,10 +96,8 @@ export interface EndpointMutationReturn<Ops extends Operations<Ops>, Op extends 
  * @template Op - The operation key from your operations type
  * @param operationId - The OpenAPI operation ID to mutate
  * @param h - OpenAPI helpers (internal), provided by useOpenApi
- * @param pathParamsOrOptions - Path parameters (can be reactive) or mutation options:
- *   - If the operation has path params, provide them here
- *   - If the operation has no path params, pass mutation options here instead
- * @param optionsOrNull - Mutation options when path params are provided separately
+ * @param pathParams - Path parameters (can be reactive). Omit for operations without path params.
+ * @param options - Mutation options (dontInvalidate, refetchEndpoints, etc.)
  *   - `dontUpdateCache`: Skip cache update for PUT/PATCH responses
  *   - `dontInvalidate`: Skip invalidating matching queries
  *   - `invalidateOperations`: Additional operation IDs to invalidate (array or map of params)
@@ -117,8 +116,8 @@ export interface EndpointMutationReturn<Ops extends Operations<Ops>, Op extends 
 export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
   operationId: Op,
   h: OpenApiHelpers<Ops, Op>, // helpers
-  pathParamsOrOptions?: MaybeRefOrGetter<ApiPathParams<Ops, Op> | null | undefined> | QMutationOptions<Ops, Op>,
-  optionsOrNull?: QMutationOptions<Ops, Op>,
+  pathParams?: MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined>,
+  options?: QMutationOptions<Ops, Op>,
 ) {
   // Runtime check to ensure this is actually a mutation operation
   if (!h.isMutationOperation(operationId)) {
@@ -130,11 +129,10 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
   }
 
   const { path, method } = h.getOperationInfo(operationId)
-  const { pathParams, options } = getParamsOptionsFrom<Ops, Op, QMutationOptions<Ops, Op>>(
-    path,
-    pathParamsOrOptions,
-    optionsOrNull,
-  )
+  const { pathParams: resolvedPathParamsInput, options: resolvedOptions } = normalizeParamsOptions<
+    ApiPathParamsInput<Ops, Op>,
+    QMutationOptions<Ops, Op>
+  >(pathParams, options)
   const {
     axiosOptions,
     dontInvalidate,
@@ -143,8 +141,8 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     refetchEndpoints,
     queryParams,
     ...useMutationOptions
-  } = options
-  const extraPathParams = ref({}) as Ref<ApiPathParams<Ops, Op>>
+  } = resolvedOptions
+  const extraPathParams = ref({}) as Ref<ApiPathParamsInput<Ops, Op>>
 
   // Use the consolidated operation resolver with extraPathParams support
   const {
@@ -152,7 +150,12 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     queryKey,
     queryParams: resolvedQueryParams,
     pathParams: allPathParams,
-  } = useResolvedOperation(path, pathParams, queryParams, extraPathParams as { value: Partial<ApiPathParams<Ops, Op>> })
+  } = useResolvedOperation(
+    path,
+    resolvedPathParamsInput,
+    queryParams,
+    extraPathParams as { value: Partial<ApiPathParamsInput<Ops, Op>> },
+  )
 
   const mutation = useMutation(
     {
@@ -165,7 +168,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           axiosOptions: axiosOptionsFromMutate,
           queryParams: queryParamsFromMutate,
         } = vars as QMutationVars<Ops, Op> & { data?: unknown }
-        extraPathParams.value = pathParamsFromMutate || ({} as ApiPathParams<Ops, Op>)
+        extraPathParams.value = pathParamsFromMutate || ({} as ApiPathParamsInput<Ops, Op>)
 
         // TODO: use typing to ensure all required path params are provided
         if (!isPathResolved(resolvedPath.value)) {
@@ -218,7 +221,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
 
           const listPath = h.getListOperationPath(operationId)
           if (listPath) {
-            const listResolvedPath = resolvePath(listPath, pathParams)
+            const listResolvedPath = resolvePath(listPath, resolvedPathParamsInput)
             if (isPathResolved(listResolvedPath)) {
               const listQueryKey = generateQueryKey(listResolvedPath)
 
@@ -289,7 +292,7 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
         }
       },
       onSettled: () => {
-        extraPathParams.value = {} as ApiPathParams<Ops, Op>
+        extraPathParams.value = {} as ApiPathParamsInput<Ops, Op>
       },
       ...useMutationOptions,
     },
@@ -301,6 +304,6 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     data: mutation.data as ComputedRef<AxiosResponse<ApiResponse<Ops, Op>> | undefined>,
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
     extraPathParams,
-    pathParams: allPathParams,
+    pathParams: allPathParams as ComputedRef<ApiPathParams<Ops, Op>>,
   } as unknown as EndpointMutationReturn<Ops, Op>
 }
