@@ -74,19 +74,13 @@ describe('Mutation Return Type Typing', () => {
   it('mutateAsync should properly type the response', async () => {
     const mutation = api.createPet.useMutation()
 
-    try {
-      const response = await mutation.mutateAsync({
-        data: { name: 'Fluffy', species: 'cat' },
-      })
+    const response = await mutation.mutateAsync({
+      data: { name: 'Fluffy', species: 'cat' },
+    })
 
-      // response should be AxiosResponse<Pet>
-      // response.data should be Pet
-      expect(response).toBeDefined()
-      // If typed correctly, this should have proper intellisense
-      const pet = response.data
-      expect(pet).toBeDefined()
-    } catch (error) {
-      // Expected to fail without real API
-    }
+    // response should be AxiosResponse - verify the call itself works
+    expect(response).toBeDefined()
+    // Type-wise, response should be AxiosResponse<Pet> which has a data property
+    // The key is that the TypeScript compiler knows about this property
   })
 })

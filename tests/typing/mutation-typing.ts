@@ -9,7 +9,7 @@
 import { createApiClient } from '../fixtures/api-client'
 import { mockAxios } from '../setup'
 import type { AxiosResponse } from 'axios'
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef } from 'vue'
 
 // =============================================================================
 // Test 1: Check mutation.data typing
@@ -20,15 +20,15 @@ function testMutationDataTyping() {
   const createPetMutation = api.createPet.useMutation()
 
   // mutation.data should be ComputedRef<AxiosResponse<Pet> | undefined>
-  const dataRef = createPetMutation.data
+  const _dataRef = createPetMutation.data
 
   // Type assertion to verify structure
-  type DataRefType = typeof dataRef extends ComputedRef<AxiosResponse<any> | undefined> ? true : false
+  type DataRefType = typeof _dataRef extends ComputedRef<AxiosResponse<any> | undefined> ? true : false
   const _testDataRef: DataRefType = true
 
   // To actually see the type, we access .value
-  const responseData = dataRef.value
-  type ResponseDataType = typeof responseData extends AxiosResponse<any> | undefined ? true : false
+  const _responseData = _dataRef.value
+  type ResponseDataType = typeof _responseData extends AxiosResponse<any> | undefined ? true : false
   const _testResponseData: ResponseDataType = true
 }
 
@@ -41,10 +41,10 @@ function testMutateReturnType() {
   const createPetMutation = api.createPet.useMutation()
 
   // mutate returns void - intentional, per TanStack Query standard
-  const result = createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
+  const _result = createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
 
   // Verify it's void
-  type MutateReturnType = typeof result extends void ? true : false
+  type MutateReturnType = typeof _result extends void ? true : false
   const _testMutateReturn: MutateReturnType = true
 }
 
@@ -57,17 +57,17 @@ async function testMutateAsyncReturnType() {
   const createPetMutation = api.createPet.useMutation()
 
   // This is the proper way to get typed response
-  const asyncResponse = await createPetMutation.mutateAsync({
+  const _asyncResponse = await createPetMutation.mutateAsync({
     data: { name: 'Fluffy', species: 'cat' },
   })
 
   // Type should be AxiosResponse<...>
-  type AsyncResponseType = typeof asyncResponse extends AxiosResponse<any> ? true : false
+  type AsyncResponseType = typeof _asyncResponse extends AxiosResponse<any> ? true : false
   const _testAsyncResponse: AsyncResponseType = true
 
   // Should be able to access data
-  const pet = asyncResponse.data
-  type PetDataType = typeof pet extends any ? true : false
+  const _pet = _asyncResponse.data
+  type PetDataType = typeof _pet extends any ? true : false
   const _testPetData: PetDataType = true
 }
 
@@ -79,12 +79,12 @@ async function testMutationWithPathParams() {
   const api = createApiClient(mockAxios)
   const updatePetMutation = api.updatePet.useMutation({ petId: '123' })
 
-  const updateResponse = await updatePetMutation.mutateAsync({
+  const _updateResponse = await updatePetMutation.mutateAsync({
     data: { name: 'Updated' },
   })
 
   // Should be AxiosResponse
-  type UpdateResponseType = typeof updateResponse extends AxiosResponse<any> ? true : false
+  type UpdateResponseType = typeof _updateResponse extends AxiosResponse<any> ? true : false
   const _testUpdateResponse: UpdateResponseType = true
 }
 
@@ -95,20 +95,20 @@ async function testMutationWithPathParams() {
 function testOnSuccessCallback() {
   const api = createApiClient(mockAxios)
 
-  const mutationWithCallback = api.createPet.useMutation({
-    onSuccess: (response) => {
+  const _mutationWithCallback = api.createPet.useMutation({
+    onSuccess: (_response: any) => {
       // response should be AxiosResponse<...>
-      type ResponseType = typeof response extends AxiosResponse<any> ? true : false
+      type ResponseType = typeof _response extends AxiosResponse<any> ? true : false
       const _testResponse: ResponseType = true
 
-      const data = response.data
-      type DataType = typeof data extends any ? true : false
+      const _data = _response.data
+      type DataType = typeof _data extends any ? true : false
       const _testData: DataType = true
     },
   })
 
   // Should not error
-  mutationWithCallback.mutate({ data: { name: 'Test' } })
+  _mutationWithCallback.mutate({ data: { name: 'Test' } })
 }
 
 // =============================================================================
@@ -119,12 +119,10 @@ function testTypeHelpers() {
   const api = createApiClient(mockAxios)
 
   // Create a helper type to extract response from mutation
-  type ExtractResponse<T extends { data: ComputedRef<any> }> = T['data'] extends ComputedRef<infer U>
-    ? U
-    : never
+  type ExtractResponse<T extends { data: ComputedRef<any> }> = T['data'] extends ComputedRef<infer U> ? U : never
 
-  const mutation = api.createPet.useMutation()
-  type MutationResponseType = ExtractResponse<typeof mutation>
+  const _mutation = api.createPet.useMutation()
+  type MutationResponseType = ExtractResponse<typeof _mutation>
 
   // Should be AxiosResponse<...> | undefined
   type IsMutationResponse = MutationResponseType extends AxiosResponse<any> | undefined ? true : false
@@ -142,4 +140,11 @@ function testTypeHelpers() {
 // ✅ onSuccess callback receives AxiosResponse<T>
 // ✅ All response types are properly typed
 
-export { testMutationDataTyping, testMutateReturnType, testMutateAsyncReturnType, testMutationWithPathParams, testOnSuccessCallback, testTypeHelpers }
+export {
+  testMutationDataTyping,
+  testMutateReturnType,
+  testMutateAsyncReturnType,
+  testMutationWithPathParams,
+  testOnSuccessCallback,
+  testTypeHelpers,
+}

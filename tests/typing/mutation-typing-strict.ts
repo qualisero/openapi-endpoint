@@ -5,7 +5,7 @@
  * They don't run - they're checked at compile time by tsc.
  */
 
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef } from 'vue'
 import type { AxiosResponse } from 'axios'
 import { createApiClient } from '../fixtures/api-client'
 import { mockAxios } from '../setup'
@@ -16,10 +16,10 @@ import { mockAxios } from '../setup'
 
 function testMutationStructure() {
   const api = createApiClient(mockAxios)
-  const createPetMutation = api.createPet.useMutation()
+  const _createPetMutation = api.createPet.useMutation()
 
   // This should be true - mutation should have these properties
-  type TestMutationProps = typeof createPetMutation extends {
+  type TestMutationProps = typeof _createPetMutation extends {
     data: ComputedRef<AxiosResponse<any> | undefined>
     mutate: (vars?: any) => void
     mutateAsync: (vars?: any) => Promise<AxiosResponse<any>>
@@ -27,7 +27,7 @@ function testMutationStructure() {
     ? true
     : false
 
-  const testMutationProps: TestMutationProps = true
+  const _testMutationProps: TestMutationProps = true
 }
 
 // =============================================================================
@@ -36,19 +36,17 @@ function testMutationStructure() {
 
 function testMutateAsyncType() {
   const api = createApiClient(mockAxios)
-  const createPetMutation = api.createPet.useMutation()
+  const _createPetMutation = api.createPet.useMutation()
 
   // This should type-check correctly - mutateAsync returns Promise<AxiosResponse>
-  const asyncCall = createPetMutation.mutateAsync({
+  const _asyncCall = _createPetMutation.mutateAsync({
     data: { name: 'Test', species: 'cat' },
   })
 
   // asyncCall should be Promise<AxiosResponse<...>>
-  type TestAsyncType = typeof asyncCall extends Promise<AxiosResponse<any>>
-    ? true
-    : false
+  type TestAsyncType = typeof _asyncCall extends Promise<AxiosResponse<any>> ? true : false
 
-  const testAsyncType: TestAsyncType = true
+  const _testAsyncType: TestAsyncType = true
 }
 
 // =============================================================================
@@ -57,20 +55,20 @@ function testMutateAsyncType() {
 
 async function testAsyncResponse() {
   const api = createApiClient(mockAxios)
-  const createPetMutation = api.createPet.useMutation()
+  const _createPetMutation = api.createPet.useMutation()
 
-  const response = await createPetMutation.mutateAsync({
+  const _response = await _createPetMutation.mutateAsync({
     data: { name: 'Test' },
   })
 
   // response should be AxiosResponse<...>
-  type TestResponseType = typeof response extends AxiosResponse<any> ? true : false
-  const t: TestResponseType = true
+  type TestResponseType = typeof _response extends AxiosResponse<any> ? true : false
+  const _t: TestResponseType = true
 
   // response.data should be accessible
-  const petData = response.data
-  type TestDataAccess = typeof petData extends any ? true : false
-  const t2: TestDataAccess = true
+  const _petData = _response.data
+  type TestDataAccess = typeof _petData extends any ? true : false
+  const _t2: TestDataAccess = true
 }
 
 // =============================================================================
@@ -79,19 +77,17 @@ async function testAsyncResponse() {
 
 function testDataProperty() {
   const api = createApiClient(mockAxios)
-  const createPetMutation = api.createPet.useMutation()
+  const _createPetMutation = api.createPet.useMutation()
 
   // mutation.data is ComputedRef<AxiosResponse<...> | undefined>
-  const dataRef = createPetMutation.data
+  const _dataRef = _createPetMutation.data
 
   // Accessing .value should give us AxiosResponse<...> | undefined
-  const dataValue = dataRef.value
+  const _dataValue = _dataRef.value
 
-  type TestDataValue = typeof dataValue extends AxiosResponse<any> | undefined
-    ? true
-    : false
+  type TestDataValue = typeof _dataValue extends AxiosResponse<any> | undefined ? true : false
 
-  const testDataValue: TestDataValue = true
+  const _testDataValue: TestDataValue = true
 }
 
 // =============================================================================
@@ -101,22 +97,20 @@ function testDataProperty() {
 function testOnSuccessCallback() {
   const api = createApiClient(mockAxios)
 
-  const mutationWithCallback = api.createPet.useMutation({
-    onSuccess: (response) => {
+  const _mutationWithCallback = api.createPet.useMutation({
+    onSuccess: (_response: any) => {
       // response should be AxiosResponse<Pet> here
-      type TestCallbackType = typeof response extends AxiosResponse<any>
-        ? true
-        : false
-      const t: TestCallbackType = true
+      type TestCallbackType = typeof _response extends AxiosResponse<any> ? true : false
+      const _t: TestCallbackType = true
 
       // Should be able to access response.data
-      const data = response.data
-      type TestDataAccess = typeof data extends any ? true : false
-      const t2: TestDataAccess = true
+      const _data = _response.data
+      type TestDataAccess = typeof _data extends any ? true : false
+      const _t2: TestDataAccess = true
     },
   })
 
-  return mutationWithCallback
+  return _mutationWithCallback
 }
 
 // =============================================================================
@@ -125,15 +119,15 @@ function testOnSuccessCallback() {
 
 async function testPathParamsMutation() {
   const api = createApiClient(mockAxios)
-  const updatePetMutation = api.updatePet.useMutation({ petId: '123' })
+  const _updatePetMutation = api.updatePet.useMutation({ petId: '123' })
 
   // Should work the same way
-  const updateAsync = await updatePetMutation.mutateAsync({
+  const _updateAsync = await _updatePetMutation.mutateAsync({
     data: { name: 'Updated' },
   })
 
-  type TestUpdateType = typeof updateAsync extends AxiosResponse<any> ? true : false
-  const testUpdateType: TestUpdateType = true
+  type TestUpdateType = typeof _updateAsync extends AxiosResponse<any> ? true : false
+  const _testUpdateType: TestUpdateType = true
 }
 
 // =============================================================================
@@ -142,14 +136,14 @@ async function testPathParamsMutation() {
 
 function testMutateVoid() {
   const api = createApiClient(mockAxios)
-  const createPetMutation = api.createPet.useMutation()
+  const _createPetMutation = api.createPet.useMutation()
 
   // This is intentional - mutate() returns void
-  const mutateResult = createPetMutation.mutate({ data: { name: 'Test' } })
+  const _mutateResult = _createPetMutation.mutate({ data: { name: 'Test' } })
 
   // mutateResult is void - this is correct behavior
-  type TestMutateVoid = typeof mutateResult extends void ? true : false
-  const testMutateVoid: TestMutateVoid = true
+  type TestMutateReturnVoid = typeof _mutateResult extends void ? true : false
+  const _testMutateReturnVoid: TestMutateReturnVoid = true
 }
 
 // =============================================================================
@@ -160,32 +154,32 @@ async function testAllResponsePatterns() {
   const api = createApiClient(mockAxios)
 
   // Way 1: Use mutateAsync() - returns Promise<AxiosResponse<T>>
-  const way1 = async () => {
-    const response = await api.createPet.mutateAsync({ data: { name: 'Test' } })
-    type ResponseType1 = typeof response extends AxiosResponse<any> ? true : false
+  const _way1 = async () => {
+    const _response = await api.createPet.useMutation().mutateAsync({ data: { name: 'Test' } })
+    type ResponseType1 = typeof _response extends AxiosResponse<any> ? true : false
     const _t1: ResponseType1 = true
   }
 
   // Way 2: Access .data reactive property
-  const way2 = () => {
-    const mutation = api.createPet.useMutation()
-    mutation.mutate({ data: { name: 'Test' } })
-    const dataValue = mutation.data.value
-    type ResponseType2 = typeof dataValue extends AxiosResponse<any> | undefined ? true : false
+  const _way2 = () => {
+    const _mutation = api.createPet.useMutation()
+    _mutation.mutate({ data: { name: 'Test' } })
+    const _dataValue = _mutation.data.value
+    type ResponseType2 = typeof _dataValue extends AxiosResponse<any> | undefined ? true : false
     const _t2: ResponseType2 = true
   }
 
   // Way 3: Use onSuccess callback
-  const way3 = () => {
+  const _way3 = () => {
     api.createPet.useMutation({
-      onSuccess: (response) => {
-        type ResponseType3 = typeof response extends AxiosResponse<any> ? true : false
+      onSuccess: (_response: any) => {
+        type ResponseType3 = typeof _response extends AxiosResponse<any> ? true : false
         const _t3: ResponseType3 = true
       },
     })
   }
 
-  return { way1, way2, way3 }
+  return { _way1, _way2, _way3 }
 }
 
 // Export test functions so TypeScript checks them

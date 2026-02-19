@@ -276,7 +276,7 @@ function addMissingOperationIds(openApiSpec: OpenAPISpec, prefixToStrip: string 
   })
 }
 
-function parseOperationsFromSpec(
+function _parseOperationsFromSpec(
   openapiContent: string,
   excludePrefix: string | null = '_deprecated',
 ): {
@@ -986,11 +986,11 @@ function computeListPath(
 /**
  * Generate JSDoc comment for an operation function.
  */
-function generateOperationJSDoc(operationId: string, method: string, path: string): string {
+function _generateOperationJSDoc(operationId: string, method: string, apiPath: string): string {
   const methodUpper = method.toUpperCase()
   const isQuery = ['GET', 'HEAD', 'OPTIONS'].includes(methodUpper)
 
-  const lines = ['/**', ` * ${operationId}`, ' * ', ` * ${methodUpper} ${path}`]
+  const lines = ['/**', ` * ${operationId}`, ' * ', ` * ${methodUpper} ${apiPath}`]
 
   if (isQuery) {
     lines.push(' * ')
@@ -1129,13 +1129,13 @@ function _mutationWithParams<Op extends AllOps>(
   // createApiClient factory with operation calls
   const factoryCalls = ids
     .map((id) => {
-      const { path, method } = operationMap[id]
+      const { path: apiPath, method } = operationMap[id]
       const listPath = computeListPath(id, operationMap[id], operationMap)
       const listPathStr = listPath ? `'${listPath}'` : 'null'
       const query = isQuery(id)
       const withParams = hasPathParams(id)
 
-      const cfg = `{ path: '${path}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
+      const cfg = `{ path: '${apiPath}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
       const helper = query
         ? withParams
           ? '_queryWithParams'
@@ -1375,7 +1375,7 @@ function buildOperationEnums(
 
   const result: Record<string, Record<string, Record<string, string>>> = {}
 
-  for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+  for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
     for (const [method, rawOp] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
       const op = rawOp as OpenAPIOperation & {
@@ -1427,8 +1427,8 @@ function generateApiOperationsContent(
   schemaEnumNames: string[],
 ): string {
   const ids = Object.keys(operationMap).sort()
-  const queryIds = ids.filter((id) => ['GET', 'HEAD', 'OPTIONS'].includes(operationMap[id].method))
-  const mutationIds = ids.filter((id) => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(operationMap[id].method))
+  const _queryIds = ids.filter((id) => ['GET', 'HEAD', 'OPTIONS'].includes(operationMap[id].method))
+  const _mutationIds = ids.filter((id) => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(operationMap[id].method))
 
   // Per-operation enum consts
   const enumConsts = ids

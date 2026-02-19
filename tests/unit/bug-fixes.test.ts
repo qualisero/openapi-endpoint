@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 import { createApiClient } from '../fixtures/api-client'
 

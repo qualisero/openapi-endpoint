@@ -138,7 +138,7 @@ type MaybeRefDeep<T> = T extends (...args: never[]) => unknown
     ? { [K in keyof T]: MaybeRefDeep<T[K]> }
     : MaybeRefLeaf<T>
 
-type BaseQueryOptions<TResponse, TQueryParams extends Record<string, unknown>> = MaybeRefDeep<
+type BaseQueryOptions<TResponse, _TQueryParams extends Record<string, unknown>> = MaybeRefDeep<
   QueryObserverOptions<TResponse, Error, TResponse, TResponse, QueryKey>
 > & { shallow?: boolean }
 

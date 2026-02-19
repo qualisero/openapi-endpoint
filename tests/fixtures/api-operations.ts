@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Auto-generated from OpenAPI specification - do not edit manually
 
 import type { operations } from './openapi-types.js'
@@ -21,65 +20,35 @@ export type { PetStatus } from './api-enums'
 // Per-operation enum values
 // ============================================================================
 
-export const createPet_enums = {
+export const createPet_enums = {} as const
 
-} as const
+export const deletePet_enums = {} as const
 
-export const deletePet_enums = {
+export const getConfigJson_enums = {} as const
 
-} as const
+export const getDataV1Json_enums = {} as const
 
-export const getConfigJson_enums = {
+export const getOwners_enums = {} as const
 
-} as const
+export const getPet_enums = {} as const
 
-export const getDataV1Json_enums = {
+export const getPetPetId_enums = {} as const
 
-} as const
+export const listPets_enums = {} as const
 
-export const getOwners_enums = {
+export const listUserPets_enums = {} as const
 
-} as const
+export const postOwners_enums = {} as const
 
-export const getPet_enums = {
+export const postPetAdopt_enums = {} as const
 
-} as const
+export const postPetGiveTreats_enums = {} as const
 
-export const getPetPetId_enums = {
+export const updatePet_enums = {} as const
 
-} as const
+export const updatePetPetId_enums = {} as const
 
-export const listPets_enums = {
-
-} as const
-
-export const listUserPets_enums = {
-
-} as const
-
-export const postOwners_enums = {
-
-} as const
-
-export const postPetAdopt_enums = {
-
-} as const
-
-export const postPetGiveTreats_enums = {
-
-} as const
-
-export const updatePet_enums = {
-
-} as const
-
-export const updatePetPetId_enums = {
-
-} as const
-
-export const uploadPetPic_enums = {
-
-} as const
+export const uploadPetPic_enums = {} as const
 
 // ============================================================================
 // Operations map (kept for inspection / backward compatibility)

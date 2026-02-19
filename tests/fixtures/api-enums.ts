@@ -36,10 +36,7 @@ export const EnumHelper = {
   /**
    * Check if a value is valid for the given enum
    */
-  isValid<T extends Record<string, string | number>>(
-    enumObj: T,
-    value: unknown,
-  ): value is T[keyof T] {
+  isValid<T extends Record<string, string | number>>(enumObj: T, value: unknown): value is T[keyof T] {
     return typeof value === 'string' && (Object.values(enumObj) as string[]).includes(value)
   },
 
@@ -52,7 +49,6 @@ export const EnumHelper = {
   },
 } as const
 
-
 /**
  * Enum values from components.schemas.Pet.properties.status
  */
@@ -62,9 +58,8 @@ export const PetStatus = {
   Pending: 'pending' as const,
 } as const
 
-export type PetStatus = typeof PetStatus[keyof typeof PetStatus]
+export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus]
 
 // Type aliases for duplicate enum values
 export const NewPetStatus = PetStatus
 export type NewPetStatus = PetStatus
-

@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Auto-generated from OpenAPI specification - do not edit manually
 // Use `createApiClient` to instantiate a fully-typed API client.
 
@@ -105,14 +104,8 @@ function _queryNoParams<Op extends AllOps>(
   type QueryParams = ApiQueryParams<Op>
 
   return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, ...cfg },
-        undefined,
-        options,
-      ),
+    useQuery: (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
+      useEndpointQuery<Response, Record<string, never>, QueryParams>({ ...base, ...cfg }, undefined, options),
     enums,
   } as const
 }
@@ -136,11 +129,7 @@ function _queryWithParams<Op extends AllOps>(
       pathParams: ReactiveOr<PathParamsInput>,
       options?: QueryOptions<Response, QueryParams>,
     ): QueryReturn<Response, PathParams> =>
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, ...cfg },
-        pathParams as _PathParamsCast,
-        options,
-      ),
+      useEndpointQuery<Response, PathParams, QueryParams>({ ...base, ...cfg }, pathParams as _PathParamsCast, options),
     enums,
   } as const
 }
@@ -228,21 +217,81 @@ function _mutationWithParams<Op extends AllOps>(
 export function createApiClient(axios: AxiosInstance, queryClient: QueryClientLike = defaultQueryClient) {
   const base: _Config = { axios, queryClient, operationsRegistry: _registry }
   return {
-    createPet: _mutationNoParams<'createPet'>(base, { path: '/pets', method: HttpMethod.POST, listPath: '/pets' }, createPet_enums),
-    deletePet: _mutationWithParams<'deletePet'>(base, { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' }, deletePet_enums),
-    getConfigJson: _queryNoParams<'getConfigJson'>(base, { path: '/api/config.json', method: HttpMethod.GET, listPath: null }, getConfigJson_enums),
-    getDataV1Json: _queryNoParams<'getDataV1Json'>(base, { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null }, getDataV1Json_enums),
-    getOwners: _queryNoParams<'getOwners'>(base, { path: '/owners', method: HttpMethod.GET, listPath: null }, getOwners_enums),
-    getPet: _queryWithParams<'getPet'>(base, { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null }, getPet_enums),
-    getPetPetId: _queryWithParams<'getPetPetId'>(base, { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null }, getPetPetId_enums),
-    listPets: _queryNoParams<'listPets'>(base, { path: '/pets', method: HttpMethod.GET, listPath: null }, listPets_enums),
-    listUserPets: _queryWithParams<'listUserPets'>(base, { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null }, listUserPets_enums),
-    postOwners: _mutationNoParams<'postOwners'>(base, { path: '/owners', method: HttpMethod.POST, listPath: null }, postOwners_enums),
-    postPetAdopt: _mutationWithParams<'postPetAdopt'>(base, { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null }, postPetAdopt_enums),
-    postPetGiveTreats: _mutationNoParams<'postPetGiveTreats'>(base, { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null }, postPetGiveTreats_enums),
-    updatePet: _mutationWithParams<'updatePet'>(base, { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' }, updatePet_enums),
-    updatePetPetId: _mutationWithParams<'updatePetPetId'>(base, { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' }, updatePetPetId_enums),
-    uploadPetPic: _mutationWithParams<'uploadPetPic'>(base, { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null }, uploadPetPic_enums),
+    createPet: _mutationNoParams<'createPet'>(
+      base,
+      { path: '/pets', method: HttpMethod.POST, listPath: '/pets' },
+      createPet_enums,
+    ),
+    deletePet: _mutationWithParams<'deletePet'>(
+      base,
+      { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' },
+      deletePet_enums,
+    ),
+    getConfigJson: _queryNoParams<'getConfigJson'>(
+      base,
+      { path: '/api/config.json', method: HttpMethod.GET, listPath: null },
+      getConfigJson_enums,
+    ),
+    getDataV1Json: _queryNoParams<'getDataV1Json'>(
+      base,
+      { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null },
+      getDataV1Json_enums,
+    ),
+    getOwners: _queryNoParams<'getOwners'>(
+      base,
+      { path: '/owners', method: HttpMethod.GET, listPath: null },
+      getOwners_enums,
+    ),
+    getPet: _queryWithParams<'getPet'>(
+      base,
+      { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null },
+      getPet_enums,
+    ),
+    getPetPetId: _queryWithParams<'getPetPetId'>(
+      base,
+      { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null },
+      getPetPetId_enums,
+    ),
+    listPets: _queryNoParams<'listPets'>(
+      base,
+      { path: '/pets', method: HttpMethod.GET, listPath: null },
+      listPets_enums,
+    ),
+    listUserPets: _queryWithParams<'listUserPets'>(
+      base,
+      { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null },
+      listUserPets_enums,
+    ),
+    postOwners: _mutationNoParams<'postOwners'>(
+      base,
+      { path: '/owners', method: HttpMethod.POST, listPath: null },
+      postOwners_enums,
+    ),
+    postPetAdopt: _mutationWithParams<'postPetAdopt'>(
+      base,
+      { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null },
+      postPetAdopt_enums,
+    ),
+    postPetGiveTreats: _mutationNoParams<'postPetGiveTreats'>(
+      base,
+      { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null },
+      postPetGiveTreats_enums,
+    ),
+    updatePet: _mutationWithParams<'updatePet'>(
+      base,
+      { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' },
+      updatePet_enums,
+    ),
+    updatePetPetId: _mutationWithParams<'updatePetPetId'>(
+      base,
+      { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' },
+      updatePetPetId_enums,
+    ),
+    uploadPetPic: _mutationWithParams<'uploadPetPic'>(
+      base,
+      { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null },
+      uploadPetPic_enums,
+    ),
   } as const
 }
 
