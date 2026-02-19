@@ -223,7 +223,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       let petId: string | undefined = undefined
 
       // Create mutation endpoint with reactive path params
-      const updateEndpoint = api.updatePet.useMutation( () => ({ petId }))
+      const updateEndpoint = api.updatePet.useMutation(() => ({ petId }))
 
       // Initially should be disabled due to unresolved path params
       expect(updateEndpoint.isEnabled.value).toBe(false)
@@ -267,7 +267,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
   describe('Multipart Form Data Support (Feature Request)', () => {
     it('should support multipart/form-data with specific upload endpoints', () => {
       // Test with upload-specific endpoint
-      const uploadMutation = api.uploadPetPic.useMutation( { petId: '123' })
+      const uploadMutation = api.uploadPetPic.useMutation({ petId: '123' })
 
       const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
       const formData = new FormData()
@@ -308,7 +308,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should support type safety for multipart/form-data schemas', () => {
-      const uploadMutation = api.uploadPetPic.useMutation( { petId: '123' })
+      const uploadMutation = api.uploadPetPic.useMutation({ petId: '123' })
 
       // Should accept FormData for upload endpoints
       expect(() => {
@@ -376,7 +376,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle errors in mutations with custom handlers', () => {
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         onError: vi.fn((error) => {
           console.log('Mutation error:', error)
         }),
@@ -449,20 +449,20 @@ describe('Bug Fixes and Issue Reproductions', () => {
    */
   describe('Mutation isEnabled Enforcement (GitHub Issue)', () => {
     it('should have isEnabled=false when path parameters are undefined', () => {
-      const mutation = api.updatePet.useMutation( () => ({ petId: undefined }))
+      const mutation = api.updatePet.useMutation(() => ({ petId: undefined }))
 
       expect(mutation.isEnabled.value).toBe(false)
     })
 
     it('should have isEnabled=true when path parameters are provided', () => {
-      const mutation = api.updatePet.useMutation( () => ({ petId: '123' }))
+      const mutation = api.updatePet.useMutation(() => ({ petId: '123' }))
 
       expect(mutation.isEnabled.value).toBe(true)
     })
 
     it('should prevent mutate() when isEnabled is false', async () => {
       const onError = vi.fn()
-      const mutation = api.updatePet.useMutation( () => ({ petId: undefined }), { onError })
+      const mutation = api.updatePet.useMutation(() => ({ petId: undefined }), { onError })
 
       expect(mutation.isEnabled.value).toBe(false)
 
@@ -481,7 +481,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should reject mutateAsync() when isEnabled is false', async () => {
-      const mutation = api.updatePet.useMutation( () => ({ petId: undefined }))
+      const mutation = api.updatePet.useMutation(() => ({ petId: undefined }))
 
       expect(mutation.isEnabled.value).toBe(false)
 
@@ -493,7 +493,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should allow mutation when isEnabled becomes true', async () => {
       let petId: string | undefined = undefined
-      const mutation = api.updatePet.useMutation( () => ({ petId }))
+      const mutation = api.updatePet.useMutation(() => ({ petId }))
 
       // Initially disabled
       expect(mutation.isEnabled.value).toBe(false)
@@ -511,7 +511,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     it('should use isEnabled as a guard in practical usage', () => {
       const selectedRequestRef = { value: undefined as string | undefined }
 
-      const updateRequestTypeMutation = api.updatePet.useMutation( () => ({
+      const updateRequestTypeMutation = api.updatePet.useMutation(() => ({
         petId: selectedRequestRef.value,
       }))
 

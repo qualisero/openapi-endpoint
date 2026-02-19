@@ -134,7 +134,7 @@ describe('Query and Mutation Options', () => {
   describe('Mutation-Specific TanStack Options', () => {
     it('should support retry configuration for mutations', () => {
       const customRetry = vi.fn(() => false)
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         retry: customRetry,
       })
 
@@ -148,7 +148,7 @@ describe('Query and Mutation Options', () => {
       const onError = vi.fn()
       const onSettled = vi.fn()
 
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         onSuccess,
         onError,
         onSettled,
@@ -161,7 +161,7 @@ describe('Query and Mutation Options', () => {
 
     it('should support meta data configuration', () => {
       const meta = { description: 'Creating a new pet' }
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         meta,
       })
 
@@ -175,7 +175,7 @@ describe('Query and Mutation Options', () => {
       const onError = vi.fn()
       const customRetry = vi.fn(() => false)
 
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         // TanStack Query options
         onSuccess,
         onError,
@@ -183,7 +183,7 @@ describe('Query and Mutation Options', () => {
         meta: { operation: 'create' },
 
         // Cache management options
-        invalidateOperations: ["listPets"],
+        invalidateOperations: ['listPets'],
         dontInvalidate: false,
         dontUpdateCache: false,
 
@@ -204,8 +204,8 @@ describe('Query and Mutation Options', () => {
 
   describe('Cache Invalidation Options', () => {
     it('should support invalidateOperations configuration', () => {
-      const mutation = api.createPet.useMutation( {
-        invalidateOperations: ["listPets"],
+      const mutation = api.createPet.useMutation({
+        invalidateOperations: ['listPets'],
       })
 
       expect(mutation).toBeTruthy()
@@ -218,8 +218,8 @@ describe('Query and Mutation Options', () => {
         { petId: '123' },
         {
           invalidateOperations: {
-            ["getPet"]: { petId: '123' },
-            ["listPets"]: {},
+            ['getPet']: { petId: '123' },
+            ['listPets']: {},
           },
         },
       )
@@ -230,11 +230,11 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should support dontInvalidate and dontUpdateCache flags', () => {
-      const mutationWithDontInvalidate = api.createPet.useMutation( {
+      const mutationWithDontInvalidate = api.createPet.useMutation({
         dontInvalidate: true,
       })
 
-      const mutationWithDontUpdateCache = api.createPet.useMutation( {
+      const mutationWithDontUpdateCache = api.createPet.useMutation({
         dontUpdateCache: true,
       })
 
@@ -244,7 +244,7 @@ describe('Query and Mutation Options', () => {
 
     it('should support refetchEndpoints configuration', () => {
       const petListQuery = api.listPets.useQuery()
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         refetchEndpoints: [petListQuery],
       })
 
@@ -257,7 +257,7 @@ describe('Query and Mutation Options', () => {
       const mutation = api.updatePet.useMutation(
         { petId: '123' },
         {
-          invalidateOperations: ["listPets"],
+          invalidateOperations: ['listPets'],
           refetchEndpoints: [petListQuery],
           dontInvalidate: false,
           dontUpdateCache: false,
@@ -294,8 +294,8 @@ describe('Query and Mutation Options', () => {
 
     it('should handle different HTTP methods in mutations', () => {
       const postMutation = api.createPet.useMutation()
-      const putMutation = api.updatePet.useMutation( { petId: '123' })
-      const deleteMutation = api.deletePet.useMutation( { petId: '123' })
+      const putMutation = api.updatePet.useMutation({ petId: '123' })
+      const deleteMutation = api.deletePet.useMutation({ petId: '123' })
 
       expect(postMutation).toHaveProperty('mutate')
       expect(putMutation).toHaveProperty('mutate')
@@ -310,7 +310,7 @@ describe('Query and Mutation Options', () => {
       const queryWithoutParams = api.getPet.useQuery(() => ({ petId: undefined }))
       expect(queryWithoutParams.isEnabled.value).toBe(false)
 
-      const mutationWithParams = api.updatePet.useMutation( { petId: '123' })
+      const mutationWithParams = api.updatePet.useMutation({ petId: '123' })
       expect(mutationWithParams.isEnabled.value).toBe(true)
     })
 
@@ -337,9 +337,9 @@ describe('Query and Mutation Options', () => {
       expect(query).toHaveProperty('onLoad')
 
       const onSuccess = vi.fn()
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         onSuccess,
-        invalidateOperations: ["listPets"],
+        invalidateOperations: ['listPets'],
         axiosOptions: { headers: { 'X-Test': 'value' } },
         retry: 3,
       })
@@ -353,7 +353,7 @@ describe('Query and Mutation Options', () => {
       const queryWithCorrectParams = api.getPet.useQuery({ petId: '123' })
       expect(queryWithCorrectParams).toBeTruthy()
 
-      const mutationWithCorrectParams = api.updatePet.useMutation( { petId: '123' })
+      const mutationWithCorrectParams = api.updatePet.useMutation({ petId: '123' })
       expect(mutationWithCorrectParams).toBeTruthy()
     })
 
@@ -370,7 +370,7 @@ describe('Query and Mutation Options', () => {
       // This is a compile-time type test - using ApiPathParams with OpType namespace
       type UpdatePetParams = ApiPathParams<OpType.updatePet>
 
-      const mutation = api.updatePet.useMutation( {
+      const mutation = api.updatePet.useMutation({
         petId: '123',
       } as UpdatePetParams)
       expect(mutation).toBeTruthy()
@@ -424,7 +424,7 @@ describe('Query and Mutation Options', () => {
 
     it('should handle errors in mutations with onError callback', () => {
       const onError = vi.fn()
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         onError,
       })
 
@@ -475,7 +475,7 @@ describe('Query and Mutation Options', () => {
 
   describe('Option Merging and Precedence', () => {
     it('should properly merge axios options from different sources', () => {
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         axiosOptions: {
           timeout: 5000,
           headers: {
@@ -509,7 +509,7 @@ describe('Query and Mutation Options', () => {
         },
       })
 
-      const mutation = api.createPet.useMutation( {
+      const mutation = api.createPet.useMutation({
         axiosOptions: {
           headers: customHeaders,
           timeout: 15000,
@@ -532,7 +532,7 @@ describe('Query and Mutation Options', () => {
 
     it('should handle empty or undefined options gracefully', () => {
       const queryWithEmpty = api.listPets.useQuery({})
-      const mutationWithEmpty = api.createPet.useMutation( {})
+      const mutationWithEmpty = api.createPet.useMutation({})
 
       expect(queryWithEmpty).toHaveProperty('data')
       expect(mutationWithEmpty).toHaveProperty('mutate')

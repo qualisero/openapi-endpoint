@@ -373,7 +373,7 @@ describe('Axios Configuration Integration', () => {
 
     it('should handle complex custom properties in mutation calls', () => {
       const mutation = api.createPet.useMutation(
-
+)
       expect(() => {
         mutation.mutate({
           data: { name: 'Fluffy' },
@@ -437,8 +437,8 @@ describe('Axios Configuration Integration', () => {
         axios: globalAxios,
       }
 
-      const apiWithGlobal = useOpenApi(configWithGlobalAxios)
-      const query = apiWithGlobal.useQuery(listPets, {
+      const apiWithGlobal = useOpenApi(configWithGlobalAxios, operationConfig)
+      const query = apiWithGlobal.listPets.useQuery({
         axiosOptions: {
           headers: { 'Request-Specific': 'request-value' },
         },

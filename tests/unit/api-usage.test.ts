@@ -4,11 +4,7 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-import {
-  openApiOperations,
-  operationConfig,
-  type OpenApiOperations,
-} from '../fixtures/api-operations'
+import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
 
 /**
  * API Usage Patterns and Examples
@@ -144,7 +140,6 @@ describe('API Usage Patterns', () => {
     it('should support onLoad callbacks for immediate data access', () => {
       const onLoad = vi.fn()
       const query = api.getPet.useQuery(
-        
         { petId: '123' },
         {
           onLoad,
@@ -206,7 +201,7 @@ describe('API Usage Patterns', () => {
 
     it('should support cache invalidation options', () => {
       const mutation = api.createPet.useMutation({
-        invalidateOperations: ["listPets"],
+        invalidateOperations: ['listPets'],
         dontInvalidate: false,
         dontUpdateCache: false,
       })
@@ -217,12 +212,11 @@ describe('API Usage Patterns', () => {
 
     it('should support complex invalidateOperations with path parameters', () => {
       const mutation = api.updatePet.useMutation(
-        
         { petId: '123' },
         {
           invalidateOperations: {
-            ["getPet"]: { petId: '123' },
-            ["listPets"]: {},
+            ['getPet']: { petId: '123' },
+            ['listPets']: {},
           },
         },
       )
@@ -252,7 +246,7 @@ describe('API Usage Patterns', () => {
 
       // Test with other options but no data
       expect(() =>
-        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: ["listPets"] }),
+        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: ['listPets'] }),
       ).not.toThrow()
     })
 
@@ -297,7 +291,6 @@ describe('API Usage Patterns', () => {
       const selectedPetId = ref<string | undefined>(undefined)
 
       const petQuery = api.getPet.useQuery(
-        
         computed(() => ({ petId: selectedPetId.value })),
         {
           enabled: computed(() => Boolean(selectedPetId.value)),
@@ -316,7 +309,6 @@ describe('API Usage Patterns', () => {
       const selectedUserId = ref<string>('user1')
 
       const userPetsQuery = api.getPet.useQuery(
-        
         computed(() => ({ userId: selectedUserId.value })),
         {
           enabled: computed(() => Boolean(selectedUserId.value)),
@@ -332,7 +324,6 @@ describe('API Usage Patterns', () => {
       const shouldFetchPets = ref(true)
 
       const userPetsQuery = api.getPet.useQuery(
-        
         computed(() => ({ userId: userId.value })),
         {
           enabled: computed(() => Boolean(userId.value) && shouldFetchPets.value),
@@ -412,21 +403,23 @@ describe('API Usage Patterns', () => {
     it('should use provided queryClient when specified in config', () => {
       const customQueryClient = new QueryClient()
       const configWithClient: OpenApiConfig<OpenApiOperations> = {
-        ...mockConfig,
+        operations: mockOperations,
+      axios: mockAxios,
         queryClient: customQueryClient,
       }
 
-      const apiWithCustomClient = useOpenApi(configWithClient)
+      const apiWithCustomClient = useOpenApi(configWithClient, operationConfig)
       expect(apiWithCustomClient).toBeTruthy()
-      expect(apiWithCustomClient).toHaveProperty('useQuery')
-      expect(apiWithCustomClient).toHaveProperty('useMutation')
+      expect(apiWithCustomClient.createPet).toHaveProperty('useMutation')
+      expect(apiWithCustomClient.listPets).toHaveProperty('useQuery')
     })
 
     it('should use default queryClient when not specified in config', () => {
       // This test verifies the api works without explicit queryClient
-      expect(api).toBeTruthy()
-      expect(api).toHaveProperty('useQuery')
-      expect(api).toHaveProperty('useMutation')
+      const apiWithDefault = useOpenApi(mockConfig, operationConfig)
+      expect(apiWithDefault).toBeTruthy()
+      expect(apiWithDefault.createPet).toHaveProperty('useMutation')
+      expect(apiWithDefault.listPets).toHaveProperty('useQuery')
     })
 
     it('should work with QueryClient-like objects', () => {
@@ -440,11 +433,12 @@ describe('API Usage Patterns', () => {
       }
 
       const configWithLike: OpenApiConfig<OpenApiOperations> = {
-        ...mockConfig,
+        operations: mockOperations,
+      axios: mockAxios,
         queryClient: queryClientLike,
       }
 
-      const apiWithLike = useOpenApi(configWithLike)
+      const apiWithLike = useOpenApi(configWithLike, operationConfig)
       expect(apiWithLike).toBeTruthy()
     })
   })
@@ -466,7 +460,6 @@ describe('API Usage Patterns', () => {
       })
 
       const petQuery = api.getPet.useQuery(
-        
         computed(() => ({ petId: selectedPetId.value })),
         {
           enabled: computed(() => Boolean(selectedPetId.value) && isOnline.value),
@@ -489,11 +482,10 @@ describe('API Usage Patterns', () => {
       })
 
       const updatePet = api.updatePet.useMutation(
-        
         computed(() => ({ petId: selectedPetId.value })),
         {
           dontInvalidate: false, // Allow automatic invalidation
-          invalidateOperations: ["listPets"],
+          invalidateOperations: ['listPets'],
           onSuccess: (data: unknown, variables: unknown) => {
             console.log('Pet updated:', data, variables)
           },
@@ -525,12 +517,11 @@ describe('API Usage Patterns', () => {
 
     it('should support manual control over cache invalidation workflows', () => {
       const updatePet = api.updatePet.useMutation(
-        
         { petId: '123' },
         {
           dontInvalidate: true, // Disable automatic invalidation
           dontUpdateCache: true, // Disable automatic cache updates
-          invalidateOperations: ["listPets"], // Manually specify operations to invalidate
+          invalidateOperations: ['listPets'], // Manually specify operations to invalidate
         },
       )
 
@@ -544,9 +535,8 @@ describe('API Usage Patterns', () => {
       const selectedPet = ref<string | undefined>(undefined)
 
       // User's pets query with conditional enabling
-      const userPetsQuery = api.getPet.useQuery(
-        
-        computed(() => ({ userId: currentUser.value.id })),
+      const userPetsQuery = api.listUserPets.useQuery(
+        () => ({ userId: currentUser.value.id }),
         {
           enabled: computed(() => Boolean(currentUser.value?.id)),
           staleTime: 300000, // 5 minutes
@@ -555,7 +545,6 @@ describe('API Usage Patterns', () => {
 
       // Selected pet details with conditional enabling
       const petDetailsQuery = api.getPet.useQuery(
-        
         computed(() => ({ petId: selectedPet.value })),
         {
           enabled: computed(() => Boolean(selectedPet.value)),
@@ -588,12 +577,11 @@ describe('API Usage Patterns', () => {
 
       // Update pet mutation with cache management
       const updatePetMutation = api.updatePet.useMutation(
-        
         computed(() => ({ petId: selectedPet.value })),
         {
           invalidateOperations: {
-            ["listUserPets"]: { userId: currentUser.value.id },
-            ["listPets"]: {},
+            ['listUserPets']: { userId: currentUser.value.id },
+            ['listPets']: {},
           },
           onSuccess: (updatedPet: unknown) => {
             console.log('Pet updated successfully:', updatedPet)
