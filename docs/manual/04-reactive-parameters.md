@@ -83,7 +83,7 @@ const { data: pets } = api.useQuery(QueryOperationId.listPets, {
 
 // Query refetches when search or status changes
 searchTerm.value = 'fluffy' // Triggers refetch
-statusFilter.value = PetStatus.Sold // Triggers refetch
+statusFilter.value = PetStatus.Adopted // Triggers refetch
 ```
 
 ### Pagination

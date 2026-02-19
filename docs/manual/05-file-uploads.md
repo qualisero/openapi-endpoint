@@ -221,7 +221,7 @@ reader.readAsBinaryString(file)
 ```typescript
 import { api } from './api/init'
 
-const { data: userProfile } = api.useQuery(QueryQueryOperationId.getUserProfile, { userId: '123' })
+const { data: userProfile } = api.useQuery(QueryOperationId.getUserProfile, { userId: '123' })
 
 const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()

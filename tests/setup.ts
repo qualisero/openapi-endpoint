@@ -83,13 +83,17 @@ vi.mock('@tanstack/vue-query', () => ({
   useMutation: vi.fn((options: any) => {
     // Store the mutationFn so we can call it
     const mutationFn = options?.mutationFn
+    const mutationOnError = options?.onError
 
     return {
       mutate: vi.fn((vars: any, mutateOptions?: any) => {
         if (mutationFn) {
           mutationFn(vars).catch((err: any) => {
+            // Call onError from mutate options first, then from mutation options
             if (mutateOptions?.onError) {
               mutateOptions.onError(err)
+            } else if (mutationOnError) {
+              mutationOnError(err)
             }
           })
         }

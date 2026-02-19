@@ -252,7 +252,7 @@ const createPet = api.useMutation(
   {
     invalidateOperations: [
       QueryOperationId.listPets, // Invalidate specific operations
-      QueryQueryOperationId.getUserPets,
+      QueryOperationId.getUserPets,
     ],
   },
 )

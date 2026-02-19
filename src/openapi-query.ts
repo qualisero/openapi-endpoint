@@ -185,18 +185,19 @@ export function useEndpointQuery<Ops extends Operations<Ops>, Op extends keyof O
     onLoadCallbacks.add(onLoadInit)
   }
 
-  // Single watch instance to handle all callbacks
+  // Single watch instance to handle all callbacks - stop after first successful data
   if (query.data.value !== undefined) {
     // Data already available - call all callbacks immediately
     onLoadCallbacks.forEach((cb) => cb(query.data.value as ApiResponse<Ops, Op>))
     onLoadCallbacks.clear()
   } else {
-    // Watch for data to become available
-    watch(query.data, (newData) => {
+    // Watch for data to become available - stop after first successful load
+    const stopWatch = watch(query.data, (newData) => {
       if (newData !== undefined && onLoadCallbacks.size > 0) {
         // Call all pending callbacks
         onLoadCallbacks.forEach((cb) => cb(newData as ApiResponse<Ops, Op>))
         onLoadCallbacks.clear()
+        stopWatch() // Stop watching after first successful load
       }
     })
   }
