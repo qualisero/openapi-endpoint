@@ -1066,7 +1066,7 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>): 
       options?: QueryOptions<Response, QueryParams>
     ): QueryReturn<Response, PathParams> => 
       useEndpointQuery<Response, PathParams, QueryParams>(
-        ${cfgSpread}, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        ${cfgSpread}, pathParams as _PathParamsCast, options
       ),
     enums: ${id}_enums,
   } as const`
@@ -1091,7 +1091,7 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>): 
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        ${cfgSpread}, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        ${cfgSpread}, pathParams as _PathParamsCast, options
       ),
     enums: ${id}_enums,
   } as const`
@@ -1167,6 +1167,12 @@ type _Config = {
   queryClient: QueryClientLike
   operationsRegistry: typeof _registry
 }
+
+// ============================================================================
+// Type alias for path params cast (avoids repetition)
+// ============================================================================
+
+type _PathParamsCast = MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>
 
 // ============================================================================
 // Per-operation namespace factories

@@ -76,6 +76,12 @@ type _Config = {
 }
 
 // ============================================================================
+// Type alias for path params cast (avoids repetition)
+// ============================================================================
+
+type _PathParamsCast = MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>
+
+// ============================================================================
 // Per-operation namespace factories
 // ============================================================================
 
@@ -126,7 +132,7 @@ function _deletePet(base: _Config) {
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' }, pathParams as _PathParamsCast, options
       ),
     enums: deletePet_enums,
   } as const
@@ -225,7 +231,7 @@ function _getPet(base: _Config) {
       options?: QueryOptions<Response, QueryParams>
     ): QueryReturn<Response, PathParams> => 
       useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.GET, listPath: null }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/pets/{petId}', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
       ),
     enums: getPet_enums,
   } as const
@@ -252,7 +258,7 @@ function _getPetPetId(base: _Config) {
       options?: QueryOptions<Response, QueryParams>
     ): QueryReturn<Response, PathParams> => 
       useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
       ),
     enums: getPetPetId_enums,
   } as const
@@ -303,7 +309,7 @@ function _listUserPets(base: _Config) {
       options?: QueryOptions<Response, QueryParams>
     ): QueryReturn<Response, PathParams> => 
       useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
       ),
     enums: listUserPets_enums,
   } as const
@@ -356,7 +362,7 @@ function _postPetAdopt(base: _Config) {
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null }, pathParams as _PathParamsCast, options
       ),
     enums: postPetAdopt_enums,
   } as const
@@ -409,7 +415,7 @@ function _updatePet(base: _Config) {
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' }, pathParams as _PathParamsCast, options
       ),
     enums: updatePet_enums,
   } as const
@@ -437,7 +443,7 @@ function _updatePetPetId(base: _Config) {
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' }, pathParams as _PathParamsCast, options
       ),
     enums: updatePetPetId_enums,
   } as const
@@ -465,7 +471,7 @@ function _uploadPetPic(base: _Config) {
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
     ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null }, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+        { ...base, path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null }, pathParams as _PathParamsCast, options
       ),
     enums: uploadPetPic_enums,
   } as const
