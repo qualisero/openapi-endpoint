@@ -30,41 +30,37 @@ import { useEndpointMutation } from './openapi-mutation'
 function buildNamespace<
   Ops extends Operations<Ops>,
   Op extends keyof Ops,
-  TEnums extends Record<string, Record<string, string>>
->(
-  config: OpenApiConfig<Ops>,
-  operationId: Op,
-  enums: TEnums,
-): OperationNamespace<Ops, Op, TEnums> {
+  TEnums extends Record<string, Record<string, string>>,
+>(config: OpenApiConfig<Ops>, operationId: Op, enums: TEnums): OperationNamespace<Ops, Op, TEnums> {
   const helpers = getHelpers<Ops, Op>(config)
   const { method, path } = helpers.getOperationInfo(operationId)
   const hasPathParams = path.includes('{')
 
   if (isQueryMethod(method)) {
     const useQuery: OperationQuery<Ops, Op> = hasPathParams
-      ? ((pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>, options?: QQueryOptions<Ops, Op>) =>
+      ? (((pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>, options?: QQueryOptions<Ops, Op>) =>
           useEndpointQuery(
             operationId,
             helpers,
             pathParams as MaybeRefOrGetter<ApiPathParamsInput<Ops, Op>>,
             options,
-          )) as OperationQuery<Ops, Op>
-      : ((options?: QQueryOptions<Ops, Op>) => useEndpointQuery(operationId, helpers, undefined, options)) as
-          OperationQuery<Ops, Op>
+          )) as OperationQuery<Ops, Op>)
+      : (((options?: QQueryOptions<Ops, Op>) =>
+          useEndpointQuery(operationId, helpers, undefined, options)) as OperationQuery<Ops, Op>)
 
     return { useQuery, enums } as QueryNamespace<Ops, Op, TEnums> as OperationNamespace<Ops, Op, TEnums>
   }
 
   const useMutation: OperationMutation<Ops, Op> = hasPathParams
-    ? ((pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>, options?: QMutationOptions<Ops, Op>) =>
+    ? (((pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>, options?: QMutationOptions<Ops, Op>) =>
         useEndpointMutation(
           operationId,
           helpers,
           pathParams as MaybeRefOrGetter<ApiPathParamsInput<Ops, Op>>,
           options,
-        )) as OperationMutation<Ops, Op>
-    : ((options?: QMutationOptions<Ops, Op>) => useEndpointMutation(operationId, helpers, undefined, options)) as
-        OperationMutation<Ops, Op>
+        )) as OperationMutation<Ops, Op>)
+    : (((options?: QMutationOptions<Ops, Op>) =>
+        useEndpointMutation(operationId, helpers, undefined, options)) as OperationMutation<Ops, Op>)
 
   return { useMutation, enums } as MutationNamespace<Ops, Op, TEnums> as OperationNamespace<Ops, Op, TEnums>
 }
@@ -110,10 +106,7 @@ function buildNamespace<
  * create.mutate({ data: { name: 'Fluffy', status: api.createPet.enums.status.Available } })
  * ```
  */
-export function useOpenApi<
-  Ops extends Operations<Ops>,
-  Config extends OperationConfig<Ops>
->(
+export function useOpenApi<Ops extends Operations<Ops>, Config extends OperationConfig<Ops>>(
   config: OpenApiConfig<Ops>,
   operationConfig: Config,
 ): OpenApiInstance<Ops, Config> {

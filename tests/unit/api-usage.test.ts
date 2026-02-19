@@ -206,7 +206,7 @@ describe('API Usage Patterns', () => {
 
     it('should support cache invalidation options', () => {
       const mutation = api.createPet.useMutation({
-        invalidateOperations: [QueryOperationId.listPets],
+        invalidateOperations: ["listPets"],
         dontInvalidate: false,
         dontUpdateCache: false,
       })
@@ -221,8 +221,8 @@ describe('API Usage Patterns', () => {
         { petId: '123' },
         {
           invalidateOperations: {
-            [QueryOperationId.getPet]: { petId: '123' },
-            [QueryOperationId.listPets]: {},
+            ["getPet"]: { petId: '123' },
+            ["listPets"]: {},
           },
         },
       )
@@ -252,7 +252,7 @@ describe('API Usage Patterns', () => {
 
       // Test with other options but no data
       expect(() =>
-        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: [QueryOperationId.listPets] }),
+        deleteEndpoint.mutateAsync({ dontInvalidate: true, invalidateOperations: ["listPets"] }),
       ).not.toThrow()
     })
 
@@ -493,7 +493,7 @@ describe('API Usage Patterns', () => {
         computed(() => ({ petId: selectedPetId.value })),
         {
           dontInvalidate: false, // Allow automatic invalidation
-          invalidateOperations: [QueryOperationId.listPets],
+          invalidateOperations: ["listPets"],
           onSuccess: (data: unknown, variables: unknown) => {
             console.log('Pet updated:', data, variables)
           },
@@ -530,7 +530,7 @@ describe('API Usage Patterns', () => {
         {
           dontInvalidate: true, // Disable automatic invalidation
           dontUpdateCache: true, // Disable automatic cache updates
-          invalidateOperations: [QueryOperationId.listPets], // Manually specify operations to invalidate
+          invalidateOperations: ["listPets"], // Manually specify operations to invalidate
         },
       )
 
@@ -592,8 +592,8 @@ describe('API Usage Patterns', () => {
         computed(() => ({ petId: selectedPet.value })),
         {
           invalidateOperations: {
-            [QueryOperationId.listUserPets]: { userId: currentUser.value.id },
-            [QueryOperationId.listPets]: {},
+            ["listUserPets"]: { userId: currentUser.value.id },
+            ["listPets"]: {},
           },
           onSuccess: (updatedPet: unknown) => {
             console.log('Pet updated successfully:', updatedPet)

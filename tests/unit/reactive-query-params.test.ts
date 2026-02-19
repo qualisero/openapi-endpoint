@@ -3,11 +3,7 @@ import { ref, computed } from 'vue'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import {
-  openApiOperations,
-  operationConfig,
-  type OpenApiOperations,
-} from '../fixtures/api-operations'
+import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
 import { PetStatus } from '../fixtures/api-enums'
 
 /**
@@ -37,7 +33,7 @@ describe('Reactive Query Parameters', () => {
   describe('Type Safety', () => {
     it('should accept valid query parameters for operations with query params', () => {
       // listPets has a 'limit' query parameter in the OpenAPI spec
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: { limit: 10 },
       })
 
@@ -48,13 +44,13 @@ describe('Reactive Query Parameters', () => {
 
     it('should work with operations that have no query parameters', () => {
       // getPet has no query parameters, but queryParams should still be accepted
-      const query = api.getPet.useQuery( { petId: '123' }, {})
+      const query = api.getPet.useQuery({ petId: '123' }, {})
 
       expect(query).toBeTruthy()
     })
 
     it('should support empty query params object', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: {},
       })
 
@@ -64,7 +60,7 @@ describe('Reactive Query Parameters', () => {
 
   describe('Static Query Parameters', () => {
     it('should pass static query params to axios', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: { limit: 50 },
       })
 
@@ -73,7 +69,7 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should merge queryParams with axiosOptions.params', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: { limit: 50 },
         axiosOptions: {
           params: { page: 1 },
@@ -85,11 +81,11 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should include query params in the query key', () => {
-      const query1 = api.listPets.useQuery( {
+      const query1 = api.listPets.useQuery({
         queryParams: { limit: 10 },
       })
 
-      const query2 = api.listPets.useQuery( {
+      const query2 = api.listPets.useQuery({
         queryParams: { limit: 20 },
       })
 
@@ -101,7 +97,7 @@ describe('Reactive Query Parameters', () => {
   describe('Reactive Query Parameters with Refs', () => {
     it('should accept ref-based query parameters', () => {
       const limit = ref({ limit: 10 })
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: limit,
       })
 
@@ -111,7 +107,7 @@ describe('Reactive Query Parameters', () => {
 
     it('should accept object ref with query parameters', () => {
       const queryParams = ref({ limit: 10 })
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: queryParams,
       })
 
@@ -124,7 +120,7 @@ describe('Reactive Query Parameters', () => {
       const limit = ref(10)
       const queryParams = computed(() => ({ limit: limit.value }))
 
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: queryParams,
       })
 
@@ -141,7 +137,7 @@ describe('Reactive Query Parameters', () => {
         limit: maxResults.value,
       }))
 
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: queryParams as any,
       })
 
@@ -154,7 +150,7 @@ describe('Reactive Query Parameters', () => {
     it('should accept function-based query parameters', () => {
       let limit = 10
 
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: () => ({ limit }),
       })
 
@@ -163,7 +159,7 @@ describe('Reactive Query Parameters', () => {
 
     it('should evaluate function on each query execution', () => {
       let limit = 10
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: () => ({ limit }),
       })
 
@@ -175,7 +171,7 @@ describe('Reactive Query Parameters', () => {
   describe('Query Parameter Reactivity - Automatic Refetch', () => {
     it('should include query params in query key for automatic refetch', () => {
       const limit = ref(10)
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: computed(() => ({ limit: limit.value })),
       })
 
@@ -188,11 +184,11 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should maintain separate cache entries for different query params', () => {
-      const query1 = api.listPets.useQuery( {
+      const query1 = api.listPets.useQuery({
         queryParams: { limit: 10 },
       })
 
-      const query2 = api.listPets.useQuery( {
+      const query2 = api.listPets.useQuery({
         queryParams: { limit: 20 },
       })
 
@@ -276,7 +272,7 @@ describe('Reactive Query Parameters', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle undefined query params', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: undefined,
       })
 
@@ -284,7 +280,7 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should handle null query params', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: null as any,
       })
 
@@ -292,7 +288,7 @@ describe('Reactive Query Parameters', () => {
     })
 
     it('should handle empty object query params', () => {
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: {},
       })
 
@@ -301,7 +297,7 @@ describe('Reactive Query Parameters', () => {
 
     it('should handle ref with undefined value', () => {
       const queryParams = ref(undefined)
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: queryParams as any,
       })
 
@@ -312,7 +308,7 @@ describe('Reactive Query Parameters', () => {
       const shouldInclude = ref(false)
       const queryParams = computed(() => (shouldInclude.value ? { limit: 10 } : undefined))
 
-      const query = api.listPets.useQuery( {
+      const query = api.listPets.useQuery({
         queryParams: queryParams as any,
       })
 
