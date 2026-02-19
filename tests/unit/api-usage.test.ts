@@ -404,7 +404,7 @@ describe('API Usage Patterns', () => {
       const customQueryClient = new QueryClient()
       const configWithClient: OpenApiConfig<OpenApiOperations> = {
         operations: mockOperations,
-      axios: mockAxios,
+        axios: mockAxios,
         queryClient: customQueryClient,
       }
 
@@ -434,7 +434,7 @@ describe('API Usage Patterns', () => {
 
       const configWithLike: OpenApiConfig<OpenApiOperations> = {
         operations: mockOperations,
-      axios: mockAxios,
+        axios: mockAxios,
         queryClient: queryClientLike,
       }
 
@@ -535,13 +535,10 @@ describe('API Usage Patterns', () => {
       const selectedPet = ref<string | undefined>(undefined)
 
       // User's pets query with conditional enabling
-      const userPetsQuery = api.listUserPets.useQuery(
-        () => ({ userId: currentUser.value.id }),
-        {
-          enabled: computed(() => Boolean(currentUser.value?.id)),
-          staleTime: 300000, // 5 minutes
-        },
-      )
+      const userPetsQuery = api.listUserPets.useQuery(() => ({ userId: currentUser.value.id }), {
+        enabled: computed(() => Boolean(currentUser.value?.id)),
+        staleTime: 300000, // 5 minutes
+      })
 
       // Selected pet details with conditional enabling
       const petDetailsQuery = api.getPet.useQuery(

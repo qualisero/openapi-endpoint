@@ -372,8 +372,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle complex custom properties in mutation calls', () => {
-      const mutation = api.createPet.useMutation(
-)
+      const mutation = api.createPet.useMutation()
       expect(() => {
         mutation.mutate({
           data: { name: 'Fluffy' },

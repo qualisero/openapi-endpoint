@@ -5,51 +5,48 @@
 ```typescript
 // api/init.ts
 import { useOpenApi } from '@qualisero/openapi-endpoint'
-import {
-  openApiOperations,
-  type OpenApiOperations,
-  QueryOperationId,
-  MutationOperationId,
-} from './generated/api-operations'
+import { openApiOperations, operationConfig } from './generated/api-operations'
 
-const api = useOpenApi<OpenApiOperations>({
-  operations: openApiOperations,
-  axios: axios.create({ baseURL: 'https://api.example.com' }),
-})
+const api = useOpenApi(
+  {
+    operations: openApiOperations,
+    axios: axios.create({ baseURL: 'https://api.example.com' }),
+  },
+  operationConfig
+)
 ```
 
 ## Queries (GET/HEAD/OPTIONS)
 
 ```typescript
 // Simple query - no path params
-const { data: pets, isLoading, isEnabled } = api.useQuery(QueryOperationId.listPets)
+const { data: pets, isLoading, isEnabled } = api.listPets.useQuery()
 
 // With path params
-const { data: pet } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const { data: pet } = api.getPet.useQuery({ petId: '123' })
 
 // Reactive path params
 const petId = ref('123')
-const { data, refetch } = api.useQuery(
-  QueryOperationId.getPet,
+const { data, refetch } = api.getPet.useQuery(
   computed(() => ({ petId: petId.value })),
 )
 
 // With query params - use enum for type safety
 import { PetStatus } from './generated/api-enums'
 
-const { data } = api.useQuery(QueryOperationId.listPets, {
+const { data } = api.listPets.useQuery( {
   queryParams: { limit: 10, status: PetStatus.Available },
 })
 
 // With options
-const { data, onLoad } = api.useQuery(QueryOperationId.listPets, {
+const { data, onLoad } = api.listPets.useQuery( {
   enabled: computed(() => isLoggedIn.value),
   staleTime: 5000,
   onLoad: (data) => console.log('Loaded:', data),
 })
 
 // onLoad as method
-const query = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const query = api.getPet.useQuery( { petId: '123' })
 query.onLoad((pet) => console.log('Pet:', pet.name))
 ```
 
@@ -57,21 +54,21 @@ query.onLoad((pet) => console.log('Pet:', pet.name))
 
 ```typescript
 // Simple mutation
-const createPet = api.useMutation(MutationOperationId.createPet)
+const createPet = api.createPet.useMutation()
 await createPet.mutateAsync({ data: { name: 'Fluffy' } })
 
 // With path params
-const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
+const updatePet = api.updatePet.useMutation( { petId: '123' })
 await updatePet.mutateAsync({ data: { name: 'Updated' } })
 
 // Override path params at call time
-const deletePet = api.useMutation(MutationOperationId.deletePet)
+const deletePet = api.deletePet.useMutation()
 await deletePet.mutateAsync({ pathParams: { petId: '123' } })
 
 // Cache control
-const mutation = api.useMutation(MutationOperationId.createPet, {
+const mutation = api.createPet.useMutation( {
   dontInvalidate: true, // skip auto-invalidation
-  invalidateOperations: [QueryOperationId.listPets], // manual invalidation
+  invalidateOperations: ["listPets"], // manual invalidation
   onSuccess: (response) => console.log('Created:', response.data),
 })
 ```
@@ -138,7 +135,7 @@ The CLI extracts enum values from your OpenAPI spec and generates type-safe cons
 import { PetStatus } from './generated/api-enums'
 
 // Use enum constant for query params - intellisense + typo safety
-const { data: pets } = api.useQuery(QueryOperationId.listPets, {
+const { data: pets } = api.listPets.useQuery( {
   queryParams: { status: PetStatus.Available },
 })
 
@@ -151,7 +148,7 @@ await createPet.mutateAsync({
 const status: PetStatus = PetStatus.Available // type: 'available'
 
 // Still works with string literals
-const { data } = api.useQuery(QueryOperationId.listPets, {
+const { data } = api.listPets.useQuery( {
   queryParams: { status: 'available' }, // also valid
 })
 ```

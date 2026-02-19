@@ -13,9 +13,9 @@ Turns your `openapi.json` into typesafe API composables using Vue Query (TanStac
 Let's you get TanStack Vue Query composables that enforce consistency (name of endpoints, typing) with your API's `openapi.json` file:
 
 ```typescript
-const { data, isLoading } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const { data, isLoading } = api.getPet.useQuery( { petId: '123' })
 
-const createPetMutation = api.useMutation(MutationOperationId.createPet)
+const createPetMutation = api.createPet.useMutation()
 createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
 ```
 
@@ -37,10 +37,13 @@ npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 ```
 
-This will generate two files in your specified output directory:
+This will generate the following files in your specified output directory:
 
 - `openapi-types.ts` - TypeScript type definitions for your API
-- `api-operations.ts` - Operation definitions combining metadata and types
+- `api-operations.ts` - Operations map with `operationConfig` (includes enum configs)
+- `api-types.ts` - Types namespace for convenient type access
+- `api-enums.ts` - Schema enums (if present in your OpenAPI spec)
+- `api-schemas.ts` - Schema aliases (if present in your OpenAPI spec)
 
 ## Usage
 
@@ -49,43 +52,38 @@ This will generate two files in your specified output directory:
 ```typescript
 // api/init.ts
 import { useOpenApi } from '@qualisero/openapi-endpoint'
+import { openApiOperations, operationConfig } from './generated/api-operations'
 import axios from 'axios'
 
-// Import your auto-generated operations (includes both metadata and types)
-import {
-  QueryOperationId,
-  MutationOperationId,
-  openApiOperations,
-  type OpenApiOperations,
-} from './generated/api-operations'
-
-// Create axios instance
 const axiosInstance = axios.create({
   baseURL: 'https://api.example.com',
 })
 
 // Initialize the package with the auto-generated operations
-const api = useOpenApi<OpenApiOperations>({
-  operations: openApiOperations,
-  axios: axiosInstance,
-})
+const api = useOpenApi(
+  {
+    operations: openApiOperations,
+    axios: axiosInstance,
+  },
+  operationConfig
+)
 
-// Export for use in other parts of your application
-export { api, QueryOperationId, MutationOperationId, OperationId }
+export default api
+```
 ```
 
 ### 2. Use the API in your components
 
 ```typescript
 // In your Vue components
-import { api, QueryOperationId, MutationOperationId } from './api/init'
+import { api } from './api/init'
 
 // Use queries for GET operations
-const { data: pets, isLoading } = api.useQuery(QueryOperationId.listPets)
-const { data: pet } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const { data: pets, isLoading } = api.listPets.useQuery()
+const { data: pet } = api.getPet.useQuery( { petId: '123' })
 
 // Use mutations for POST/PUT/PATCH/DELETE operations
-const createPetMutation = api.useMutation(MutationOperationId.createPet)
+const createPetMutation = api.createPet.useMutation()
 
 // Execute mutations
 await createPetMutation.mutateAsync({
@@ -101,10 +99,10 @@ The library supports type-safe, reactive query parameters that automatically tri
 
 ```typescript
 import { ref, computed } from 'vue'
-import { api, QueryOperationId } from './api/init'
+import { api } from './api/init'
 
 // Static query parameters
-const { data: pets } = api.useQuery(QueryOperationId.listPets, {
+const { data: pets } = api.listPets.useQuery( {
   queryParams: { limit: 10 },
 })
 // Results in: GET /pets?limit=10
@@ -113,7 +111,7 @@ const { data: pets } = api.useQuery(QueryOperationId.listPets, {
 const limit = ref(10)
 const status = ref<'available' | 'pending' | 'sold'>('available')
 
-const petsQuery = api.useQuery(QueryOperationId.listPets, {
+const petsQuery = api.listPets.useQuery( {
   queryParams: computed(() => ({
     limit: limit.value,
     status: status.value,
@@ -127,7 +125,7 @@ status.value = 'pending'
 
 // Combine with path parameters
 const userPetsQuery = api.useQuery(
-  QueryOperationId.listUserPets,
+  api.listUserPets.useQuery(
   computed(() => ({ userId: userId.value })),
   {
     queryParams: computed(() => ({
@@ -155,19 +153,19 @@ By default, mutations automatically:
 
 ```typescript
 // Default behavior: automatic cache management
-const createPet = api.useMutation(MutationOperationId.createPet)
+const createPet = api.createPet.useMutation()
 // No additional configuration needed - cache management is automatic
 
 // Manual control over cache invalidation
-const updatePet = api.useMutation(MutationOperationId.updatePet, {
+const updatePet = api.updatePet.useMutation( {
   dontInvalidate: true, // Disable automatic invalidation
   dontUpdateCache: true, // Disable automatic cache updates
-  invalidateOperations: [QueryOperationId.listPets], // Manually specify operations to invalidate
+  invalidateOperations: ["listPets"], // Manually specify operations to invalidate
 })
 
 // Refetch specific endpoints after mutation
-const petListQuery = api.useQuery(QueryOperationId.listPets)
-const createPetWithRefetch = api.useMutation(MutationOperationId.createPet, {
+const petListQuery = api.listPets.useQuery()
+const createPetWithRefetch = api.createPet.useMutation( {
   refetchEndpoints: [petListQuery], // Manually refetch these endpoints
 })
 ```
@@ -182,7 +180,7 @@ async function uploadPetPicture(petId: string, file: File) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId })
+  const uploadMutation = api.uploadPetPic.useMutation( { petId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -196,7 +194,7 @@ async function uploadPetPicture(petId: string, file: File) {
 
 // Alternative: using the object structure (if your API supports binary strings)
 async function uploadPetPictureAsString(petId: string, binaryData: string) {
-  const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId })
+  const uploadMutation = api.uploadPetPic.useMutation( { petId })
 
   return uploadMutation.mutateAsync({
     data: {
@@ -215,10 +213,10 @@ async function handleFileUpload(event: Event, petId: string) {
   formData.append('file', file)
 
   const uploadMutation = api.useMutation(
-    MutationOperationId.uploadPetPic,
+    api.uploadPetPic.useMutation(
     { petId },
     {
-      invalidateOperations: [QueryOperationId.getPet, QueryOperationId.listPets],
+      invalidateOperations: ["getPet", "listPets"],
       onSuccess: (data) => {
         console.log('Upload successful:', data)
       },
@@ -244,11 +242,11 @@ You can chain queries where one query provides the parameters for another:
 import { ref, computed } from 'vue'
 
 // First query to get user information
-const userQuery = api.useQuery(QueryOperationId.getUser, { userId: 123 })
+const userQuery = api.getUser.useQuery( { userId: 123 })
 
 // Second query that depends on the first query's result
 const userPetsQuery = api.useQuery(
-  QueryOperationId.listUserPets,
+  api.listUserPets.useQuery(
   computed(() => ({
     userId: userQuery.data.value?.id, // Chain: use ID from first query
   })),
@@ -257,9 +255,9 @@ const userPetsQuery = api.useQuery(
 // Reactive parameter example
 const selectedPetId = ref<string | undefined>(undefined)
 
-// Query automatically enables/disables based on parameter availability
+const petQuery = api.getPet.useQuery({ petId: selectedPet.value })
 const petQuery = api.useQuery(
-  QueryOperationId.getPet,
+  api.getPet.useQuery(
   computed(() => ({ petId: selectedPetId.value })),
 )
 
@@ -275,7 +273,7 @@ const userId = ref<string>('user1')
 const shouldFetchPets = ref(true)
 
 const userPetsQuery = api.useQuery(
-  QueryOperationId.listUserPets,
+  api.listUserPets.useQuery(
   computed(() => ({ userId: userId.value })),
   {
     enabled: computed(
@@ -292,7 +290,7 @@ import { ref } from 'vue'
 
 // Use reactive query parameters
 const limit = ref(10)
-const petsQuery = api.useQuery(QueryOperationId.listPets, {
+const petsQuery = api.listPets.useQuery( {
   queryParams: { limit: limit.value },
 })
 
