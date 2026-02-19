@@ -599,103 +599,179 @@ export type MutationOpsWithPathParams<Ops extends Operations<Ops>> = {
 }[keyof Ops]
 
 // ============================================================================
+// Operation-Named API Types
+// ============================================================================
+
+/**
+ * Configuration for the operation-named API.
+ *
+ * Maps each operation to its runtime enum values.
+ * Passed to `useOpenApi` as the second argument.
+ *
+ * @template Ops - The operations type from your generated `api-operations.ts`
+ *
+ * @example
+ * ```typescript
+ * const operationConfig = {
+ *   createPet: { enums: { status: { Available: 'available', Pending: 'pending' } } },
+ *   listPets:  { enums: { status: { Available: 'available', Pending: 'pending' } } },
+ * } as const
+ * ```
+ */
+export type OperationConfig<Ops extends Operations<Ops>> = {
+  [Op in keyof Ops]: {
+    enums: Record<string, Record<string, string>>
+  }
+}
+
+/** @internal Determines if an operation uses a query-style HTTP method. */
+export type IsQueryOp<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  Ops[Op] extends { method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS } ? true : false
+
+/**
+ * Namespace for a GET/HEAD/OPTIONS operation.
+ *
+ * @template Ops     The full operations type
+ * @template Op      This operation's key
+ * @template TEnums  The exact enum shape for this operation (inferred from config)
+ *
+ * @group Types
+ */
+export type QueryNamespace<
+  Ops extends Operations<Ops>,
+  Op extends keyof Ops,
+  TEnums extends Record<string, Record<string, string>>
+> = {
+  /**
+   * Execute this query with automatic caching via Vue Query.
+   *
+   * Requires path parameters as the first argument when the operation path
+   * contains `{param}` segments (e.g. `/pets/{petId}`).
+   *
+   * @example
+   * // No path params
+   * const { data } = api.listPets.useQuery({ queryParams: { limit: 10 } })
+   *
+   * // With path params
+   * const { data } = api.getPet.useQuery({ petId: '123' })
+   * const { data } = api.getPet.useQuery(computed(() => ({ petId: id.value })))
+   */
+  useQuery: OperationQuery<Ops, Op>
+
+  /**
+   * Strongly-typed enum values for this operation's fields.
+   *
+   * @example
+   * api.listPets.useQuery({ queryParams: { status: api.listPets.enums.status.Available } })
+   */
+  enums: TEnums
+}
+
+/**
+ * Namespace for a POST/PUT/PATCH/DELETE operation.
+ *
+ * @template Ops     The full operations type
+ * @template Op      This operation's key
+ * @template TEnums  The exact enum shape for this operation (inferred from config)
+ *
+ * @group Types
+ */
+export type MutationNamespace<
+  Ops extends Operations<Ops>,
+  Op extends keyof Ops,
+  TEnums extends Record<string, Record<string, string>>
+> = {
+  /**
+   * Set up this mutation with Vue Query.
+   *
+   * Requires path parameters as the first argument when the operation path
+   * contains `{param}` segments (e.g. `/pets/{petId}`).
+   *
+   * @example
+   * // No path params
+   * const create = api.createPet.useMutation()
+   * create.mutate({ data: { name: 'Fluffy' } })
+   *
+   * // With path params
+   * const update = api.updatePet.useMutation({ petId: '123' })
+   * update.mutate({ data: { name: 'Updated' } })
+   *
+   * // Reactive path params
+   * const del = api.deletePet.useMutation(computed(() => ({ petId: id.value })))
+   */
+  useMutation: OperationMutation<Ops, Op>
+
+  /**
+   * Strongly-typed enum values for this operation's fields.
+   *
+   * @example
+   * create.mutate({ data: { status: api.createPet.enums.status.Available } })
+   */
+  enums: TEnums
+}
+
+/**
+ * Resolves to `QueryNamespace` or `MutationNamespace` based on the operation's HTTP method.
+ * @internal Used to build `OpenApiInstance`.
+ */
+export type OperationNamespace<
+  Ops extends Operations<Ops>,
+  Op extends keyof Ops,
+  TEnums extends Record<string, Record<string, string>>
+> = Ops[Op] extends { method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS }
+  ? QueryNamespace<Ops, Op, TEnums>
+  : MutationNamespace<Ops, Op, TEnums>
+
+/**
+ * The `useQuery` function type for a specific operation.
+ * Adjusts its signature based on whether the operation has path parameters.
+ * @internal
+ */
+export type OperationQuery<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  ApiPathParams<Ops, Op> extends Record<string, never>
+    ? (options?: QQueryOptions<Ops, Op>) => EndpointQueryReturn<Ops, Op>
+    : (
+        pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>,
+        options?: QQueryOptions<Ops, Op>,
+      ) => EndpointQueryReturn<Ops, Op>
+
+/**
+ * The `useMutation` function type for a specific operation.
+ * Adjusts its signature based on whether the operation has path parameters.
+ * @internal
+ */
+export type OperationMutation<Ops extends Operations<Ops>, Op extends keyof Ops> =
+  ApiPathParams<Ops, Op> extends Record<string, never>
+    ? (options?: QMutationOptions<Ops, Op>) => EndpointMutationReturn<Ops, Op>
+    : (
+        pathParams: ReactiveOr<ApiPathParamsInput<Ops, Op>>,
+        options?: QMutationOptions<Ops, Op>,
+      ) => EndpointMutationReturn<Ops, Op>
+
+// ============================================================================
 // Main API Instance Type
 // ============================================================================
 
 /**
- * Type representing an instance of the OpenAPI client returned by useOpenApi.
+ * The API instance returned by `useOpenApi`.
  *
- * This interface defines all the methods available on the API client instance.
+ * Each operation from `Config` is a property on this object.
+ * Query operations expose `useQuery`; mutation operations expose `useMutation`.
+ * All operations expose `enums` with their specific enum values.
+ *
+ * @template Ops    The operations type from your generated `api-operations.ts`
+ * @template Config The operation config object (inferred — do not pass manually)
  *
  * @group Types
- * @template Ops - The operations type from your OpenAPI specification
- *
  * @example
  * ```typescript
- * import { useOpenApi } from '@qualisero/openapi-endpoint'
- * import { type OpenApiOperations } from './generated/api-operations'
- *
- * const api: OpenApiInstance<OpenApiOperations> = useOpenApi(config)
- * const query = api.useQuery('getPet', { petId: '123' })
- * const mutation = api.useMutation('createPet')
+ * const api = useOpenApi({ operations, axios }, operationConfig)
+ * // typeof api == OpenApiInstance<OpenApiOperations, typeof operationConfig>
  * ```
  */
-export type OpenApiInstance<Ops extends Operations<Ops>> = {
-  /**
-   * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
-   *
-   * @template Op - The operation key
-   * @param operationId - Query operation ID
-   * @param pathParams - Path params for operations that require them
-   * @param options - Query options
-   * @returns Reactive query result
-   *
-   * @example
-   * ```typescript
-   * // No path params
-   * const listQuery = api.useQuery('listPets', { queryParams: { limit: 10 } })
-   *
-   * // With path params (direct object)
-   * const petQuery = api.useQuery('getPet', { petId: '123' })
-   *
-   * // With path params (reactive function)
-   * const id = ref('')
-   * const detailsQuery = api.useQuery('getPet', () => ({ petId: id.value }))
-   * ```
-   */
-  useQuery: (<Op extends QueryOpsNoPathParams<Ops>>(
-    operationId: Op,
-    options?: QQueryOptions<Ops, Op>,
-  ) => EndpointQueryReturn<Ops, Op>) &
-    (<Op extends QueryOpsWithPathParams<Ops>>(
-      operationId: Op,
-      pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
-      options?: QQueryOptions<Ops, Op>,
-    ) => EndpointQueryReturn<Ops, Op>) &
-    (<Op extends QueryOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
-      operationId: Op,
-      pathParams: () => PathParams &
-        (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
-      options?: QQueryOptions<Ops, Op>,
-    ) => EndpointQueryReturn<Ops, Op>)
-
-  /**
-   * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
-   *
-   * @template Op - The operation key
-   * @param operationId - Mutation operation ID
-   * @param pathParams - Path params for operations that require them
-   * @param options - Mutation options
-   * @returns Reactive mutation result
-   *
-   * @example
-   * ```typescript
-   * // No path params
-   * const createPet = api.useMutation('createPet')
-   * createPet.mutate({ data: { name: 'Fluffy' } })
-   *
-   * // With path params (direct object)
-   * const updatePet = api.useMutation('updatePet', { petId: '123' })
-   * updatePet.mutate({ data: { name: 'Updated' } })
-   *
-   * // With path params (reactive function)
-   * const id = ref('')
-   * const deletePet = api.useMutation('deletePet', () => ({ petId: id.value }))
-   * ```
-   */
-  useMutation: (<Op extends MutationOpsNoPathParams<Ops>>(
-    operationId: Op,
-    options?: QMutationOptions<Ops, Op>,
-  ) => EndpointMutationReturn<Ops, Op>) &
-    (<Op extends MutationOpsWithPathParams<Ops>>(
-      operationId: Op,
-      pathParams: ReactiveValue<ApiPathParamsInput<Ops, Op>>,
-      options?: QMutationOptions<Ops, Op>,
-    ) => EndpointMutationReturn<Ops, Op>) &
-    (<Op extends MutationOpsWithPathParams<Ops>, PathParams extends ApiPathParamsInput<Ops, Op>>(
-      operationId: Op,
-      pathParams: () => PathParams &
-        (HasExcessPathParams<PathParams, ApiPathParams<Ops, Op>> extends true ? PathParams : never),
-      options?: QMutationOptions<Ops, Op>,
-    ) => EndpointMutationReturn<Ops, Op>)
+export type OpenApiInstance<
+  Ops extends Operations<Ops>,
+  Config extends OperationConfig<Ops>
+> = {
+  [Op in keyof Config & keyof Ops]: OperationNamespace<Ops, Op, Config[Op]['enums']>
 }

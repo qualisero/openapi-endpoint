@@ -83,60 +83,14 @@ export interface paths {
       cookie?: never
     }
     /** Get a pet by ID (no operationId) */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          pet_id: string
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Pet details */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['Pet']
-          }
-        }
-      }
-    }
+    get: operations['getPetPetId']
     put?: never
     post?: never
     delete?: never
     options?: never
     head?: never
     /** Partially update a pet (no operationId) */
-    patch: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          pet_id: string
-        }
-        cookie?: never
-      }
-      requestBody: {
-        content: {
-          'application/json': components['schemas']['NewPet']
-        }
-      }
-      responses: {
-        /** @description Pet updated successfully */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['Pet']
-          }
-        }
-      }
-    }
+    patch: operations['updatePetPetId']
     trace?: never
   }
   '/api/pet/{pet_id}/adopt': {
@@ -149,34 +103,7 @@ export interface paths {
     get?: never
     put?: never
     /** Adopt a pet (no operationId) */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          pet_id: string
-        }
-        cookie?: never
-      }
-      requestBody: {
-        content: {
-          'application/json': {
-            adopterId?: string
-          }
-        }
-      }
-      responses: {
-        /** @description Pet adopted successfully */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['Pet']
-          }
-        }
-      }
-    }
+    post: operations['postPetAdopt']
     delete?: never
     options?: never
     head?: never
@@ -191,60 +118,10 @@ export interface paths {
       cookie?: never
     }
     /** List all owners (no operationId) */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path?: never
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description A list of owners */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              id?: string
-              name?: string
-            }[]
-          }
-        }
-      }
-    }
+    get: operations['getOwners']
     put?: never
     /** Create a new owner (no operationId) */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path?: never
-        cookie?: never
-      }
-      requestBody: {
-        content: {
-          'application/json': {
-            name?: string
-          }
-        }
-      }
-      responses: {
-        /** @description Owner created successfully */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              id?: string
-              name?: string
-            }
-          }
-        }
-      }
-    }
+    post: operations['postOwners']
     delete?: never
     options?: never
     head?: never
@@ -261,35 +138,7 @@ export interface paths {
     get?: never
     put?: never
     /** Give treats to pets (no operationId, tests snake_case conversion) */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path?: never
-        cookie?: never
-      }
-      requestBody: {
-        content: {
-          'application/json': {
-            treatType?: string
-            quantity?: number
-          }
-        }
-      }
-      responses: {
-        /** @description Treats given successfully */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              message?: string
-            }
-          }
-        }
-      }
-    }
+    post: operations['postPetGiveTreats']
     delete?: never
     options?: never
     head?: never
@@ -304,26 +153,7 @@ export interface paths {
       cookie?: never
     }
     /** Get config file (tests file extension handling) */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path?: never
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Config file */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': Record<string, never>
-          }
-        }
-      }
-    }
+    get: operations['getConfigJson']
     put?: never
     post?: never
     delete?: never
@@ -340,26 +170,7 @@ export interface paths {
       cookie?: never
     }
     /** Get data file with periods (tests period handling) */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path?: never
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Data file */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': Record<string, never>
-          }
-        }
-      }
-    }
+    get: operations['getDataV1Json']
     put?: never
     post?: never
     delete?: never
@@ -583,6 +394,203 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['Pet'][]
+        }
+      }
+    }
+  }
+  getPetPetId: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        pet_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Pet details */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Pet']
+        }
+      }
+    }
+  }
+  updatePetPetId: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        pet_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewPet']
+      }
+    }
+    responses: {
+      /** @description Pet updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Pet']
+        }
+      }
+    }
+  }
+  postPetAdopt: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        pet_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          adopterId?: string
+        }
+      }
+    }
+    responses: {
+      /** @description Pet adopted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Pet']
+        }
+      }
+    }
+  }
+  getOwners: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description A list of owners */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            id?: string
+            name?: string
+          }[]
+        }
+      }
+    }
+  }
+  postOwners: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          name?: string
+        }
+      }
+    }
+    responses: {
+      /** @description Owner created successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            id?: string
+            name?: string
+          }
+        }
+      }
+    }
+  }
+  postPetGiveTreats: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          treatType?: string
+          quantity?: number
+        }
+      }
+    }
+    responses: {
+      /** @description Treats given successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+    }
+  }
+  getConfigJson: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Config file */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': Record<string, never>
+        }
+      }
+    }
+  }
+  getDataV1Json: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Data file */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': Record<string, never>
         }
       }
     }
