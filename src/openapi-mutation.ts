@@ -1,17 +1,16 @@
-import { computed, ref, type ComputedRef, type Ref, type MaybeRefOrGetter } from 'vue'
+import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import type { MaybeRefOrGetter } from '@vue/reactivity'
 import { useMutation, QueryClient } from '@tanstack/vue-query'
+import { type AxiosResponse } from 'axios'
 
 import {
-  type ApiPathParams,
-  type ApiPathParamsInput,
-  type QMutationVars,
-  type ApiResponse,
-  type QMutationOptions,
-  type ApiRequest,
+  type EndpointConfig,
+  type MutationOptions,
+  type MutationVars,
   type MutateFn,
   type MutateAsyncFn,
   HttpMethod,
-  Operations,
+  isMutationMethod,
 } from './types'
 import {
   isPathResolved,
@@ -20,119 +19,94 @@ import {
   resolvePath,
   generateQueryKey,
 } from './openapi-utils'
-import { type OpenApiHelpers } from './openapi-helpers'
-import { type AxiosResponse } from 'axios'
 
 /**
- * Return type of `useMutation` (created via `useOpenApi`).
+ * Return type of `useEndpointMutation` (the `useMutation` composable on a generated namespace).
  *
- * Reactive mutation result with automatic cache management and helpers.
- *
- * All properties are reactive (ComputedRef/Ref) and auto-unwrap in Vue templates.
- *
- * @template Ops - The operations type from your OpenAPI specification
- * @template Op - The operation key from your operations type
- *
- * @example
- * ```typescript
- * const mutation = api.useMutation('createPet')
- *
- * // Reactive properties
- * if (mutation.isPending.value) console.log('Saving...')
- * if (mutation.isSuccess.value) console.log('Created:', mutation.data.value)
- *
- * // Execute
- * mutation.mutate({ data: { name: 'Fluffy' } })
- * await mutation.mutateAsync({ data: { name: 'Fluffy' } })
- * ```
+ * @template TResponse    Response data type
+ * @template TPathParams  Path parameters type (concrete, required values)
+ * @template TRequest     Request body type (`never` if none)
+ * @template TQueryParams Query parameters type
  *
  * @group Types
  */
-export interface EndpointMutationReturn<Ops extends Operations<Ops>, Op extends keyof Ops> {
+export interface MutationReturn<
+  TResponse,
+  TPathParams extends Record<string, unknown> = Record<string, never>,
+  TRequest = never,
+  TQueryParams extends Record<string, unknown> = Record<string, never>,
+> {
   /** The Axios response (undefined until mutation completes). */
-  data: ComputedRef<AxiosResponse<ApiResponse<Ops, Op>> | undefined>
-
+  data: ComputedRef<AxiosResponse<TResponse> | undefined>
   /** The error if the mutation failed. */
   error: Ref<Error | null>
-
   /** True while the mutation is in progress. */
   isPending: Ref<boolean>
-
   /** True when the mutation succeeded. */
   isSuccess: Ref<boolean>
-
   /** True when the mutation failed. */
   isError: Ref<boolean>
-
   /** Execute the mutation (non-blocking). */
-  mutate: MutateFn<Ops, Op>
-
-  /** Execute the mutation and wait for the response. */
-  mutateAsync: MutateAsyncFn<Ops, Op>
-
+  mutate: MutateFn<TPathParams, TRequest, TQueryParams>
+  /** Execute the mutation and await the response. */
+  mutateAsync: MutateAsyncFn<TResponse, TPathParams, TRequest, TQueryParams>
   /** Reset the mutation state. */
   reset: () => void
-
-  /** Whether the mutation can execute (path parameters resolved). */
+  /** Whether the mutation can execute (all required path params are resolved). */
   isEnabled: ComputedRef<boolean>
-
   /** The resolved path parameters. */
-  pathParams: ComputedRef<ApiPathParams<Ops, Op>>
-
-  /** Additional path parameters that can be provided at mutation time. */
-  extraPathParams: Ref<ApiPathParams<Ops, Op>>
+  pathParams: ComputedRef<TPathParams>
+  /** Additional path params that can be supplied at mutation time. */
+  extraPathParams: Ref<TPathParams>
 }
 
 /**
- * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache updates.
- *
- * Ensures the operation is a mutation at runtime and returns a reactive mutation object
- * with helpers for path resolution and cache invalidation.
- *
- * NOTE: By default, the mutation updates cache for PUT/PATCH and invalidates matching
- * GET queries for the same path.
- *
- * @template Ops - The operations type from your OpenAPI specification
- * @template Op - The operation key from your operations type
- * @param operationId - The OpenAPI operation ID to mutate
- * @param h - OpenAPI helpers (internal), provided by useOpenApi
- * @param pathParams - Path parameters (can be reactive). Omit for operations without path params.
- * @param options - Mutation options (dontInvalidate, refetchEndpoints, etc.)
- *   - `dontUpdateCache`: Skip cache update for PUT/PATCH responses
- *   - `dontInvalidate`: Skip invalidating matching queries
- *   - `invalidateOperations`: Additional operation IDs to invalidate (array or map of params)
- *   - `refetchEndpoints`: Additional query results to refetch
- *   - `queryParams`: Query string parameters (operation-specific)
- *   - `axiosOptions`: Custom axios request options (headers, params, etc.)
- *   - Plus all {@link UseMutationOptions} from @tanstack/vue-query
- * @throws Error if the operation is not a mutation operation
- * @returns Mutation object with
- *   - `mutate(vars)` / `mutateAsync(vars)` to trigger the mutation
- *   - `data`: ComputedRef of Axios response data
- *   - `isEnabled`: ComputedRef indicating if mutation can execute (path resolved)
- *   - `extraPathParams`: Ref to set additional path params at call time
- *   - `pathParams`: Resolved path params as a computed ref
+ * @deprecated Use `MutationReturn` instead.
  */
-export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyof Ops>(
-  operationId: Op,
-  h: OpenApiHelpers<Ops, Op>, // helpers
-  pathParams?: MaybeRefOrGetter<ApiPathParamsInput<Ops, Op> | null | undefined>,
-  options?: QMutationOptions<Ops, Op>,
-) {
-  // Runtime check to ensure this is actually a mutation operation
-  if (!h.isMutationOperation(operationId)) {
-    const { method } = h.getOperationInfo(operationId)
+export type EndpointMutationReturn<
+  TResponse,
+  TPathParams extends Record<string, unknown> = Record<string, never>,
+  TRequest = never,
+  TQueryParams extends Record<string, unknown> = Record<string, never>,
+> = MutationReturn<TResponse, TPathParams, TRequest, TQueryParams>
+
+/**
+ * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache management.
+ *
+ * This is a low-level primitive — in normal usage it is called by the generated
+ * per-operation `useMutation` wrappers in `api-client.ts`, not directly.
+ *
+ * @template TResponse    The response data type
+ * @template TPathParams  The path parameters type (concrete, required values)
+ * @template TRequest     The request body type (`never` if no body)
+ * @template TQueryParams The query parameters type
+ *
+ * @param config      Endpoint config: axios instance, queryClient, path, method, listPath, operationsRegistry
+ * @param pathParams  Path parameters (reactive). Pass `undefined` for operations without path params.
+ * @param options     Mutation options (dontInvalidate, refetchEndpoints, etc.)
+ */
+export function useEndpointMutation<
+  TResponse,
+  TPathParams extends Record<string, unknown> = Record<string, never>,
+  TRequest = never,
+  TQueryParams extends Record<string, unknown> = Record<string, never>,
+>(
+  config: EndpointConfig,
+  pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
+  options?: MutationOptions<TResponse, TPathParams, TRequest, TQueryParams>,
+): MutationReturn<TResponse, TPathParams, TRequest, TQueryParams> {
+  if (!isMutationMethod(config.method)) {
     throw new Error(
-      `Operation '${String(operationId)}' uses method ${method} and cannot be used with useMutation(). ` +
+      `Operation at '${config.path}' uses method ${config.method} and cannot be used with useMutation(). ` +
         `Use useQuery() for GET/HEAD/OPTIONS operations.`,
     )
   }
 
-  const { path, method } = h.getOperationInfo(operationId)
   const { pathParams: resolvedPathParamsInput, options: resolvedOptions } = normalizeParamsOptions<
-    ApiPathParamsInput<Ops, Op>,
-    QMutationOptions<Ops, Op>
+    Record<string, string | number | undefined>,
+    MutationOptions<TResponse, TPathParams, TRequest, TQueryParams>
   >(pathParams, options)
+
   const {
     axiosOptions,
     dontInvalidate,
@@ -142,48 +116,34 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
     queryParams,
     ...useMutationOptions
   } = resolvedOptions
-  const extraPathParams = ref({}) as Ref<ApiPathParamsInput<Ops, Op>>
 
-  // Use the consolidated operation resolver with extraPathParams support
-  const {
-    resolvedPath,
-    queryKey,
-    queryParams: resolvedQueryParams,
-    pathParams: allPathParams,
-  } = useResolvedOperation(
-    path,
-    resolvedPathParamsInput,
-    queryParams,
-    extraPathParams as { value: Partial<ApiPathParamsInput<Ops, Op>> },
-  )
+  const extraPathParams = ref({}) as Ref<Record<string, string | undefined>>
+
+  const { resolvedPath, queryKey, queryParams: resolvedQueryParams, pathParams: allPathParams } =
+    useResolvedOperation(config.path, resolvedPathParamsInput, queryParams, extraPathParams)
 
   const mutation = useMutation(
     {
-      mutationFn: async (
-        vars: ApiRequest<Ops, Op> extends never ? QMutationVars<Ops, Op> | void : QMutationVars<Ops, Op>,
-      ) => {
-        const {
-          data,
-          pathParams: pathParamsFromMutate,
-          axiosOptions: axiosOptionsFromMutate,
-          queryParams: queryParamsFromMutate,
-        } = vars as QMutationVars<Ops, Op> & { data?: unknown }
-        extraPathParams.value = pathParamsFromMutate || ({} as ApiPathParamsInput<Ops, Op>)
+      mutationFn: async (vars: MutationVars<TPathParams, TRequest, TQueryParams>) => {
+        const { pathParams: pathParamsFromMutate, axiosOptions: axiosOptionsFromMutate, queryParams: queryParamsFromMutate } =
+          (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams> & { pathParams?: Record<string, string | undefined> }
+        const data = (vars as { data?: TRequest } | undefined)?.data
 
-        // TODO: use typing to ensure all required path params are provided
+        extraPathParams.value = (pathParamsFromMutate || {}) as Record<string, string | undefined>
+
         if (!isPathResolved(resolvedPath.value)) {
           return Promise.reject(
             new Error(
-              `Cannot execute mutation '${String(operationId)}': path parameters not resolved. ` +
+              `Cannot execute mutation at '${config.path}': path parameters not resolved. ` +
                 `Path: '${resolvedPath.value}', provided params: ${JSON.stringify(allPathParams.value)}`,
             ),
           )
         }
-        // Cancel any ongoing queries for this path (prevent race conditions with refresh)
-        await h.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
 
-        return h.axios({
-          method: method.toLowerCase(),
+        await config.queryClient.cancelQueries({ queryKey: queryKey.value, exact: false })
+
+        return config.axios({
+          method: config.method.toLowerCase(),
           url: resolvedPath.value,
           ...(data !== undefined && { data }),
           ...axiosOptions,
@@ -195,55 +155,44 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           },
         })
       },
-      onSuccess: async (response, vars, _context) => {
-        const data = response.data
+      onSuccess: async (response, vars) => {
+        const data = (response as AxiosResponse<TResponse>).data
         const {
           dontInvalidate: dontInvalidateMutate,
           dontUpdateCache: dontUpdateCacheMutate,
           invalidateOperations: invalidateOperationsMutate,
           refetchEndpoints: refetchEndpointsMutate,
-        } = vars || {}
+        } = (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams>
 
-        // update cache with returned data for PUT/PATCH requests
+        // Update cache for PUT/PATCH
         if (
-          // dontUpdateCacheMutate supersedes dontUpdateCache from options
           (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) &&
           data &&
-          [HttpMethod.PUT, HttpMethod.PATCH].includes(method)
+          [HttpMethod.PUT, HttpMethod.PATCH].includes(config.method)
         ) {
-          await h.queryClient.setQueryData(queryKey.value, data)
+          await config.queryClient.setQueryData(queryKey.value, data)
         }
 
-        // Invalidate queries for this path, and any additional specified operations
+        // Invalidate queries for this path
         if (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) {
-          // Invalidate all queries for this path (exact for POST, prefix for others):
-          await h.queryClient.invalidateQueries({ queryKey: queryKey.value, exact: method !== HttpMethod.POST })
+          await config.queryClient.invalidateQueries({
+            queryKey: queryKey.value,
+            exact: config.method !== HttpMethod.POST,
+          })
 
-          const listPath = h.getListOperationPath(operationId)
-          if (listPath) {
-            const listResolvedPath = resolvePath(listPath, resolvedPathParamsInput)
+          // Invalidate associated list path
+          if (config.listPath) {
+            const listResolvedPath = resolvePath(config.listPath, resolvedPathParamsInput)
             if (isPathResolved(listResolvedPath)) {
               const listQueryKey = generateQueryKey(listResolvedPath)
-
-              // Invalidate list queries by comparing normalized query keys.
-              // For queries with query parameters (objects), strip the last element before comparing.
-              // This matches:
-              //   - List queries without params: ["api", "user"]
-              //   - List queries with params: ["api", "user", {filter}] → normalized to ["api", "user"]
-              // But NOT single-item queries where last element is a primitive:
-              //   - Single-item: ["api", "user", "uuid"] → kept as ["api", "user", "uuid"]
-              await h.queryClient.invalidateQueries({
+              await config.queryClient.invalidateQueries({
                 predicate: (query: { queryKey: readonly unknown[] }) => {
                   const qKey = query.queryKey
                   if (!qKey || qKey.length === 0) return false
-
-                  // Normalize query key: strip last element if it's an object (query params)
                   const normalizedKey =
                     typeof qKey[qKey.length - 1] === 'object' && qKey[qKey.length - 1] !== null
                       ? qKey.slice(0, -1)
                       : qKey
-
-                  // Compare with listQueryKey
                   if (normalizedKey.length !== listQueryKey.length) return false
                   for (let i = 0; i < listQueryKey.length; i++) {
                     if (normalizedKey[i] !== listQueryKey[i]) return false
@@ -255,55 +204,68 @@ export function useEndpointMutation<Ops extends Operations<Ops>, Op extends keyo
           }
         }
 
-        const operationsWithPathParams: [Op, ApiPathParams<Ops, Op>][] = []
-        Array.from([invalidateOperations, invalidateOperationsMutate]).forEach((ops) => {
-          operationsWithPathParams.push(
-            ...((typeof ops === 'object' && !Array.isArray(ops)
-              ? Object.entries(ops)
-              : ops?.map((opId) => [opId, {}]) || []) as [Op, ApiPathParams<Ops, Op>][]),
-          )
-        })
+        // Resolve invalidateOperations entries using the registry
+        const registry = config.operationsRegistry || {}
+        const allInvalidateOps = [invalidateOperations, invalidateOperationsMutate].filter(Boolean)
+
+        const operationsWithPathParams: [string, Record<string, string | undefined>][] = []
+        for (const ops of allInvalidateOps) {
+          if (!ops) continue
+          if (Array.isArray(ops)) {
+            operationsWithPathParams.push(...ops.map((id) => [id, {}] as [string, Record<string, string | undefined>]))
+          } else {
+            operationsWithPathParams.push(
+              ...Object.entries(ops).map(([id, params]) => [id, params] as [string, Record<string, string | undefined>]),
+            )
+          }
+        }
 
         if (operationsWithPathParams.length > 0) {
           const promises = operationsWithPathParams.map(([opId, opParams]) => {
-            const opInfo = h.getOperationInfo(opId)
+            const opInfo = registry[opId]
+            if (!opInfo) {
+              console.warn(`Cannot invalidate operation '${opId}': not found in operations registry`)
+              return Promise.resolve()
+            }
             const opPath = resolvePath(opInfo.path, {
-              ...allPathParams.value,
+              ...(allPathParams.value as Record<string, string | undefined>),
               ...opParams,
             })
             if (isPathResolved(opPath)) {
               const opQueryKey = generateQueryKey(opPath)
-              return h.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
+              return config.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
             } else {
               console.warn(
-                `Cannot invalidate operation '${String(opId)}', path not resolved: ${opPath} (params: ${JSON.stringify({ ...allPathParams.value, ...opParams })})`,
+                `Cannot invalidate operation '${opId}', path not resolved: ${opPath}`,
               )
-              return Promise.reject()
+              return Promise.resolve()
             }
           })
           await Promise.all(promises)
         }
 
-        if (refetchEndpoints && refetchEndpoints.length > 0) {
-          await Promise.all(refetchEndpoints.map((endpoint) => endpoint.refetch()))
-        }
-        if (refetchEndpointsMutate && refetchEndpointsMutate.length > 0) {
-          await Promise.all(refetchEndpointsMutate.map((endpoint) => endpoint.refetch()))
+        const allRefetch = [
+          ...(refetchEndpoints || []),
+          ...((vars as { refetchEndpoints?: { refetch: () => Promise<void> }[] } | undefined)?.refetchEndpoints || []),
+          ...(refetchEndpointsMutate || []),
+        ]
+        if (allRefetch.length > 0) {
+          await Promise.all(allRefetch.map((ep) => ep.refetch()))
         }
       },
       onSettled: () => {
-        extraPathParams.value = {} as ApiPathParamsInput<Ops, Op>
+        extraPathParams.value = {}
       },
       ...useMutationOptions,
     },
-    h.queryClient as QueryClient,
+    config.queryClient as QueryClient,
   )
 
   return {
     ...mutation,
-    data: mutation.data as ComputedRef<AxiosResponse<ApiResponse<Ops, Op>> | undefined>,
+    data: mutation.data as ComputedRef<AxiosResponse<TResponse> | undefined>,
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
-    extraPathParams,
-    pathParams: allPathParams as ComputedRef<ApiPathParams<Ops, Op>>,
-  } as unknown as EndpointMutationReturn<Ops, Op>
+    extraPathParams: extraPathParams as Ref<TPathParams>,
+    pathParams: allPathParams as ComputedRef<TPathParams>,
+  } as unknown as MutationReturn<TResponse, TPathParams, TRequest, TQueryParams>
 }

@@ -1,17 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useOpenApi } from '@/index'
 import { useEndpointQuery } from '@/openapi-query'
 import { useEndpointMutation } from '@/openapi-mutation'
-import { getHelpers } from '@/openapi-helpers'
-import { OpenApiConfig } from '@/types'
+import { defaultQueryClient } from '@/openapi-helpers'
+import { HttpMethod } from '@/types'
 import { mockAxios } from '../setup'
-import {
-  openApiOperations,
-  operationConfig,
-  type OpenApiOperations,
-  type ApiPathParams,
-} from '../fixtures/api-operations'
-import { type OpType } from '../fixtures/openapi-typed-operations'
+import { type ApiPathParams } from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 
 /**
  * Query and Mutation Options Testing
@@ -23,20 +17,11 @@ import { type OpType } from '../fixtures/openapi-typed-operations'
  * - Option merging and validation
  */
 describe('Query and Mutation Options', () => {
-  const mockOperations: OpenApiOperations = openApiOperations
-
-  let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: ReturnType<typeof useOpenApi<OpenApiOperations, typeof operationConfig>>
-  let helpers: ReturnType<typeof getHelpers<OpenApiOperations, keyof OpenApiOperations>>
+  let api: ReturnType<typeof createApiClient>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
-    api = useOpenApi(mockConfig, operationConfig)
-    helpers = getHelpers(mockConfig)
+    api = createApiClient(mockAxios)
   })
 
   describe('Query-Specific TanStack Options', () => {
@@ -271,22 +256,26 @@ describe('Query and Mutation Options', () => {
 
   describe('Advanced Composable Functionality', () => {
     it('should validate operation types at runtime for useEndpointQuery', () => {
+      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.POST, listPath: null }
       expect(() => {
-        useEndpointQuery<OpenApiOperations, 'createPet'>('createPet', helpers)
-      }).toThrow("Operation 'createPet' uses method POST and cannot be used with useQuery()")
+        useEndpointQuery(postConfig)
+      }).toThrow("Operation at '/pets' uses method POST and cannot be used with useQuery()")
 
-      const query = useEndpointQuery<OpenApiOperations, 'listPets'>('listPets', helpers)
+      const getConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.GET, listPath: null }
+      const query = useEndpointQuery(getConfig)
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
     })
 
     it('should validate operation types at runtime for useEndpointMutation', () => {
+      const getConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.GET, listPath: null }
       expect(() => {
-        useEndpointMutation<OpenApiOperations, 'listPets'>('listPets', helpers)
-      }).toThrow("Operation 'listPets' uses method GET and cannot be used with useMutation()")
+        useEndpointMutation(getConfig)
+      }).toThrow("Operation at '/pets' uses method GET and cannot be used with useMutation()")
 
-      const mutation = useEndpointMutation<OpenApiOperations, 'createPet'>('createPet', helpers)
+      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.POST, listPath: null }
+      const mutation = useEndpointMutation(postConfig)
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
       expect(mutation).toHaveProperty('mutateAsync')
@@ -368,7 +357,7 @@ describe('Query and Mutation Options', () => {
 
     it('should validate ApiPathParams type utility', () => {
       // This is a compile-time type test - using ApiPathParams with OpType namespace
-      type UpdatePetParams = ApiPathParams<OpType.updatePet>
+      type UpdatePetParams = ApiPathParams<'updatePet'>
 
       const mutation = api.updatePet.useMutation({
         petId: '123',
@@ -387,19 +376,11 @@ describe('Query and Mutation Options', () => {
   })
 
   describe('Error Handling in Options', () => {
-    it('should handle invalid operation IDs gracefully', () => {
-      // This would typically be caught at TypeScript compile time,
-      // but we can test the runtime behavior
-      const invalidHelpers = {
-        ...helpers,
-        getOperationInfo: vi.fn().mockReturnValue(null),
-        isQueryOperation: vi.fn().mockReturnValue(false),
-        isMutationOperation: vi.fn().mockReturnValue(false),
-      }
-
+    it('should throw when using wrong method with useEndpointQuery', () => {
+      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.DELETE, listPath: null }
       expect(() => {
-        useEndpointQuery<OpenApiOperations, any>('invalidOp' as any, invalidHelpers)
-      }).toThrow()
+        useEndpointQuery(postConfig)
+      }).toThrow("cannot be used with useQuery()")
     })
 
     it('should support custom error handlers', () => {

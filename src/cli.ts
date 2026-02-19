@@ -922,6 +922,294 @@ async function generateApiSchemas(
   console.log(`📊 Found ${schemaCount} schemas`)
 }
 
+// ============================================================================
+// List path computation (ported from openapi-helpers.ts for code-gen time use)
+// ============================================================================
+
+const PLURAL_ES_SUFFIXES_CLI = ['s', 'x', 'z', 'ch', 'sh', 'o'] as const
+
+function pluralizeResourceCli(name: string): string {
+  if (name.endsWith('y')) return name.slice(0, -1) + 'ies'
+  if (PLURAL_ES_SUFFIXES_CLI.some((s) => name.endsWith(s))) return name + 'es'
+  return name + 's'
+}
+
+/**
+ * Computes the list path for a mutation operation (used for cache invalidation).
+ * Returns null if no matching list operation is found.
+ */
+function computeListPath(
+  operationId: string,
+  opInfo: OperationInfo,
+  operationMap: Record<string, OperationInfo>,
+): string | null {
+  const method = opInfo.method
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return null
+
+  const prefixes: Partial<Record<HttpMethod, string>> = {
+    [HttpMethod.POST]: 'create',
+    [HttpMethod.PUT]: 'update',
+    [HttpMethod.PATCH]: 'update',
+    [HttpMethod.DELETE]: 'delete',
+  }
+  const prefix = prefixes[method]
+  if (!prefix) return null
+
+  let resourceName: string | null = null
+  if (operationId.startsWith(prefix)) {
+    const remaining = operationId.slice(prefix.length)
+    if (remaining.length > 0 && /^[A-Z]/.test(remaining)) resourceName = remaining
+  }
+
+  if (resourceName) {
+    const tryList = (name: string): string | null => {
+      const listId = `list${name}`
+      if (listId in operationMap && operationMap[listId].method === HttpMethod.GET) return operationMap[listId].path
+      return null
+    }
+    const found = tryList(resourceName) || tryList(pluralizeResourceCli(resourceName))
+    if (found) return found
+  }
+
+  // Fallback: strip last path param segment
+  const segments = opInfo.path.split('/').filter((s) => s.length > 0)
+  if (segments.length >= 2 && /^\{[^}]+\}$/.test(segments[segments.length - 1])) {
+    return '/' + segments.slice(0, -1).join('/') + '/'
+  }
+  return null
+}
+
+// ============================================================================
+// New generator: api-client.ts
+// ============================================================================
+
+/**
+ * Generate JSDoc comment for an operation function.
+ */
+function generateOperationJSDoc(operationId: string, method: string, path: string): string {
+  const methodUpper = method.toUpperCase()
+  const isQuery = ['GET', 'HEAD', 'OPTIONS'].includes(methodUpper)
+  
+  const lines = [
+    '/**',
+    ` * ${operationId}`,
+    ' * ',
+    ` * ${methodUpper} ${path}`,
+  ]
+  
+  if (isQuery) {
+    lines.push(' * ')
+    lines.push(' * @param pathParams - Path parameters (reactive)')
+    lines.push(' * @param options - Query options (enabled, staleTime, onLoad, etc.)')
+    lines.push(' * @returns Query result with data, isLoading, refetch(), etc.')
+  } else {
+    lines.push(' * ')
+    lines.push(' * @param pathParams - Path parameters (reactive)')
+    lines.push(' * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)')
+    lines.push(' * @returns Mutation helper with mutate() and mutateAsync() methods')
+  }
+  
+  lines.push(' */')
+  return lines.join('\n')
+}
+
+function generateApiClientContent(operationMap: Record<string, OperationInfo>): string {
+  const ids = Object.keys(operationMap).sort()
+  const QUERY_HTTP = new Set(['GET', 'HEAD', 'OPTIONS'])
+  const isQuery = (id: string) => QUERY_HTTP.has(operationMap[id].method)
+  const hasPathParams = (id: string) => operationMap[id].path.includes('{')
+
+  // Registry for invalidateOperations support
+  const registryEntries = ids.map((id) => `  ${id}: { path: '${operationMap[id].path}' },`).join('\n')
+
+  // Per-operation factory functions
+  const factories = ids
+    .map((id) => {
+      const { path, method } = operationMap[id]
+      const listPath = computeListPath(id, operationMap[id], operationMap)
+      const listPathStr = listPath ? `'${listPath}'` : 'null'
+      const query = isQuery(id)
+      const withParams = hasPathParams(id)
+      const cfgSpread = `{ ...base, path: '${path}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
+      
+      // Generate JSDoc
+      const jsdoc = generateOperationJSDoc(id, method, path)
+      
+      // Generate type aliases for better IDE tooltips
+      const typeAliases = `  type PathParams = ApiPathParams<'${id}'>
+  type PathParamsInput = ApiPathParamsInput<'${id}'>
+  type RequestBody = ApiRequest<'${id}'>
+  type Response = ApiResponse<'${id}'>
+  type QueryParams = ApiQueryParams<'${id}'>`
+
+      let fnBody: string
+      if (query && withParams) {
+        fnBody = `${typeAliases}
+  
+  return {
+    useQuery: (
+      pathParams: ReactiveOr<PathParamsInput>,
+      options?: QueryOptions<Response, QueryParams>
+    ): QueryReturn<Response, PathParams> => 
+      useEndpointQuery<Response, PathParams, QueryParams>(
+        ${cfgSpread}, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+      ),
+    enums: ${id}_enums,
+  } as const`
+      } else if (query) {
+        fnBody = `${typeAliases}
+  
+  return {
+    useQuery: (
+      options?: QueryOptions<Response, QueryParams>
+    ): QueryReturn<Response, Record<string, never>> =>
+      useEndpointQuery<Response, Record<string, never>, QueryParams>(
+        ${cfgSpread}, undefined, options
+      ),
+    enums: ${id}_enums,
+  } as const`
+      } else if (withParams) {
+        fnBody = `${typeAliases}
+  
+  return {
+    useMutation: (
+      pathParams: ReactiveOr<PathParamsInput>,
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
+      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+        ${cfgSpread}, pathParams as MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>, options
+      ),
+    enums: ${id}_enums,
+  } as const`
+      } else {
+        fnBody = `${typeAliases}
+  
+  return {
+    useMutation: (
+      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>
+    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
+      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+        ${cfgSpread}, undefined, options
+      ),
+    enums: ${id}_enums,
+  } as const`
+      }
+
+      return `${jsdoc}\nfunction _${id}(base: _Config) {\n${fnBody}\n}`
+    })
+    .join('\n\n')
+
+  // createApiClient factory
+  const factoryCalls = ids.map((id) => `    ${id}: _${id}(base),`).join('\n')
+
+  // Enum imports
+  const enumImports = ids.map((id) => `  ${id}_enums,`).join('\n')
+
+  return `/* eslint-disable */
+// Auto-generated from OpenAPI specification - do not edit manually
+// Use \`createApiClient\` to instantiate a fully-typed API client.
+
+import type { AxiosInstance } from 'axios'
+import {
+  useEndpointQuery,
+  useEndpointMutation,
+  defaultQueryClient,
+  HttpMethod,
+  type QueryOptions,
+  type MutationOptions,
+  type QueryReturn,
+  type MutationReturn,
+  type ReactiveOr,
+  type QueryClientLike,
+  type MaybeRefOrGetter,
+} from '@qualisero/openapi-endpoint'
+
+import type {
+  ApiResponse,
+  ApiRequest,
+  ApiPathParams,
+  ApiPathParamsInput,
+  ApiQueryParams,
+} from './api-operations.js'
+
+import {
+${enumImports}
+} from './api-operations.js'
+
+// ============================================================================
+// Operations registry (for invalidateOperations support)
+// ============================================================================
+
+const _registry = {
+${registryEntries}
+} as const
+
+// ============================================================================
+// Internal config type
+// ============================================================================
+
+type _Config = {
+  axios: AxiosInstance
+  queryClient: QueryClientLike
+  operationsRegistry: typeof _registry
+}
+
+// ============================================================================
+// Per-operation namespace factories
+// ============================================================================
+
+${factories}
+
+// ============================================================================
+// Public API client factory
+// ============================================================================
+
+/**
+ * Create a fully-typed API client.
+ *
+ * Each operation in the spec is a property of the returned object:
+ * - GET/HEAD/OPTIONS → \`api.opName.useQuery(...)\`
+ * - POST/PUT/PATCH/DELETE → \`api.opName.useMutation(...)\`
+ * - All operations → \`api.opName.enums.fieldName.Value\`
+ *
+ * @example
+ * \`\`\`ts
+ * import { createApiClient } from './generated/api-client'
+ * import axios from 'axios'
+ *
+ * const api = createApiClient(axios.create({ baseURL: '/api' }))
+ *
+ * // In a Vue component:
+ * const { data: pets } = api.listPets.useQuery()
+ * const create = api.createPet.useMutation()
+ * create.mutate({ data: { name: 'Fluffy' } })
+ * \`\`\`
+ */
+export function createApiClient(axios: AxiosInstance, queryClient: QueryClientLike = defaultQueryClient) {
+  const base: _Config = { axios, queryClient, operationsRegistry: _registry }
+  return {
+${factoryCalls}
+  } as const
+}
+
+/** The fully-typed API client instance type. */
+export type ApiClient = ReturnType<typeof createApiClient>
+`
+}
+
+async function generateApiClientFile(
+  openApiSpec: OpenAPISpec,
+  outputDir: string,
+  excludePrefix: string | null,
+): Promise<void> {
+  const operationMap = buildOperationMap(openApiSpec, excludePrefix)
+  const content = generateApiClientContent(operationMap)
+  fs.writeFileSync(path.join(outputDir, 'api-client.ts'), content)
+  console.log(`✅ Generated api-client.ts (${Object.keys(operationMap).length} operations)`)
+}
+
+// ============================================================================
+
 function printUsage(): void {
   console.log(`
 Usage: npx @qualisero/openapi-endpoint <openapi-input> <output-directory> [options]
@@ -943,11 +1231,12 @@ Examples:
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-exclude
 
 This command will generate:
-  - openapi-types.ts              (TypeScript types from OpenAPI spec)
-  - api-operations.ts            (Operations map + enum configs)
-  - api-types.ts                  (Types namespace for type-only access)
-  - api-enums.ts                  (Type-safe enum objects from OpenAPI spec)
-  - api-schemas.ts                (Type aliases for schema objects from OpenAPI spec)
+  - openapi-types.ts   (TypeScript types from OpenAPI spec)
+  - api-client.ts      (Fully-typed createApiClient factory — main file to use)
+  - api-operations.ts  (Operations map + type aliases)
+  - api-types.ts       (Types namespace for type-only access)
+  - api-enums.ts       (Type-safe enum objects from OpenAPI spec)
+  - api-schemas.ts     (Type aliases for schema objects from OpenAPI spec)
 `)
 }
 
@@ -1100,23 +1389,22 @@ function generateApiOperationsContent(
     .map((id) => `  ${id}: { path: '${operationMap[id].path}', method: HttpMethod.${operationMap[id].method} },`)
     .join('\n')
 
-  // Operation config entries
-  const configEntries = ids.map((id) => `  ${id}: { enums: ${id}_enums },`).join('\n')
-
-  // Type helpers
+  // Type helpers — now use openapi-typescript `operations` directly (not OpenApiOperations)
   const typeHelpers = `
-type AllOps = keyof OpenApiOperations
+type AllOps = keyof operations
 
 /** Response data type for an operation (all fields required). */
-export type ApiResponse<K extends AllOps> = _ApiResponse<OpenApiOperations, K>
+export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
 /** Response data type - only \`readonly\` fields required. */
-export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<OpenApiOperations, K>
+export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
 /** Request body type. */
-export type ApiRequest<K extends AllOps> = _ApiRequest<OpenApiOperations, K>
+export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>
 /** Path parameters type. */
-export type ApiPathParams<K extends AllOps> = _ApiPathParams<OpenApiOperations, K>
+export type ApiPathParams<K extends AllOps> = _ApiPathParams<operations, K>
+/** Path parameters input type (allows undefined values for reactive resolution). */
+export type ApiPathParamsInput<K extends AllOps> = _ApiPathParamsInput<operations, K>
 /** Query parameters type. */
-export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<OpenApiOperations, K>`
+export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>`
 
   // Re-exports
   const reExports =
@@ -1126,18 +1414,19 @@ export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<OpenApiOperations
           .join('\n')
       : '// No schema-level enums to re-export'
 
-  return `// Auto-generated from OpenAPI specification - do not edit manually
+  return `/* eslint-disable */
+// Auto-generated from OpenAPI specification - do not edit manually
 
 import type { operations } from './openapi-types'
-import type { OperationConfig } from '@/types'
-import { HttpMethod } from '@/types'
+import { HttpMethod } from '@qualisero/openapi-endpoint'
 import type {
   ApiResponse as _ApiResponse,
   ApiResponseSafe as _ApiResponseSafe,
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
+  ApiPathParamsInput as _ApiPathParamsInput,
   ApiQueryParams as _ApiQueryParams,
-} from '@/types'
+} from '@qualisero/openapi-endpoint'
 
 ${reExports}
 
@@ -1148,28 +1437,15 @@ ${reExports}
 ${enumConsts}
 
 // ============================================================================
-// Operations map
+// Operations map (kept for inspection / backward compatibility)
 // ============================================================================
 
 const operationsBase = {
 ${opEntries}
 } as const
 
-/** Operations map - pass as \`config.operations\` to \`useOpenApi\`. */
 export const openApiOperations = operationsBase as typeof operationsBase & Pick<operations, keyof typeof operationsBase>
 export type OpenApiOperations = typeof openApiOperations
-
-// ============================================================================
-// Operation config
-// ============================================================================
-
-/**
- * Pass as second argument to \`useOpenApi\`.
- * Contains enum values for each operation's fields.
- */
-export const operationConfig = {
-${configEntries}
-} as const satisfies OperationConfig<OpenApiOperations>
 
 // ============================================================================
 // Convenience type aliases
@@ -1252,7 +1528,8 @@ function generateApiTypesContent(
     })
     .join('\n\n')
 
-  return `// Auto-generated from OpenAPI specification — do not edit manually
+  return `/* eslint-disable */
+// Auto-generated from OpenAPI specification — do not edit manually
 
 import type {
   ApiResponse as _ApiResponse,
@@ -1260,8 +1537,8 @@ import type {
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
   ApiQueryParams as _ApiQueryParams,
-} from '@/types'
-import type { OpenApiOperations } from './api-operations'
+} from '@qualisero/openapi-endpoint'
+import type { operations as OpenApiOperations } from './openapi-types'
 
 /**
  * Type-only namespace for all API operations.
@@ -1362,8 +1639,9 @@ async function main(): Promise<void> {
       generateTypes(openapiContent, outputDir),
       generateApiEnums(openapiContent, outputDir, excludePrefix),
       generateApiSchemas(openapiContent, outputDir, excludePrefix),
-      generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames), // new
-      generateApiTypesFile(openApiSpec, outputDir, excludePrefix), // new
+      generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames),
+      generateApiTypesFile(openApiSpec, outputDir, excludePrefix),
+      generateApiClientFile(openApiSpec, outputDir, excludePrefix),
     ])
 
     console.log('🎉 Code generation completed successfully!')

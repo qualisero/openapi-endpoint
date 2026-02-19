@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
-import { useOpenApi } from '@/index'
-import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 
 /**
  * API Usage Patterns and Examples
@@ -17,18 +15,11 @@ import { openApiOperations, operationConfig, type OpenApiOperations } from '../f
  * - Reactive path parameters and conditional enabling
  */
 describe('API Usage Patterns', () => {
-  const mockOperations: OpenApiOperations = openApiOperations
-
-  let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
+  let api: ReturnType<typeof createApiClient>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
-    api = useOpenApi(mockConfig, operationConfig)
+    api = createApiClient(mockAxios)
   })
 
   describe('Basic API Structure', () => {
@@ -40,12 +31,11 @@ describe('API Usage Patterns', () => {
       expect(api.createPet).toHaveProperty('useMutation')
     })
 
-    it('should support OpenApiInstance type for typing API instances', () => {
+    it('should support ApiClient type for typing API instances', () => {
       // Type assertion test - if this compiles, the types are working
-      const typedApi: OpenApiInstance<OpenApiOperations, typeof operationConfig> = api
-      expect(typedApi).toBeTruthy()
-      expect(typedApi.listPets).toHaveProperty('useQuery')
-      expect(typedApi.createPet).toHaveProperty('useMutation')
+      expect(api).toBeTruthy()
+      expect(api.listPets).toHaveProperty('useQuery')
+      expect(api.createPet).toHaveProperty('useMutation')
     })
   })
 
@@ -400,45 +390,29 @@ describe('API Usage Patterns', () => {
   })
 
   describe('QueryClient Configuration and Compatibility', () => {
-    it('should use provided queryClient when specified in config', () => {
+    it('should use provided queryClient when specified', () => {
       const customQueryClient = new QueryClient()
-      const configWithClient: OpenApiConfig<OpenApiOperations> = {
-        operations: mockOperations,
-        axios: mockAxios,
-        queryClient: customQueryClient,
-      }
-
-      const apiWithCustomClient = useOpenApi(configWithClient, operationConfig)
+      const apiWithCustomClient = createApiClient(mockAxios, customQueryClient)
       expect(apiWithCustomClient).toBeTruthy()
       expect(apiWithCustomClient.createPet).toHaveProperty('useMutation')
       expect(apiWithCustomClient.listPets).toHaveProperty('useQuery')
     })
 
-    it('should use default queryClient when not specified in config', () => {
-      // This test verifies the api works without explicit queryClient
-      const apiWithDefault = useOpenApi(mockConfig, operationConfig)
+    it('should use default queryClient when not specified', () => {
+      const apiWithDefault = createApiClient(mockAxios)
       expect(apiWithDefault).toBeTruthy()
       expect(apiWithDefault.createPet).toHaveProperty('useMutation')
       expect(apiWithDefault.listPets).toHaveProperty('useQuery')
     })
 
     it('should work with QueryClient-like objects', () => {
-      // Test compatibility with objects that implement QueryClient interface
       const queryClientLike = {
         cancelQueries: vi.fn(() => Promise.resolve()),
         setQueryData: vi.fn(),
         invalidateQueries: vi.fn(() => Promise.resolve()),
-        // Additional properties should be allowed
-        someExtraProperty: 'extra value',
       }
 
-      const configWithLike: OpenApiConfig<OpenApiOperations> = {
-        operations: mockOperations,
-        axios: mockAxios,
-        queryClient: queryClientLike,
-      }
-
-      const apiWithLike = useOpenApi(configWithLike, operationConfig)
+      const apiWithLike = createApiClient(mockAxios, queryClientLike)
       expect(apiWithLike).toBeTruthy()
     })
   })

@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useOpenApi } from '@/index'
-import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 
 /**
  * Consolidated Axios Configuration Tests
@@ -16,18 +14,11 @@ import { openApiOperations, operationConfig, type OpenApiOperations } from '../f
  * - Error handling and timeout configurations
  */
 describe('Axios Configuration Integration', () => {
-  const mockOperations: OpenApiOperations = openApiOperations
-
-  let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
+  let api: ReturnType<typeof createApiClient>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
-    api = useOpenApi(mockConfig, operationConfig)
+    api = createApiClient(mockAxios)
   })
 
   describe('Basic Axios Options', () => {
@@ -431,12 +422,7 @@ describe('Axios Configuration Integration', () => {
       const globalAxios = mockAxios
       globalAxios.defaults.headers.common['Global-Header'] = 'global-value'
 
-      const configWithGlobalAxios: OpenApiConfig<OpenApiOperations> = {
-        operations: mockOperations,
-        axios: globalAxios,
-      }
-
-      const apiWithGlobal = useOpenApi(configWithGlobalAxios, operationConfig)
+      const apiWithGlobal = createApiClient(globalAxios)
       const query = apiWithGlobal.listPets.useQuery({
         axiosOptions: {
           headers: { 'Request-Specific': 'request-value' },

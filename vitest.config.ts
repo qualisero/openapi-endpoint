@@ -20,6 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@qualisero/openapi-endpoint': path.resolve(__dirname, './src'),
     },
   },
 })

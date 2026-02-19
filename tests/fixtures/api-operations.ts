@@ -1,15 +1,16 @@
+/* eslint-disable */
 // Auto-generated from OpenAPI specification - do not edit manually
 
-import type { operations } from './openapi-types'
-import type { OperationConfig } from '@/types'
-import { HttpMethod } from '@/types'
+import type { operations } from './openapi-types.js'
+import { HttpMethod } from '@qualisero/openapi-endpoint'
 import type {
   ApiResponse as _ApiResponse,
   ApiResponseSafe as _ApiResponseSafe,
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
+  ApiPathParamsInput as _ApiPathParamsInput,
   ApiQueryParams as _ApiQueryParams,
-} from '@/types'
+} from '@qualisero/openapi-endpoint'
 
 export { PetStatus } from './api-enums'
 export type { PetStatus } from './api-enums'
@@ -18,38 +19,68 @@ export type { PetStatus } from './api-enums'
 // Per-operation enum values
 // ============================================================================
 
-export const createPet_enums = {} as const
+export const createPet_enums = {
 
-export const deletePet_enums = {} as const
+} as const
 
-export const getConfigJson_enums = {} as const
+export const deletePet_enums = {
 
-export const getDataV1Json_enums = {} as const
+} as const
 
-export const getOwners_enums = {} as const
+export const getConfigJson_enums = {
 
-export const getPet_enums = {} as const
+} as const
 
-export const getPetPetId_enums = {} as const
+export const getDataV1Json_enums = {
 
-export const listPets_enums = {} as const
+} as const
 
-export const listUserPets_enums = {} as const
+export const getOwners_enums = {
 
-export const postOwners_enums = {} as const
+} as const
 
-export const postPetAdopt_enums = {} as const
+export const getPet_enums = {
 
-export const postPetGiveTreats_enums = {} as const
+} as const
 
-export const updatePet_enums = {} as const
+export const getPetPetId_enums = {
 
-export const updatePetPetId_enums = {} as const
+} as const
 
-export const uploadPetPic_enums = {} as const
+export const listPets_enums = {
+
+} as const
+
+export const listUserPets_enums = {
+
+} as const
+
+export const postOwners_enums = {
+
+} as const
+
+export const postPetAdopt_enums = {
+
+} as const
+
+export const postPetGiveTreats_enums = {
+
+} as const
+
+export const updatePet_enums = {
+
+} as const
+
+export const updatePetPetId_enums = {
+
+} as const
+
+export const uploadPetPic_enums = {
+
+} as const
 
 // ============================================================================
-// Operations map
+// Operations map (kept for inspection / backward compatibility)
 // ============================================================================
 
 const operationsBase = {
@@ -70,49 +101,24 @@ const operationsBase = {
   uploadPetPic: { path: '/pets/{petId}/upload', method: HttpMethod.POST },
 } as const
 
-/** Operations map - pass as `config.operations` to `useOpenApi`. */
 export const openApiOperations = operationsBase as typeof operationsBase & Pick<operations, keyof typeof operationsBase>
 export type OpenApiOperations = typeof openApiOperations
-
-// ============================================================================
-// Operation config
-// ============================================================================
-
-/**
- * Pass as second argument to `useOpenApi`.
- * Contains enum values for each operation's fields.
- */
-export const operationConfig = {
-  createPet: { enums: createPet_enums },
-  deletePet: { enums: deletePet_enums },
-  getConfigJson: { enums: getConfigJson_enums },
-  getDataV1Json: { enums: getDataV1Json_enums },
-  getOwners: { enums: getOwners_enums },
-  getPet: { enums: getPet_enums },
-  getPetPetId: { enums: getPetPetId_enums },
-  listPets: { enums: listPets_enums },
-  listUserPets: { enums: listUserPets_enums },
-  postOwners: { enums: postOwners_enums },
-  postPetAdopt: { enums: postPetAdopt_enums },
-  postPetGiveTreats: { enums: postPetGiveTreats_enums },
-  updatePet: { enums: updatePet_enums },
-  updatePetPetId: { enums: updatePetPetId_enums },
-  uploadPetPic: { enums: uploadPetPic_enums },
-} as const satisfies OperationConfig<OpenApiOperations>
 
 // ============================================================================
 // Convenience type aliases
 // ============================================================================
 
-type AllOps = keyof OpenApiOperations
+type AllOps = keyof operations
 
 /** Response data type for an operation (all fields required). */
-export type ApiResponse<K extends AllOps> = _ApiResponse<OpenApiOperations, K>
+export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
 /** Response data type - only `readonly` fields required. */
-export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<OpenApiOperations, K>
+export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
 /** Request body type. */
-export type ApiRequest<K extends AllOps> = _ApiRequest<OpenApiOperations, K>
+export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>
 /** Path parameters type. */
-export type ApiPathParams<K extends AllOps> = _ApiPathParams<OpenApiOperations, K>
+export type ApiPathParams<K extends AllOps> = _ApiPathParams<operations, K>
+/** Path parameters input type (allows undefined values for reactive resolution). */
+export type ApiPathParamsInput<K extends AllOps> = _ApiPathParamsInput<operations, K>
 /** Query parameters type. */
-export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<OpenApiOperations, K>
+export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>

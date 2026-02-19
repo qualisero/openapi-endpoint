@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useOpenApi } from '@/index'
-import { OpenApiConfig, type OpenApiInstance } from '@/types'
+import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
-import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 
 /**
  * Bug Fixes and Issue Reproductions
@@ -11,18 +10,11 @@ import { openApiOperations, operationConfig, type OpenApiOperations } from '../f
  * Each test section references the specific issue it addresses.
  */
 describe('Bug Fixes and Issue Reproductions', () => {
-  const mockOperations: OpenApiOperations = openApiOperations
-
-  let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
+  let api: ReturnType<typeof createApiClient>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
-    api = useOpenApi(mockConfig, operationConfig)
+    api = createApiClient(mockAxios)
   })
 
   /**
@@ -413,21 +405,14 @@ describe('Bug Fixes and Issue Reproductions', () => {
         setQueryData: vi.fn(),
         invalidateQueries: vi.fn(() => Promise.resolve()),
       }
-      const configWithClient: OpenApiConfig<OpenApiOperations> = {
-        operations: mockOperations,
-        axios: mockAxios,
-        queryClient: customQueryClient,
-      }
-
-      const apiWithCustomClient = useOpenApi(configWithClient, operationConfig)
+      const apiWithCustomClient = createApiClient(mockAxios, customQueryClient)
       expect(apiWithCustomClient).toBeTruthy()
       expect(apiWithCustomClient.createPet).toHaveProperty('useMutation')
       expect(apiWithCustomClient.listPets).toHaveProperty('useQuery')
     })
 
     it('should use default queryClient when not specified', () => {
-      // This test verifies the api works without explicit queryClient
-      const apiWithDefault = useOpenApi(mockConfig, operationConfig)
+      const apiWithDefault = createApiClient(mockAxios)
       expect(apiWithDefault).toBeTruthy()
       expect(apiWithDefault.createPet).toHaveProperty('useMutation')
       expect(apiWithDefault.listPets).toHaveProperty('useQuery')

@@ -1,39 +1,48 @@
-import type { MaybeRefOrGetter } from 'vue'
+// ============================================================================
+// Core primitives (called by generated api-client.ts)
+// ============================================================================
+export { useEndpointQuery } from './openapi-query'
+export { useEndpointMutation } from './openapi-mutation'
+export { defaultQueryClient } from './openapi-helpers'
 
-import { EndpointQueryReturn, useEndpointQuery } from './openapi-query'
-import { type EndpointMutationReturn, useEndpointMutation } from './openapi-mutation'
-import {
-  Operations,
-  ApiPathParams,
-  ApiPathParamsInput,
-  OpenApiConfig,
-  OpenApiInstance,
-  QQueryOptions,
-  QMutationOptions,
-  QueryOpsNoPathParams,
-  QueryOpsWithPathParams,
-  MutationOpsNoPathParams,
-  MutationOpsWithPathParams,
-  HasExcessPathParams,
-  ReactiveValue,
-} from './types'
-import { getHelpers } from './openapi-helpers'
+// ============================================================================
+// Return types (used in component / composable signatures)
+// ============================================================================
+export type { QueryReturn, EndpointQueryReturn } from './openapi-query'
+export type { MutationReturn, EndpointMutationReturn } from './openapi-mutation'
 
-// Public type exports
+// ============================================================================
+// Option types (used in component / composable signatures)
+// ============================================================================
 export type {
-  // Config
-  OpenApiConfig,
-  OperationConfig,
+  // Endpoint config (used in generated api-client.ts)
+  EndpointConfig,
 
-  // Instance types
-  OpenApiInstance,
-  QueryNamespace,
-  MutationNamespace,
-  OperationNamespace,
-  OperationQuery,
-  OperationMutation,
+  // Options
+  QueryOptions,
+  MutationOptions,
+  MutationVars,
 
-  // Request / response types
+  // Cache invalidation
+  CacheInvalidationOptions,
+  Refetchable,
+
+  // Mutate function signatures
+  MutateFn,
+  MutateAsyncFn,
+  MutateAsyncReturn,
+
+  // Reactive helpers
+  ReactiveOr,
+  ReactiveValue,
+
+  // Axios
+  AxiosRequestConfigExtended,
+
+  // QueryClient
+  QueryClientLike,
+
+  // Type extraction utilities (used in generated api-operations.ts / api-client.ts)
   ApiResponse,
   ApiResponseSafe,
   ApiRequest,
@@ -41,40 +50,20 @@ export type {
   ApiPathParamsInput,
   ApiQueryParams,
 
-  // Query / mutation option types
+  // Legacy compat aliases
+  HasExcessPathParams,
+  RequiresPathParameters,
   QQueryOptions,
   QMutationOptions,
   QMutationVars,
-  CacheInvalidationOptions,
-
-  // Return types
-  EndpointQueryReturn,
-  EndpointMutationReturn,
-
-  // Reactive helpers
-  ReactiveOr,
-  ReactiveValue,
-
-  // Mutation function signatures
-  MutateFn,
-  MutateAsyncFn,
-  MutateAsyncReturn,
-
-  // Internal / advanced
-  QueryClientLike,
-  AxiosRequestConfigExtended,
-  HasExcessPathParams,
-  RequiresPathParameters,
-  NoPathParams,
-  WithPathParams,
-  QueryOpsNoPathParams,
-  QueryOpsWithPathParams,
-  MutationOpsNoPathParams,
-  MutationOpsWithPathParams,
 } from './types'
 
-// Public function exports
-export { validateMutationParams } from './types'
+// ============================================================================
+// HTTP method utilities
+// ============================================================================
+export { HttpMethod, QUERY_METHODS, MUTATION_METHODS, isQueryMethod, isMutationMethod } from './types'
 
-// Factory
-export { useOpenApi } from './openapi-endpoint'
+// ============================================================================
+// Re-export Vue types (ensures consumer's version is used)
+// ============================================================================
+export type { MaybeRefOrGetter } from '@vue/reactivity'

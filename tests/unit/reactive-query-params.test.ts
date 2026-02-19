@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
-import { useOpenApi } from '@/index'
-import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 import { PetStatus } from '../fixtures/api-enums'
 
 /**
@@ -16,18 +14,11 @@ import { PetStatus } from '../fixtures/api-enums'
  * - Works with both queries and mutations
  */
 describe('Reactive Query Parameters', () => {
-  const mockOperations: OpenApiOperations = openApiOperations
-
-  let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
+  let api: ReturnType<typeof createApiClient>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConfig = {
-      operations: mockOperations,
-      axios: mockAxios,
-    }
-    api = useOpenApi(mockConfig, operationConfig)
+    api = createApiClient(mockAxios)
   })
 
   describe('Type Safety', () => {
