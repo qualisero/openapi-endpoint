@@ -989,14 +989,9 @@ function computeListPath(
 function generateOperationJSDoc(operationId: string, method: string, path: string): string {
   const methodUpper = method.toUpperCase()
   const isQuery = ['GET', 'HEAD', 'OPTIONS'].includes(methodUpper)
-  
-  const lines = [
-    '/**',
-    ` * ${operationId}`,
-    ' * ',
-    ` * ${methodUpper} ${path}`,
-  ]
-  
+
+  const lines = ['/**', ` * ${operationId}`, ' * ', ` * ${methodUpper} ${path}`]
+
   if (isQuery) {
     lines.push(' * ')
     lines.push(' * @param pathParams - Path parameters (reactive)')
@@ -1008,7 +1003,7 @@ function generateOperationJSDoc(operationId: string, method: string, path: strin
     lines.push(' * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)')
     lines.push(' * @returns Mutation helper with mutate() and mutateAsync() methods')
   }
-  
+
   lines.push(' */')
   return lines.join('\n')
 }
@@ -1031,16 +1026,35 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>): 
       const query = isQuery(id)
       const withParams = hasPathParams(id)
       const cfgSpread = `{ ...base, path: '${path}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
-      
+
       // Generate JSDoc
       const jsdoc = generateOperationJSDoc(id, method, path)
-      
-      // Generate type aliases for better IDE tooltips
-      const typeAliases = `  type PathParams = ApiPathParams<'${id}'>
+
+      // Generate type aliases - only the ones actually used in each pattern
+      let typeAliases: string
+      if (query && withParams) {
+        // Query with params: uses PathParams, PathParamsInput, Response, QueryParams
+        typeAliases = `  type PathParams = ApiPathParams<'${id}'>
+  type PathParamsInput = ApiPathParamsInput<'${id}'>
+  type Response = ApiResponse<'${id}'>
+  type QueryParams = ApiQueryParams<'${id}'>`
+      } else if (query) {
+        // Query no params: uses Response, QueryParams only
+        typeAliases = `  type Response = ApiResponse<'${id}'>
+  type QueryParams = ApiQueryParams<'${id}'>`
+      } else if (withParams) {
+        // Mutation with params: uses all 5 types
+        typeAliases = `  type PathParams = ApiPathParams<'${id}'>
   type PathParamsInput = ApiPathParamsInput<'${id}'>
   type RequestBody = ApiRequest<'${id}'>
   type Response = ApiResponse<'${id}'>
   type QueryParams = ApiQueryParams<'${id}'>`
+      } else {
+        // Mutation no params: uses RequestBody, Response, QueryParams
+        typeAliases = `  type RequestBody = ApiRequest<'${id}'>
+  type Response = ApiResponse<'${id}'>
+  type QueryParams = ApiQueryParams<'${id}'>`
+      }
 
       let fnBody: string
       if (query && withParams) {

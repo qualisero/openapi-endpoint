@@ -119,14 +119,23 @@ export function useEndpointMutation<
 
   const extraPathParams = ref({}) as Ref<Record<string, string | undefined>>
 
-  const { resolvedPath, queryKey, queryParams: resolvedQueryParams, pathParams: allPathParams } =
-    useResolvedOperation(config.path, resolvedPathParamsInput, queryParams, extraPathParams)
+  const {
+    resolvedPath,
+    queryKey,
+    queryParams: resolvedQueryParams,
+    pathParams: allPathParams,
+  } = useResolvedOperation(config.path, resolvedPathParamsInput, queryParams, extraPathParams)
 
   const mutation = useMutation(
     {
       mutationFn: async (vars: MutationVars<TPathParams, TRequest, TQueryParams>) => {
-        const { pathParams: pathParamsFromMutate, axiosOptions: axiosOptionsFromMutate, queryParams: queryParamsFromMutate } =
-          (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams> & { pathParams?: Record<string, string | undefined> }
+        const {
+          pathParams: pathParamsFromMutate,
+          axiosOptions: axiosOptionsFromMutate,
+          queryParams: queryParamsFromMutate,
+        } = (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams> & {
+          pathParams?: Record<string, string | undefined>
+        }
         const data = (vars as { data?: TRequest } | undefined)?.data
 
         extraPathParams.value = (pathParamsFromMutate || {}) as Record<string, string | undefined>
@@ -215,7 +224,9 @@ export function useEndpointMutation<
             operationsWithPathParams.push(...ops.map((id) => [id, {}] as [string, Record<string, string | undefined>]))
           } else {
             operationsWithPathParams.push(
-              ...Object.entries(ops).map(([id, params]) => [id, params] as [string, Record<string, string | undefined>]),
+              ...Object.entries(ops).map(
+                ([id, params]) => [id, params] as [string, Record<string, string | undefined>],
+              ),
             )
           }
         }
@@ -235,9 +246,7 @@ export function useEndpointMutation<
               const opQueryKey = generateQueryKey(opPath)
               return config.queryClient.invalidateQueries({ queryKey: opQueryKey, exact: true })
             } else {
-              console.warn(
-                `Cannot invalidate operation '${opId}', path not resolved: ${opPath}`,
-              )
+              console.warn(`Cannot invalidate operation '${opId}', path not resolved: ${opPath}`)
               return Promise.resolve()
             }
           })

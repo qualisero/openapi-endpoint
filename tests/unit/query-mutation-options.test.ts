@@ -256,12 +256,24 @@ describe('Query and Mutation Options', () => {
 
   describe('Advanced Composable Functionality', () => {
     it('should validate operation types at runtime for useEndpointQuery', () => {
-      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.POST, listPath: null }
+      const postConfig = {
+        axios: mockAxios,
+        queryClient: defaultQueryClient,
+        path: '/pets',
+        method: HttpMethod.POST,
+        listPath: null,
+      }
       expect(() => {
         useEndpointQuery(postConfig)
       }).toThrow("Operation at '/pets' uses method POST and cannot be used with useQuery()")
 
-      const getConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.GET, listPath: null }
+      const getConfig = {
+        axios: mockAxios,
+        queryClient: defaultQueryClient,
+        path: '/pets',
+        method: HttpMethod.GET,
+        listPath: null,
+      }
       const query = useEndpointQuery(getConfig)
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -269,12 +281,24 @@ describe('Query and Mutation Options', () => {
     })
 
     it('should validate operation types at runtime for useEndpointMutation', () => {
-      const getConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.GET, listPath: null }
+      const getConfig = {
+        axios: mockAxios,
+        queryClient: defaultQueryClient,
+        path: '/pets',
+        method: HttpMethod.GET,
+        listPath: null,
+      }
       expect(() => {
         useEndpointMutation(getConfig)
       }).toThrow("Operation at '/pets' uses method GET and cannot be used with useMutation()")
 
-      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.POST, listPath: null }
+      const postConfig = {
+        axios: mockAxios,
+        queryClient: defaultQueryClient,
+        path: '/pets',
+        method: HttpMethod.POST,
+        listPath: null,
+      }
       const mutation = useEndpointMutation(postConfig)
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -377,10 +401,16 @@ describe('Query and Mutation Options', () => {
 
   describe('Error Handling in Options', () => {
     it('should throw when using wrong method with useEndpointQuery', () => {
-      const postConfig = { axios: mockAxios, queryClient: defaultQueryClient, path: '/pets', method: HttpMethod.DELETE, listPath: null }
+      const postConfig = {
+        axios: mockAxios,
+        queryClient: defaultQueryClient,
+        path: '/pets',
+        method: HttpMethod.DELETE,
+        listPath: null,
+      }
       expect(() => {
         useEndpointQuery(postConfig)
-      }).toThrow("cannot be used with useQuery()")
+      }).toThrow('cannot be used with useQuery()')
     })
 
     it('should support custom error handlers', () => {

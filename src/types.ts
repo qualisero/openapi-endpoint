@@ -153,10 +153,10 @@ type BaseQueryOptions<TResponse, TQueryParams extends Record<string, unknown>> =
  * @template TResponse    The response data type for this operation
  * @template TQueryParams The query parameters type for this operation
  */
-export type QueryOptions<
-  TResponse,
-  TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = Omit<BaseQueryOptions<TResponse, TQueryParams>, 'queryKey' | 'queryFn' | 'enabled'> & {
+export type QueryOptions<TResponse, TQueryParams extends Record<string, unknown> = Record<string, never>> = Omit<
+  BaseQueryOptions<TResponse, TQueryParams>,
+  'queryKey' | 'queryFn' | 'enabled'
+> & {
   enabled?: ReactiveOr<boolean>
   onLoad?: (data: TResponse) => void
   axiosOptions?: AxiosRequestConfigExtended
@@ -194,15 +194,14 @@ export type MutationVars<
   ? MutationVarsBase<TPathParams, TQueryParams>
   : MutationVarsBase<TPathParams, TQueryParams> & { data?: TRequest }
 
-type BaseMutationOptions<TResponse, TPathParams extends Record<string, unknown>, TRequest, TQueryParams extends Record<string, unknown>> =
-  MaybeRefDeep<
-    MutationObserverOptions<
-      AxiosResponse<TResponse>,
-      Error,
-      MutationVars<TPathParams, TRequest, TQueryParams>,
-      unknown
-    >
-  > & { shallow?: boolean }
+type BaseMutationOptions<
+  TResponse,
+  TPathParams extends Record<string, unknown>,
+  TRequest,
+  TQueryParams extends Record<string, unknown>,
+> = MaybeRefDeep<
+  MutationObserverOptions<AxiosResponse<TResponse>, Error, MutationVars<TPathParams, TRequest, TQueryParams>, unknown>
+> & { shallow?: boolean }
 
 /**
  * Options for `useMutation` composable.
@@ -274,8 +273,11 @@ type RequireReadonly<T> = {
   [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
 }
 
-type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> =
-  Ops[Op] extends { responses: { 200: { content: { 'application/json': infer Data } } } } ? Data : unknown
+type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends {
+  responses: { 200: { content: { 'application/json': infer Data } } }
+}
+  ? Data
+  : unknown
 
 /**
  * Extract the response data type (all fields required).
@@ -298,12 +300,13 @@ type Writable<T> = {
  * Extract the request body type.
  * @example `ApiRequest<operations, 'createPet'>` → `{ name: string, species?: string }`
  */
-export type ApiRequest<Ops extends AnyOps, Op extends keyof Ops> =
-  Ops[Op] extends { requestBody: { content: { 'application/json': infer Body } } }
-    ? Writable<Body>
-    : Ops[Op] extends { requestBody: { content: { 'multipart/form-data': infer Body } } }
-      ? Writable<Body> | FormData
-      : never
+export type ApiRequest<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends {
+  requestBody: { content: { 'application/json': infer Body } }
+}
+  ? Writable<Body>
+  : Ops[Op] extends { requestBody: { content: { 'multipart/form-data': infer Body } } }
+    ? Writable<Body> | FormData
+    : never
 
 /**
  * Extract path parameters type (all required).
@@ -344,8 +347,10 @@ export type ApiQueryParams<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] e
 /**
  * @deprecated Use `QueryOptions` instead.
  */
-export type QQueryOptions<TResponse, TQueryParams extends Record<string, unknown> = Record<string, never>> =
-  QueryOptions<TResponse, TQueryParams>
+export type QQueryOptions<
+  TResponse,
+  TQueryParams extends Record<string, unknown> = Record<string, never>,
+> = QueryOptions<TResponse, TQueryParams>
 
 /**
  * @deprecated Use `MutationOptions` instead.

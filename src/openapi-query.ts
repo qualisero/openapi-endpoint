@@ -42,8 +42,10 @@ export interface QueryReturn<TResponse, TPathParams extends Record<string, unkno
 /**
  * @deprecated Use `QueryReturn` instead.
  */
-export type EndpointQueryReturn<TResponse, TPathParams extends Record<string, unknown> = Record<string, never>> =
-  QueryReturn<TResponse, TPathParams>
+export type EndpointQueryReturn<
+  TResponse,
+  TPathParams extends Record<string, unknown> = Record<string, never>,
+> = QueryReturn<TResponse, TPathParams>
 
 /**
  * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
@@ -80,11 +82,22 @@ export function useEndpointQuery<
     QueryOptions<TResponse, TQueryParams>
   >(pathParams, options)
 
-  const { enabled: enabledInit, onLoad: onLoadInit, axiosOptions, errorHandler, queryParams, ...useQueryOptions } =
-    resolvedOptions
+  const {
+    enabled: enabledInit,
+    onLoad: onLoadInit,
+    axiosOptions,
+    errorHandler,
+    queryParams,
+    ...useQueryOptions
+  } = resolvedOptions
 
-  const { resolvedPath, queryKey, isResolved, queryParams: resolvedQueryParams, pathParams: resolvedPathParams } =
-    useResolvedOperation(config.path, resolvedPathParamsInput, queryParams)
+  const {
+    resolvedPath,
+    queryKey,
+    isResolved,
+    queryParams: resolvedQueryParams,
+    pathParams: resolvedPathParams,
+  } = useResolvedOperation(config.path, resolvedPathParamsInput, queryParams)
 
   const isEnabled = computed(() => {
     const baseEnabled = enabledInit !== undefined ? toValue(enabledInit) : true
