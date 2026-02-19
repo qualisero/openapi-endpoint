@@ -12,6 +12,8 @@ import type {
   ApiQueryParams as _ApiQueryParams,
 } from '@qualisero/openapi-endpoint'
 
+export type { operations }
+
 export { PetStatus } from './api-enums'
 export type { PetStatus } from './api-enums'
 

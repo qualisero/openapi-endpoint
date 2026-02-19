@@ -23,6 +23,7 @@ import type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
+  operations,
 } from './api-operations.js'
 
 import {
@@ -82,398 +83,120 @@ type _Config = {
 type _PathParamsCast = MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>
 
 // ============================================================================
-// Per-operation namespace factories
+// Type alias for all operations
+// ============================================================================
+
+type AllOps = keyof operations
+
+// ============================================================================
+// Shared generic factory helpers (4 patterns)
 // ============================================================================
 
 /**
- * createPet
- * 
- * POST /pets
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
+ * Generic query helper for operations without path parameters.
+ * @internal
  */
-function _createPet(base: _Config) {
-  type RequestBody = ApiRequest<'createPet'>
-  type Response = ApiResponse<'createPet'>
-  type QueryParams = ApiQueryParams<'createPet'>
-  
+function _queryNoParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useQuery: (
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, Record<string, never>> =>
+      useEndpointQuery<Response, Record<string, never>, QueryParams>(
+        { ...base, ...cfg },
+        undefined,
+        options,
+      ),
+    enums,
+  } as const
+}
+
+/**
+ * Generic query helper for operations with path parameters.
+ * @internal
+ */
+function _queryWithParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type PathParams = ApiPathParams<Op>
+  type PathParamsInput = ApiPathParamsInput<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useQuery: (
+      pathParams: ReactiveOr<PathParamsInput>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams> =>
+      useEndpointQuery<Response, PathParams, QueryParams>(
+        { ...base, ...cfg },
+        pathParams as _PathParamsCast,
+        options,
+      ),
+    enums,
+  } as const
+}
+
+/**
+ * Generic mutation helper for operations without path parameters.
+ * @internal
+ */
+function _mutationNoParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type RequestBody = ApiRequest<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
   return {
     useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>
+      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
     ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
       useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        { ...base, path: '/pets', method: HttpMethod.POST, listPath: '/pets' }, undefined, options
+        { ...base, ...cfg },
+        undefined,
+        options,
       ),
-    enums: createPet_enums,
+    enums,
   } as const
 }
 
 /**
- * deletePet
- * 
- * DELETE /pets/{petId}
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
+ * Generic mutation helper for operations with path parameters.
+ * @internal
  */
-function _deletePet(base: _Config) {
-  type PathParams = ApiPathParams<'deletePet'>
-  type PathParamsInput = ApiPathParamsInput<'deletePet'>
-  type RequestBody = ApiRequest<'deletePet'>
-  type Response = ApiResponse<'deletePet'>
-  type QueryParams = ApiQueryParams<'deletePet'>
-  
+function _mutationWithParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type PathParams = ApiPathParams<Op>
+  type PathParamsInput = ApiPathParamsInput<Op>
+  type RequestBody = ApiRequest<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
   return {
     useMutation: (
       pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
       useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' }, pathParams as _PathParamsCast, options
+        { ...base, ...cfg },
+        pathParams as _PathParamsCast,
+        options,
       ),
-    enums: deletePet_enums,
-  } as const
-}
-
-/**
- * getConfigJson
- * 
- * GET /api/config.json
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _getConfigJson(base: _Config) {
-  type Response = ApiResponse<'getConfigJson'>
-  type QueryParams = ApiQueryParams<'getConfigJson'>
-  
-  return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, path: '/api/config.json', method: HttpMethod.GET, listPath: null }, undefined, options
-      ),
-    enums: getConfigJson_enums,
-  } as const
-}
-
-/**
- * getDataV1Json
- * 
- * GET /api/data.v1.json
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _getDataV1Json(base: _Config) {
-  type Response = ApiResponse<'getDataV1Json'>
-  type QueryParams = ApiQueryParams<'getDataV1Json'>
-  
-  return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null }, undefined, options
-      ),
-    enums: getDataV1Json_enums,
-  } as const
-}
-
-/**
- * getOwners
- * 
- * GET /owners
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _getOwners(base: _Config) {
-  type Response = ApiResponse<'getOwners'>
-  type QueryParams = ApiQueryParams<'getOwners'>
-  
-  return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, path: '/owners', method: HttpMethod.GET, listPath: null }, undefined, options
-      ),
-    enums: getOwners_enums,
-  } as const
-}
-
-/**
- * getPet
- * 
- * GET /pets/{petId}
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _getPet(base: _Config) {
-  type PathParams = ApiPathParams<'getPet'>
-  type PathParamsInput = ApiPathParamsInput<'getPet'>
-  type Response = ApiResponse<'getPet'>
-  type QueryParams = ApiQueryParams<'getPet'>
-  
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, PathParams> => 
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
-      ),
-    enums: getPet_enums,
-  } as const
-}
-
-/**
- * getPetPetId
- * 
- * GET /api/pet/{pet_id}
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _getPetPetId(base: _Config) {
-  type PathParams = ApiPathParams<'getPetPetId'>
-  type PathParamsInput = ApiPathParamsInput<'getPetPetId'>
-  type Response = ApiResponse<'getPetPetId'>
-  type QueryParams = ApiQueryParams<'getPetPetId'>
-  
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, PathParams> => 
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
-      ),
-    enums: getPetPetId_enums,
-  } as const
-}
-
-/**
- * listPets
- * 
- * GET /pets
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _listPets(base: _Config) {
-  type Response = ApiResponse<'listPets'>
-  type QueryParams = ApiQueryParams<'listPets'>
-  
-  return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, path: '/pets', method: HttpMethod.GET, listPath: null }, undefined, options
-      ),
-    enums: listPets_enums,
-  } as const
-}
-
-/**
- * listUserPets
- * 
- * GET /users/{userId}/pets
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Query options (enabled, staleTime, onLoad, etc.)
- * @returns Query result with data, isLoading, refetch(), etc.
- */
-function _listUserPets(base: _Config) {
-  type PathParams = ApiPathParams<'listUserPets'>
-  type PathParamsInput = ApiPathParamsInput<'listUserPets'>
-  type Response = ApiResponse<'listUserPets'>
-  type QueryParams = ApiQueryParams<'listUserPets'>
-  
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, PathParams> => 
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null }, pathParams as _PathParamsCast, options
-      ),
-    enums: listUserPets_enums,
-  } as const
-}
-
-/**
- * postOwners
- * 
- * POST /owners
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _postOwners(base: _Config) {
-  type RequestBody = ApiRequest<'postOwners'>
-  type Response = ApiResponse<'postOwners'>
-  type QueryParams = ApiQueryParams<'postOwners'>
-  
-  return {
-    useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>
-    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        { ...base, path: '/owners', method: HttpMethod.POST, listPath: null }, undefined, options
-      ),
-    enums: postOwners_enums,
-  } as const
-}
-
-/**
- * postPetAdopt
- * 
- * POST /api/pet/{pet_id}/adopt
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _postPetAdopt(base: _Config) {
-  type PathParams = ApiPathParams<'postPetAdopt'>
-  type PathParamsInput = ApiPathParamsInput<'postPetAdopt'>
-  type RequestBody = ApiRequest<'postPetAdopt'>
-  type Response = ApiResponse<'postPetAdopt'>
-  type QueryParams = ApiQueryParams<'postPetAdopt'>
-  
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null }, pathParams as _PathParamsCast, options
-      ),
-    enums: postPetAdopt_enums,
-  } as const
-}
-
-/**
- * postPetGiveTreats
- * 
- * POST /api/pet/give_treats
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _postPetGiveTreats(base: _Config) {
-  type RequestBody = ApiRequest<'postPetGiveTreats'>
-  type Response = ApiResponse<'postPetGiveTreats'>
-  type QueryParams = ApiQueryParams<'postPetGiveTreats'>
-  
-  return {
-    useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>
-    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        { ...base, path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null }, undefined, options
-      ),
-    enums: postPetGiveTreats_enums,
-  } as const
-}
-
-/**
- * updatePet
- * 
- * PUT /pets/{petId}
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _updatePet(base: _Config) {
-  type PathParams = ApiPathParams<'updatePet'>
-  type PathParamsInput = ApiPathParamsInput<'updatePet'>
-  type RequestBody = ApiRequest<'updatePet'>
-  type Response = ApiResponse<'updatePet'>
-  type QueryParams = ApiQueryParams<'updatePet'>
-  
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' }, pathParams as _PathParamsCast, options
-      ),
-    enums: updatePet_enums,
-  } as const
-}
-
-/**
- * updatePetPetId
- * 
- * PATCH /api/pet/{pet_id}
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _updatePetPetId(base: _Config) {
-  type PathParams = ApiPathParams<'updatePetPetId'>
-  type PathParamsInput = ApiPathParamsInput<'updatePetPetId'>
-  type RequestBody = ApiRequest<'updatePetPetId'>
-  type Response = ApiResponse<'updatePetPetId'>
-  type QueryParams = ApiQueryParams<'updatePetPetId'>
-  
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' }, pathParams as _PathParamsCast, options
-      ),
-    enums: updatePetPetId_enums,
-  } as const
-}
-
-/**
- * uploadPetPic
- * 
- * POST /pets/{petId}/upload
- * 
- * @param pathParams - Path parameters (reactive)
- * @param options - Mutation options (onSuccess, onError, invalidateOperations, etc.)
- * @returns Mutation helper with mutate() and mutateAsync() methods
- */
-function _uploadPetPic(base: _Config) {
-  type PathParams = ApiPathParams<'uploadPetPic'>
-  type PathParamsInput = ApiPathParamsInput<'uploadPetPic'>
-  type RequestBody = ApiRequest<'uploadPetPic'>
-  type Response = ApiResponse<'uploadPetPic'>
-  type QueryParams = ApiQueryParams<'uploadPetPic'>
-  
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null }, pathParams as _PathParamsCast, options
-      ),
-    enums: uploadPetPic_enums,
+    enums,
   } as const
 }
 
@@ -505,21 +228,21 @@ function _uploadPetPic(base: _Config) {
 export function createApiClient(axios: AxiosInstance, queryClient: QueryClientLike = defaultQueryClient) {
   const base: _Config = { axios, queryClient, operationsRegistry: _registry }
   return {
-    createPet: _createPet(base),
-    deletePet: _deletePet(base),
-    getConfigJson: _getConfigJson(base),
-    getDataV1Json: _getDataV1Json(base),
-    getOwners: _getOwners(base),
-    getPet: _getPet(base),
-    getPetPetId: _getPetPetId(base),
-    listPets: _listPets(base),
-    listUserPets: _listUserPets(base),
-    postOwners: _postOwners(base),
-    postPetAdopt: _postPetAdopt(base),
-    postPetGiveTreats: _postPetGiveTreats(base),
-    updatePet: _updatePet(base),
-    updatePetPetId: _updatePetPetId(base),
-    uploadPetPic: _uploadPetPic(base),
+    createPet: _mutationNoParams<'createPet'>(base, { path: '/pets', method: HttpMethod.POST, listPath: '/pets' }, createPet_enums),
+    deletePet: _mutationWithParams<'deletePet'>(base, { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' }, deletePet_enums),
+    getConfigJson: _queryNoParams<'getConfigJson'>(base, { path: '/api/config.json', method: HttpMethod.GET, listPath: null }, getConfigJson_enums),
+    getDataV1Json: _queryNoParams<'getDataV1Json'>(base, { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null }, getDataV1Json_enums),
+    getOwners: _queryNoParams<'getOwners'>(base, { path: '/owners', method: HttpMethod.GET, listPath: null }, getOwners_enums),
+    getPet: _queryWithParams<'getPet'>(base, { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null }, getPet_enums),
+    getPetPetId: _queryWithParams<'getPetPetId'>(base, { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null }, getPetPetId_enums),
+    listPets: _queryNoParams<'listPets'>(base, { path: '/pets', method: HttpMethod.GET, listPath: null }, listPets_enums),
+    listUserPets: _queryWithParams<'listUserPets'>(base, { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null }, listUserPets_enums),
+    postOwners: _mutationNoParams<'postOwners'>(base, { path: '/owners', method: HttpMethod.POST, listPath: null }, postOwners_enums),
+    postPetAdopt: _mutationWithParams<'postPetAdopt'>(base, { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null }, postPetAdopt_enums),
+    postPetGiveTreats: _mutationNoParams<'postPetGiveTreats'>(base, { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null }, postPetGiveTreats_enums),
+    updatePet: _mutationWithParams<'updatePet'>(base, { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' }, updatePet_enums),
+    updatePetPetId: _mutationWithParams<'updatePetPetId'>(base, { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' }, updatePetPetId_enums),
+    uploadPetPic: _mutationWithParams<'uploadPetPic'>(base, { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null }, uploadPetPic_enums),
   } as const
 }
 

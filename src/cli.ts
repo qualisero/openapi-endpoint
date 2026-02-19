@@ -1017,107 +1017,142 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>): 
   // Registry for invalidateOperations support
   const registryEntries = ids.map((id) => `  ${id}: { path: '${operationMap[id].path}' },`).join('\n')
 
-  // Per-operation factory functions
-  const factories = ids
+  // Generic factory helpers (4 patterns)
+  const helpers = `/**
+ * Generic query helper for operations without path parameters.
+ * @internal
+ */
+function _queryNoParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useQuery: (
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, Record<string, never>> =>
+      useEndpointQuery<Response, Record<string, never>, QueryParams>(
+        { ...base, ...cfg },
+        undefined,
+        options,
+      ),
+    enums,
+  } as const
+}
+
+/**
+ * Generic query helper for operations with path parameters.
+ * @internal
+ */
+function _queryWithParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type PathParams = ApiPathParams<Op>
+  type PathParamsInput = ApiPathParamsInput<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useQuery: (
+      pathParams: ReactiveOr<PathParamsInput>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams> =>
+      useEndpointQuery<Response, PathParams, QueryParams>(
+        { ...base, ...cfg },
+        pathParams as _PathParamsCast,
+        options,
+      ),
+    enums,
+  } as const
+}
+
+/**
+ * Generic mutation helper for operations without path parameters.
+ * @internal
+ */
+function _mutationNoParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type RequestBody = ApiRequest<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useMutation: (
+      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
+    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
+      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+        { ...base, ...cfg },
+        undefined,
+        options,
+      ),
+    enums,
+  } as const
+}
+
+/**
+ * Generic mutation helper for operations with path parameters.
+ * @internal
+ */
+function _mutationWithParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type PathParams = ApiPathParams<Op>
+  type PathParamsInput = ApiPathParamsInput<Op>
+  type RequestBody = ApiRequest<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  return {
+    useMutation: (
+      pathParams: ReactiveOr<PathParamsInput>,
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
+      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+        { ...base, ...cfg },
+        pathParams as _PathParamsCast,
+        options,
+      ),
+    enums,
+  } as const
+}`
+
+  // createApiClient factory with operation calls
+  const factoryCalls = ids
     .map((id) => {
       const { path, method } = operationMap[id]
       const listPath = computeListPath(id, operationMap[id], operationMap)
       const listPathStr = listPath ? `'${listPath}'` : 'null'
       const query = isQuery(id)
       const withParams = hasPathParams(id)
-      const cfgSpread = `{ ...base, path: '${path}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
 
-      // Generate JSDoc
-      const jsdoc = generateOperationJSDoc(id, method, path)
+      const cfg = `{ path: '${path}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
+      const helper = query
+        ? withParams
+          ? '_queryWithParams'
+          : '_queryNoParams'
+        : withParams
+          ? '_mutationWithParams'
+          : '_mutationNoParams'
 
-      // Generate type aliases - only the ones actually used in each pattern
-      let typeAliases: string
-      if (query && withParams) {
-        // Query with params: uses PathParams, PathParamsInput, Response, QueryParams
-        typeAliases = `  type PathParams = ApiPathParams<'${id}'>
-  type PathParamsInput = ApiPathParamsInput<'${id}'>
-  type Response = ApiResponse<'${id}'>
-  type QueryParams = ApiQueryParams<'${id}'>`
-      } else if (query) {
-        // Query no params: uses Response, QueryParams only
-        typeAliases = `  type Response = ApiResponse<'${id}'>
-  type QueryParams = ApiQueryParams<'${id}'>`
-      } else if (withParams) {
-        // Mutation with params: uses all 5 types
-        typeAliases = `  type PathParams = ApiPathParams<'${id}'>
-  type PathParamsInput = ApiPathParamsInput<'${id}'>
-  type RequestBody = ApiRequest<'${id}'>
-  type Response = ApiResponse<'${id}'>
-  type QueryParams = ApiQueryParams<'${id}'>`
-      } else {
-        // Mutation no params: uses RequestBody, Response, QueryParams
-        typeAliases = `  type RequestBody = ApiRequest<'${id}'>
-  type Response = ApiResponse<'${id}'>
-  type QueryParams = ApiQueryParams<'${id}'>`
-      }
-
-      let fnBody: string
-      if (query && withParams) {
-        fnBody = `${typeAliases}
-  
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, PathParams> => 
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        ${cfgSpread}, pathParams as _PathParamsCast, options
-      ),
-    enums: ${id}_enums,
-  } as const`
-      } else if (query) {
-        fnBody = `${typeAliases}
-  
-  return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        ${cfgSpread}, undefined, options
-      ),
-    enums: ${id}_enums,
-  } as const`
-      } else if (withParams) {
-        fnBody = `${typeAliases}
-  
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> => 
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        ${cfgSpread}, pathParams as _PathParamsCast, options
-      ),
-    enums: ${id}_enums,
-  } as const`
-      } else {
-        fnBody = `${typeAliases}
-  
-  return {
-    useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>
-    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        ${cfgSpread}, undefined, options
-      ),
-    enums: ${id}_enums,
-  } as const`
-      }
-
-      return `${jsdoc}\nfunction _${id}(base: _Config) {\n${fnBody}\n}`
+      return `    ${id}: ${helper}<'${id}'>(base, ${cfg}, ${id}_enums),`
     })
-    .join('\n\n')
-
-  // createApiClient factory
-  const factoryCalls = ids.map((id) => `    ${id}: _${id}(base),`).join('\n')
+    .join('\n')
 
   // Enum imports
   const enumImports = ids.map((id) => `  ${id}_enums,`).join('\n')
+
+  // Type alias for AllOps
+  const allOpsType = `type AllOps = keyof operations`
 
   return `/* eslint-disable */
 // Auto-generated from OpenAPI specification - do not edit manually
@@ -1144,6 +1179,7 @@ import type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
+  operations,
 } from './api-operations.js'
 
 import {
@@ -1175,10 +1211,16 @@ type _Config = {
 type _PathParamsCast = MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>
 
 // ============================================================================
-// Per-operation namespace factories
+// Type alias for all operations
 // ============================================================================
 
-${factories}
+${allOpsType}
+
+// ============================================================================
+// Shared generic factory helpers (4 patterns)
+// ============================================================================
+
+${helpers}
 
 // ============================================================================
 // Public API client factory
@@ -1447,6 +1489,8 @@ import type {
   ApiPathParamsInput as _ApiPathParamsInput,
   ApiQueryParams as _ApiQueryParams,
 } from '@qualisero/openapi-endpoint'
+
+export type { operations }
 
 ${reExports}
 
