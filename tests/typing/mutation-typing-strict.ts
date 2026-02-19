@@ -40,7 +40,7 @@ function testMutateAsyncType() {
 
   // This should type-check correctly - mutateAsync returns Promise<AxiosResponse>
   const _asyncCall = _createPetMutation.mutateAsync({
-    data: { name: 'Test', species: 'cat' },
+    data: { name: 'Test' },
   })
 
   // asyncCall should be Promise<AxiosResponse<...>>

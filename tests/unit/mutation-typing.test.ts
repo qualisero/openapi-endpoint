@@ -13,7 +13,7 @@ describe('Mutation Return Type Typing', () => {
     const createPetMutation = api.createPet.useMutation()
 
     // Call mutate with data
-    const result = createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
+    const result = createPetMutation.mutate({ data: { name: 'Fluffy' } })
 
     // Currently this is void, but user might expect to access the response
     expect(result).toBeUndefined()
@@ -24,7 +24,7 @@ describe('Mutation Return Type Typing', () => {
 
     // This should be Promise<AxiosResponse<Pet>>
     const promise = createPetMutation.mutateAsync({
-      data: { name: 'Fluffy', species: 'cat' },
+      data: { name: 'Fluffy' },
     })
 
     // Type should be: Promise<AxiosResponse<Pet>>
@@ -75,7 +75,7 @@ describe('Mutation Return Type Typing', () => {
     const mutation = api.createPet.useMutation()
 
     const response = await mutation.mutateAsync({
-      data: { name: 'Fluffy', species: 'cat' },
+      data: { name: 'Fluffy' },
     })
 
     // response should be AxiosResponse - verify the call itself works

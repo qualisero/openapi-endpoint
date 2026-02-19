@@ -41,7 +41,7 @@ function testMutateReturnType() {
   const createPetMutation = api.createPet.useMutation()
 
   // mutate returns void - intentional, per TanStack Query standard
-  const _result = createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
+  const _result = createPetMutation.mutate({ data: { name: 'Fluffy' } })
 
   // Verify it's void
   type MutateReturnType = typeof _result extends void ? true : false
@@ -58,7 +58,7 @@ async function testMutateAsyncReturnType() {
 
   // This is the proper way to get typed response
   const _asyncResponse = await createPetMutation.mutateAsync({
-    data: { name: 'Fluffy', species: 'cat' },
+    data: { name: 'Fluffy' },
   })
 
   // Type should be AxiosResponse<...>
