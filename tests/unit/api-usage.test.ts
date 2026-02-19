@@ -308,7 +308,7 @@ describe('API Usage Patterns', () => {
     it('should support chaining queries where one provides ID for another', () => {
       const selectedUserId = ref<string>('user1')
 
-      const userPetsQuery = api.getPet.useQuery(
+      const userPetsQuery = api.listUserPets.useQuery(
         computed(() => ({ userId: selectedUserId.value })),
         {
           enabled: computed(() => Boolean(selectedUserId.value)),
@@ -323,7 +323,7 @@ describe('API Usage Patterns', () => {
       const userId = ref<string>('user1')
       const shouldFetchPets = ref(true)
 
-      const userPetsQuery = api.getPet.useQuery(
+      const userPetsQuery = api.listUserPets.useQuery(
         computed(() => ({ userId: userId.value })),
         {
           enabled: computed(() => Boolean(userId.value) && shouldFetchPets.value),
