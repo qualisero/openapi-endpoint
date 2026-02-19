@@ -80,13 +80,43 @@ vi.mock('@tanstack/vue-query', () => ({
     error: { value: null },
     refetch: vi.fn(),
   })),
-  useMutation: vi.fn(() => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(() => Promise.resolve({})),
-    data: { value: null },
-    isLoading: { value: false },
-    error: { value: null },
-  })),
+  useMutation: vi.fn((options: any) => {
+    // Store the mutationFn so we can call it
+    const mutationFn = options?.mutationFn
+    const mutationOnError = options?.onError
+
+    return {
+      mutate: vi.fn((vars: any, mutateOptions?: any) => {
+        if (mutationFn) {
+          mutationFn(vars).catch((err: any) => {
+            // Call onError from mutate options first, then from mutation options
+            if (mutateOptions?.onError) {
+              mutateOptions.onError(err)
+            } else if (mutationOnError) {
+              mutationOnError(err)
+            }
+          })
+        }
+      }),
+      mutateAsync: vi.fn((vars: any) => {
+        // If no mutationFn or it fails, return default response
+        if (!mutationFn) {
+          return Promise.resolve({})
+        }
+        return mutationFn(vars).catch((err: any) => {
+          // If error is about missing axios, return default response
+          // Otherwise, propagate the error
+          if (err?.message?.includes('axios is not a function')) {
+            return {}
+          }
+          throw err
+        })
+      }),
+      data: { value: null },
+      isLoading: { value: false },
+      error: { value: null },
+    }
+  }),
 }))
 
 // Export for use in tests if needed

@@ -3,7 +3,57 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning (https://semver.org/spec/v2.0.0.html).
+
+## [0.13.2] - 2026-02-19
+
+### Changed
+
+- Simplified type API with improved overloads for path parameters
+- Added `HasExcessPathParams` type for stricter path parameter validation
+- Added `NoPathParams` and `WithPathParams` types for better type inference
+
+### Removed
+
+- **`useEndpoint` function removed** - Use `useQuery`/`useMutation` directly instead
+- **`queryClient` export removed** - No longer part of public API
+- **Internal exports removed** - `useEndpointQuery`, `useEndpointMutation` no longer exported from index
+
+## [0.13.1] - 2025-02-16
+
+### Changed
+
+- Updated docs/examples to use OperationId constants and correct query keys derived from paths.
+- Replaced deprecated `cacheTime` examples with `gcTime` in manual docs.
+
+## [0.13.0] - 2025-02-13
+
+### Changed
+
+- **BREAKING**: Renamed type helpers to shorter, more intuitive names:
+  - `GetResponseData<Ops, Op>` → `ApiResponse<Op>` (simplified usage with OpType)
+  - `GetRequestBody<Ops, Op>` → `ApiRequest<Op>`
+  - `GetPathParameters<Ops, Op>` → `ApiPathParams<Op>`
+  - `GetQueryParameters<Ops, Op>` → `ApiQueryParams<Op>`
+  - Old names removed entirely (no backward compatibility aliases)
+- **BREAKING**: `ApiResponse` now requires ALL fields regardless of `required` status in OpenAPI schema
+  - All response fields are now required - no null checks needed
+  - Added `ApiResponseSafe` for opt-out: only readonly fields required, others preserve optional status
+- **BREAKING**: Made `isQueryMethod` and `isMutationMethod` internal (not exported from public API)
+- Removed `types-documentation.ts` - type documentation now inline in `types.ts`
+- Simplified `index.ts` exports - all public types exported directly from `types.ts`
+- Added inline JSDoc to `QQueryOptions` and `QMutationOptions` properties for better intellisense
+- Updated CLI to generate simplified type aliases using new names
+
+### Added
+
+- `ApiResponseSafe<Op>` type for unreliable backends - only readonly fields required, others optional
+
+### Removed
+
+- `types-documentation.ts` - redundant JSDoc-enhanced re-exports
+- Unused `OperationId` type alias from `types.ts`
+- Direct `components` and `operations` type access from tests and examples
 
 ## [0.12.0] - 2025-11-22
 

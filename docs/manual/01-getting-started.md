@@ -37,10 +37,11 @@ npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 ```
 
-This will generate two files:
+This will generate three files:
 
 - `openapi-types.ts` - TypeScript type definitions for your API
 - `api-operations.ts` - Operation definitions combining metadata and types
+- `api-enums.ts` - Type-safe enum constants from your API schema
 
 ## Step 2: Configure Axios
 
@@ -120,8 +121,9 @@ const api = useOpenApi<OpenApiOperations>({
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const { data: pets, isLoading, error } = api.useQuery('listPets')
+const { data: pets, isLoading, error } = api.useQuery(QueryOperationId.listPets)
 
 if (error.value) {
   console.error('Failed to load pets:', error.value)
@@ -143,10 +145,11 @@ if (error.value) {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const name = ref('')
 
-const createPet = api.useMutation('createPet', {
+const createPet = api.useMutation(MutationOperationId.createPet, {
   onSuccess: () => {
     console.log('Pet created!')
     name.value = ''
@@ -169,6 +172,31 @@ const handleSubmit = async () => {
     </button>
   </form>
 </template>
+```
+
+## Using Enum Values
+
+The CLI generates type-safe enum constants from your OpenAPI spec:
+
+```vue
+<script setup lang="ts">
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+import { PetStatus } from './api/generated/api-enums'
+
+// Use enum constants for intellisense and typo safety
+const { data: availablePets } = api.useQuery(QueryOperationId.listPets, {
+  queryParams: { status: PetStatus.Available },
+})
+
+const createPet = api.useMutation(MutationOperationId.createPet)
+
+const handleSubmit = async () => {
+  await createPet.mutateAsync({
+    data: { name: 'Fluffy', status: PetStatus.Pending },
+  })
+}
+</script>
 ```
 
 ## What's Next?

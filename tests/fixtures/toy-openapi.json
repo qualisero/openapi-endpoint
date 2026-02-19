@@ -512,9 +512,11 @@
     "schemas": {
       "Pet": {
         "type": "object",
-        "required": ["id", "name"],
+        "required": ["name"],
         "properties": {
           "id": {
+            "format": "uuid",
+            "readOnly": true,
             "type": "string"
           },
           "name": {
@@ -525,7 +527,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["available", "pending", "sold"]
+            "enum": ["available", "pending", "adopted"]
           }
         }
       },
@@ -541,7 +543,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["available", "pending", "sold"]
+            "enum": ["available", "pending", "adopted"]
           }
         }
       },

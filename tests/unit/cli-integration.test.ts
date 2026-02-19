@@ -42,7 +42,6 @@ describe('CLI Integration Tests', () => {
 
       // Extract all operation IDs
       for (const [_pathUrl, pathItem] of Object.entries(spec.paths)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [_method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push(operation.operationId)
@@ -138,7 +137,7 @@ describe('CLI Integration Tests', () => {
       // Validate Pet schema
       const petSchema = spec.components.schemas.Pet
       expect(petSchema.type).toBe('object')
-      expect(petSchema.required).toEqual(['id', 'name'])
+      expect(petSchema.required).toEqual(['name'])
       expect(petSchema.properties).toHaveProperty('id')
       expect(petSchema.properties).toHaveProperty('name')
       expect(petSchema.properties).toHaveProperty('tag')
@@ -162,7 +161,6 @@ describe('CLI Integration Tests', () => {
       const operations: { id: string; method: string; path: string }[] = []
 
       for (const [pathUrl, pathItem] of Object.entries(spec.paths)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [method, operation] of Object.entries(pathItem as any)) {
           if (operation && typeof operation === 'object' && 'operationId' in operation) {
             operations.push({

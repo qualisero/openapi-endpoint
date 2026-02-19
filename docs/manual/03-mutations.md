@@ -12,9 +12,10 @@ Mutations are used for creating, updating, or deleting data on your API. They wr
 
 ```typescript
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Simple mutation for creating data
-const createPet = api.useMutation('createPet', {
+const createPet = api.useMutation(MutationOperationId.createPet, {
   onSuccess: (data) => {
     console.log('Pet created:', data)
   },
@@ -25,7 +26,7 @@ const createPet = api.useMutation('createPet', {
 
 // Execute mutation
 await createPet.mutateAsync({
-  data: { name: 'Fluffy', species: 'cat' }
+  data: { name: 'Fluffy', species: 'cat' },
 })
 ```
 
@@ -35,11 +36,11 @@ await createPet.mutateAsync({
 import { api } from './api/init'
 
 // Mutation with path parameters
-const updatePet = api.useMutation('updatePet', { petId: '123' })
+const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
 
 // Execute mutation
 await updatePet.mutateAsync({
-  data: { name: 'Updated Fluffy' }
+  data: { name: 'Updated Fluffy' },
 })
 ```
 
@@ -47,15 +48,20 @@ await updatePet.mutateAsync({
 
 ```typescript
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Mutation with query parameters
-const createPet = api.useMutation('createPet', {}, {
-  queryParams: { userId: '456' }
-})
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  {},
+  {
+    queryParams: { userId: '456' },
+  },
+)
 
 // Execute mutation
 await createPet.mutateAsync({
-  data: { name: 'Fluffy' }
+  data: { name: 'Fluffy' },
 })
 ```
 
@@ -68,10 +74,10 @@ The mutation object provides two methods for executing the mutation:
 Executes mutation imperatively (fire and forget):
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 createPet.mutate({
-  data: { name: 'Fluffy' }
+  data: { name: 'Fluffy' },
 })
 // Doesn't return promise, continues immediately
 ```
@@ -81,11 +87,11 @@ createPet.mutate({
 Executes mutation and returns a promise:
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(MutationOperationId.createPet)
 
 try {
   const result = await createPet.mutateAsync({
-    data: { name: 'Fluffy' }
+    data: { name: 'Fluffy' },
   })
   console.log('Created:', result)
 } catch (error) {
@@ -98,64 +104,92 @@ try {
 ### Success Handler
 
 ```typescript
-const createPet = api.useMutation('createPet', {}, {
-  onSuccess: (data, variables, context) => {
-    console.log('Success!', data)  // Response data
-    console.log('Variables:', variables)  // Input parameters
-    console.log('Context:', context)  // Mutation context
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  {},
+  {
+    onSuccess: (data, variables, context) => {
+      console.log('Success!', data) // Response data
+      console.log('Variables:', variables) // Input parameters
+      console.log('Context:', context) // Mutation context
+    },
   },
-})
+)
 ```
 
 ### Error Handler
 
 ```typescript
-const createPet = api.useMutation('createPet', {}, {
-  onError: (error, variables, context) => {
-    console.error('Error:', error)
-    console.error('Variables:', variables)
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-    // Show user-friendly error message
-    alert(`Failed to create pet: ${error.message}`)
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  {},
+  {
+    onError: (error, variables, context) => {
+      console.error('Error:', error)
+      console.error('Variables:', variables)
+
+      // Show user-friendly error message
+      alert(`Failed to create pet: ${error.message}`)
+    },
   },
-})
+)
 ```
 
 ### Settled Handler
 
 ```typescript
-const createPet = api.useMutation('createPet', {}, {
-  onSettled: (data, error, variables, context) => {
-    console.log('Mutation completed')
-    // Always runs, regardless of success or error
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  {},
+  {
+    onSettled: (data, error, variables, context) => {
+      console.log('Mutation completed')
+      // Always runs, regardless of success or error
+    },
   },
-})
+)
 ```
 
 ### Optimistic Updates
 
 ```typescript
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  onMutate: async (variables) => {
-    // Cancel outgoing queries
-    await queryClient.cancelQueries({ queryKey: ['pets', '123'] })
+import { useQueryClient } from '@tanstack/vue-query'
+import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-    // Snapshot previous value
-    const previousPet = queryClient.getQueryData(['pets', '123'])
+const queryClient = useQueryClient()
+const petQuery = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const updatePet = api.useMutation(
+  MutationOperationId.updatePet,
+  { petId: '123' },
+  {
+    onMutate: async (variables) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: petQuery.queryKey.value })
 
-    // Optimistically update
-    queryClient.setQueryData(['pets', '123'], variables.data)
+      // Snapshot previous value
+      const previousPet = queryClient.getQueryData(petQuery.queryKey.value)
 
-    // Return context with snapshot
-    return { previousPet }
+      // Optimistically update
+      queryClient.setQueryData(petQuery.queryKey.value, variables.data)
+
+      // Return context with snapshot
+      return { previousPet }
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousPet) {
+        queryClient.setQueryData(petQuery.queryKey.value, context.previousPet)
+      }
+    },
   },
-  onError: (error, variables, context) => {
-    // Rollback on error
-    if (context?.previousPet) {
-      queryClient.setQueryData(['pets', '123'], context.previousPet)
-    }
-  },
-})
+)
 ```
 
 ## Mutation State
@@ -163,13 +197,13 @@ const updatePet = api.useMutation('updatePet', { petId: '123' }, {
 The mutation object provides reactive state properties:
 
 ```typescript
-const createPet = api.useMutation('createPet')
+const createPet = api.useMutation(MutationOperationId.createPet)
 
-console.log(createPet.isPending.value)  // true while mutation is in progress
-console.log(createPet.isSuccess.value)   // true if mutation succeeded
-console.log(createPet.isError.value)     // true if mutation failed
-console.log(createPet.error.value)       // Error object if mutation failed
-console.log(createPet.data.value)       // Response data if mutation succeeded
+console.log(createPet.isPending.value) // true while mutation is in progress
+console.log(createPet.isSuccess.value) // true if mutation succeeded
+console.log(createPet.isError.value) // true if mutation failed
+console.log(createPet.error.value) // Error object if mutation failed
+console.log(createPet.data.value) // Response data if mutation succeeded
 ```
 
 ## Automatic Cache Management
@@ -182,7 +216,7 @@ By default, mutations automatically:
 
 ```typescript
 // Automatic cache management (default)
-const createPet = api.useMutation('createPet', { petId: '123' })
+const createPet = api.useMutation(MutationOperationId.createPet, { petId: '123' })
 
 // This will:
 // 1. Update cache for getPet/123 with returned data
@@ -195,30 +229,48 @@ const createPet = api.useMutation('createPet', { petId: '123' })
 ### Disable Automatic Invalidation
 
 ```typescript
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  dontInvalidate: true,  // Don't auto-invalidate
-  dontUpdateCache: true,  // Don't auto-update cache
-})
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const updatePet = api.useMutation(
+  MutationOperationId.updatePet,
+  { petId: '123' },
+  {
+    dontInvalidate: true, // Don't auto-invalidate
+    dontUpdateCache: true, // Don't auto-update cache
+  },
+)
 ```
 
 ### Specify Operations to Invalidate
 
 ```typescript
-const createPet = api.useMutation('createPet', { petId: '123' }, {
-  invalidateOperations: [
-    'listPets',      // Invalidate specific operations
-    'getUserPets',
-  ],
-})
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  { petId: '123' },
+  {
+    invalidateOperations: [
+      QueryOperationId.listPets, // Invalidate specific operations
+      QueryOperationId.getUserPets,
+    ],
+  },
+)
 ```
 
 ### Manually Refetch Endpoints
 
 ```typescript
-const petListQuery = api.useQuery('listPets')
-const createPet = api.useMutation('createPet', { petId: '123' }, {
-  refetchEndpoints: [petListQuery]  // Refetch these endpoints
-})
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
+
+const petListQuery = api.useQuery(QueryOperationId.listPets)
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  { petId: '123' },
+  {
+    refetchEndpoints: [petListQuery], // Refetch these endpoints
+  },
+)
 ```
 
 ## Common Mutation Patterns
@@ -229,24 +281,29 @@ const createPet = api.useMutation('createPet', { petId: '123' }, {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const name = ref('')
 const species = ref('cat')
 
-const createPet = api.useMutation('createPet', {}, {
-  onSuccess: () => {
-    name.value = ''
-    species.value = 'cat'
-    alert('Pet created successfully!')
+const createPet = api.useMutation(
+  MutationOperationId.createPet,
+  {},
+  {
+    onSuccess: () => {
+      name.value = ''
+      species.value = 'cat'
+      alert('Pet created successfully!')
+    },
+    onError: (error) => {
+      alert(`Failed to create pet: ${error.message}`)
+    },
   },
-  onError: (error) => {
-    alert(`Failed to create pet: ${error.message}`)
-  },
-})
+)
 
 const handleSubmit = async () => {
   await createPet.mutateAsync({
-    data: { name: name.value, species: species.value }
+    data: { name: name.value, species: species.value },
   })
 }
 </script>
@@ -270,12 +327,17 @@ const handleSubmit = async () => {
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const deletePet = api.useMutation('deletePet', { petId: '123' }, {
-  onSuccess: () => {
-    alert('Pet deleted')
+const deletePet = api.useMutation(
+  MutationOperationId.deletePet,
+  { petId: '123' },
+  {
+    onSuccess: () => {
+      alert('Pet deleted')
+    },
   },
-})
+)
 
 const handleDelete = async () => {
   if (confirm('Are you sure you want to delete this pet?')) {
@@ -297,22 +359,27 @@ const handleDelete = async () => {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
+import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const petName = ref('Fluffy')
 
-const updatePet = api.useMutation('updatePet', { petId: '123' }, {
-  onSuccess: (data) => {
-    petName.value = data.name
+const updatePet = api.useMutation(
+  MutationOperationId.updatePet,
+  { petId: '123' },
+  {
+    onSuccess: (data) => {
+      petName.value = data.name
+    },
+    onError: () => {
+      alert('Failed to update pet')
+      // Rollback happens automatically via onError handler in mutation
+    },
   },
-  onError: () => {
-    alert('Failed to update pet')
-    // Rollback happens automatically via onError handler in mutation
-  },
-})
+)
 
 const handleUpdate = async () => {
   await updatePet.mutateAsync({
-    data: { name: petName.value }
+    data: { name: petName.value },
   })
 }
 </script>

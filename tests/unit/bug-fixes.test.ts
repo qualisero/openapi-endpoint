@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import { OperationId, openApiOperations, type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import {
+  QueryOperationId,
+  MutationOperationId,
+  openApiOperations,
+  type OpenApiOperations,
+} from '../fixtures/openapi-typed-operations'
 
 /**
  * Bug Fixes and Issue Reproductions
@@ -44,7 +49,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should accept manualErrorHandling property without TypeScript errors', () => {
       // This exact code from the issue description should now work
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: vi.fn(),
         axiosOptions: { manualErrorHandling: true },
       })
@@ -61,7 +66,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
         return true
       }
 
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: vi.fn(),
         axiosOptions: {
           manualErrorHandling: errorHandler,
@@ -76,7 +81,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should accept both augmented properties from the issue', () => {
       // Test both properties mentioned in the user's augmented types
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: vi.fn(),
         axiosOptions: {
           manualErrorHandling: true,
@@ -91,7 +96,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should work with mutations as well', () => {
       // Ensure the fix works for mutations too
-      const createPet = api.useMutation(OperationId.createPet, {
+      const createPet = api.useMutation(MutationOperationId.createPet, {
         axiosOptions: {
           manualErrorHandling: true,
           handledByAxios: false,
@@ -105,7 +110,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should work in mutate calls', () => {
       // Ensure the fix works when passing axios options to mutate calls
-      const createPet = api.useMutation(OperationId.createPet)
+      const createPet = api.useMutation(MutationOperationId.createPet)
 
       expect(() => {
         createPet.mutate({
@@ -120,7 +125,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should preserve standard axios properties alongside custom ones', () => {
       // Ensure standard axios properties still work with custom ones
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: vi.fn(),
         axiosOptions: {
           // Standard axios properties
@@ -147,7 +152,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       }
 
       // This is the EXACT code from the issue that was failing before
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: options.onLoad,
         axiosOptions: { manualErrorHandling: true },
       })
@@ -174,7 +179,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       }
 
       // Test the function variant
-      const currentUser = api.useQuery(OperationId.listPets, {
+      const currentUser = api.useQuery(QueryOperationId.listPets, {
         onLoad: options.onLoad,
         axiosOptions: {
           manualErrorHandling: errorHandler,
@@ -185,121 +190,6 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(currentUser).toBeTruthy()
       expect(currentUser).toHaveProperty('data')
       expect(currentUser).toHaveProperty('isLoading')
-    })
-  })
-
-  /**
-   * Issue: Type Inference for useEndpoint with Mutation Operations
-   *
-   * Problem: `useEndpoint` with mutation operations would return a union type,
-   * preventing TypeScript from knowing that properties like `mutateAsync` are available.
-   *
-   * Solution: Improved type inference to properly detect operation types and return
-   * specific types instead of union types.
-   */
-  describe('Type Inference for useEndpoint (GitHub Issue)', () => {
-    it('should correctly infer mutation types for createPet operation', () => {
-      // This reproduces the exact scenario from the GitHub issue
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-
-      // These should now work without TypeScript errors
-      // Previously, this would fail with: Property 'mutateAsync' does not exist on type 'union type'
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-
-      // Verify the methods are callable functions
-      expect(typeof createEndpoint.mutate).toBe('function')
-      expect(typeof createEndpoint.mutateAsync).toBe('function')
-
-      // The key test: we can access mutateAsync directly without type errors
-      const mutateAsyncFunction = createEndpoint.mutateAsync
-      expect(mutateAsyncFunction).toBeDefined()
-      expect(typeof mutateAsyncFunction).toBe('function')
-    })
-
-    it('should correctly infer mutation types for updatePet operation', () => {
-      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-
-      // Verify mutation properties are available
-      expect(updateEndpoint).toHaveProperty('mutate')
-      expect(updateEndpoint).toHaveProperty('mutateAsync')
-      expect(updateEndpoint).toHaveProperty('isEnabled')
-
-      // Verify these are functions
-      expect(typeof updateEndpoint.mutate).toBe('function')
-      expect(typeof updateEndpoint.mutateAsync).toBe('function')
-    })
-
-    it('should correctly infer query types for query operations', () => {
-      // Test that query operations still work correctly with proper type inference
-      const listEndpoint = api.useEndpoint(OperationId.listPets)
-
-      // Should have query properties, not mutation properties
-      expect(listEndpoint).toHaveProperty('data')
-      expect(listEndpoint).toHaveProperty('isLoading')
-      expect(listEndpoint).not.toHaveProperty('mutate')
-      expect(listEndpoint).not.toHaveProperty('mutateAsync')
-    })
-
-    it('should correctly infer types for GET operations with path parameters', () => {
-      const getEndpoint = api.useEndpoint(OperationId.getPet, { petId: '123' })
-
-      // Should have query properties
-      expect(getEndpoint).toHaveProperty('data')
-      expect(getEndpoint).toHaveProperty('isLoading')
-      expect(getEndpoint).toHaveProperty('queryKey')
-    })
-
-    it('should work with mutation operations not requiring variables', () => {
-      // Test DELETE operations that might not require data variables
-      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
-
-      // Should have mutation properties
-      expect(deleteEndpoint).toHaveProperty('mutate')
-      expect(deleteEndpoint).toHaveProperty('mutateAsync')
-
-      // Test with the standalone mutation as well
-      const standaloneMutation = api.useMutation(OperationId.deletePet, { petId: '123' })
-
-      // Both should have mutateAsync functions
-      expect(typeof deleteEndpoint.mutateAsync).toBe('function')
-      expect(typeof standaloneMutation.mutateAsync).toBe('function')
-
-      // Call mutateAsync to ensure it works without vars (should not throw)
-      expect(() => deleteEndpoint.mutateAsync()).not.toThrow()
-      expect(() => standaloneMutation.mutateAsync()).not.toThrow()
-    })
-
-    it('should correctly infer types for mutation operations', () => {
-      // This test specifically addresses the issue mentioned in the problem statement
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-
-      // These should now work without TypeScript errors
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-
-      // Test that the methods exist and are callable (runtime verification)
-      expect(typeof createEndpoint.mutate).toBe('function')
-      expect(typeof createEndpoint.mutateAsync).toBe('function')
-
-      // Test with typing - this should not cause TypeScript compilation errors
-      const mutateFunction = createEndpoint.mutateAsync
-      expect(mutateFunction).toBeDefined()
-    })
-
-    it('should work with different mutation types', () => {
-      // Test various mutation operations
-      const createEndpoint = api.useEndpoint(OperationId.createPet)
-      const updateEndpoint = api.useEndpoint(OperationId.updatePet, { petId: '123' })
-      const deleteEndpoint = api.useEndpoint(OperationId.deletePet, { petId: '123' })
-
-      // All should have mutation properties
-      expect(createEndpoint).toHaveProperty('mutate')
-      expect(createEndpoint).toHaveProperty('mutateAsync')
-      expect(updateEndpoint).toHaveProperty('mutate')
-      expect(updateEndpoint).toHaveProperty('mutateAsync')
-      expect(deleteEndpoint).toHaveProperty('mutate')
-      expect(deleteEndpoint).toHaveProperty('mutateAsync')
     })
   })
 
@@ -316,29 +206,29 @@ describe('Bug Fixes and Issue Reproductions', () => {
       // This test reproduces the exact scenario from the issue
       let userId: string | undefined = undefined
 
-      // Create endpoint with reactive function for path params
-      const myEndpoint = api.useEndpoint(OperationId.listUserPets, () => ({ userId }))
+      // Create query with reactive function for path params
+      const myQuery = api.useQuery(QueryOperationId.listUserPets, () => ({ userId }))
 
       // Initially, the path should not be resolved (contains {userId})
-      expect(myEndpoint.isEnabled.value).toBe(false)
+      expect(myQuery.isEnabled.value).toBe(false)
 
       // Update the userId - in a real Vue app with refs, this would be reactive
       userId = '123'
 
       // Note: In test environment, we can't fully simulate Vue's reactivity
-      // but we can verify the endpoint structure is correct
-      expect(myEndpoint).toBeTruthy()
+      // but we can verify the query structure is correct
+      expect(myQuery).toBeTruthy()
 
       // Verify it's a query endpoint since listUserPets is GET
-      expect(myEndpoint).toHaveProperty('data')
-      expect(myEndpoint).not.toHaveProperty('mutateAsync')
+      expect(myQuery).toHaveProperty('data')
+      expect(myQuery).not.toHaveProperty('mutateAsync')
     })
 
     it('should handle reactive path params with mutations', () => {
       let petId: string | undefined = undefined
 
       // Create mutation endpoint with reactive path params
-      const updateEndpoint = api.useMutation(OperationId.updatePet, () => ({ petId }))
+      const updateEndpoint = api.useMutation(MutationOperationId.updatePet, () => ({ petId }))
 
       // Initially should be disabled due to unresolved path params
       expect(updateEndpoint.isEnabled.value).toBe(false)
@@ -353,15 +243,19 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should support reactive enabling based on parameter availability', () => {
       // Test automatic disabling when path parameters are undefined
-      const queryWithoutParams = api.useQuery(OperationId.getPet, { petId: undefined })
+      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, () => ({
+        petId: undefined,
+      }))
       expect(queryWithoutParams.isEnabled.value).toBe(false)
 
-      const queryWithParams = api.useQuery(OperationId.getPet, { petId: '123' })
+      const queryWithParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
       expect(queryWithParams.isEnabled.value).toBe(true)
     })
 
     it('should handle missing path parameters gracefully', () => {
-      const query = api.useQuery(OperationId.getPet, { petId: undefined })
+      const query = api.useQuery(QueryOperationId.getPet, () => ({
+        petId: undefined,
+      }))
       expect(query.isEnabled.value).toBe(false)
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
@@ -378,7 +272,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
   describe('Multipart Form Data Support (Feature Request)', () => {
     it('should support multipart/form-data with specific upload endpoints', () => {
       // Test with upload-specific endpoint
-      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
+      const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId: '123' })
 
       const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
       const formData = new FormData()
@@ -396,7 +290,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should support custom headers with multipart uploads', () => {
       const uploadMutation = api.useMutation(
-        OperationId.uploadPetPic,
+        MutationOperationId.uploadPetPic,
         { petId: '123' },
         {
           axiosOptions: {
@@ -420,7 +314,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should support type safety for multipart/form-data schemas', () => {
-      const uploadMutation = api.useMutation(OperationId.uploadPetPic, { petId: '123' })
+      const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId: '123' })
 
       // Should accept FormData for upload endpoints
       expect(() => {
@@ -440,12 +334,12 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should integrate with cache invalidation after upload', () => {
-      const listPetsQuery = api.useQuery(OperationId.listPets)
+      const listPetsQuery = api.useQuery(QueryOperationId.listPets)
       const uploadMutation = api.useMutation(
-        OperationId.uploadPetPic,
+        MutationOperationId.uploadPetPic,
         { petId: '123' },
         {
-          invalidateOperations: [OperationId.listPets],
+          invalidateOperations: [QueryOperationId.listPets],
         },
       )
 
@@ -470,7 +364,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
         console.log('Custom error handler called:', error)
       })
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         errorHandler,
       })
 
@@ -481,7 +375,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     it('should support async error handlers', () => {
       const errorHandler = vi.fn().mockResolvedValue(undefined)
 
-      const query = api.useQuery(OperationId.listPets, {
+      const query = api.useQuery(QueryOperationId.listPets, {
         errorHandler,
       })
 
@@ -489,7 +383,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle errors in mutations with custom handlers', () => {
-      const mutation = api.useMutation(OperationId.createPet, {
+      const mutation = api.useMutation(MutationOperationId.createPet, {
         onError: vi.fn((error) => {
           console.log('Mutation error:', error)
         }),
@@ -500,7 +394,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle errors in mutate calls with catch blocks', () => {
-      const mutation = api.useMutation(OperationId.createPet)
+      const mutation = api.useMutation(MutationOperationId.createPet)
 
       expect(async () => {
         try {
@@ -535,7 +429,6 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(apiWithCustomClient).toBeTruthy()
       expect(apiWithCustomClient).toHaveProperty('useQuery')
       expect(apiWithCustomClient).toHaveProperty('useMutation')
-      expect(apiWithCustomClient).toHaveProperty('useEndpoint')
     })
 
     it('should use default queryClient when not specified', () => {
@@ -543,7 +436,99 @@ describe('Bug Fixes and Issue Reproductions', () => {
       expect(api).toBeTruthy()
       expect(api).toHaveProperty('useQuery')
       expect(api).toHaveProperty('useMutation')
-      expect(api).toHaveProperty('useEndpoint')
+    })
+  })
+
+  /**
+   * Issue: Mutation isEnabled doesn't prevent execution
+   *
+   * Problem: When path parameters are undefined, mutation.isEnabled is false but
+   * calling mutate() or mutateAsync() still attempts to execute and fails with
+   * an error instead of being silently ignored or returning early.
+   *
+   * Expected behavior: When isEnabled is false, mutations should either:
+   * 1. Return early without attempting the request
+   * 2. Return a rejected promise with a clear message
+   *
+   * Solution: Wrap mutate/mutateAsync to check isEnabled before executing.
+   */
+  describe('Mutation isEnabled Enforcement (GitHub Issue)', () => {
+    it('should have isEnabled=false when path parameters are undefined', () => {
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }))
+
+      expect(mutation.isEnabled.value).toBe(false)
+    })
+
+    it('should have isEnabled=true when path parameters are provided', () => {
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: '123' }))
+
+      expect(mutation.isEnabled.value).toBe(true)
+    })
+
+    it('should prevent mutate() when isEnabled is false', async () => {
+      const onError = vi.fn()
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }), { onError })
+
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Calling mutate() when disabled should not throw, but should not execute either
+      // The onError callback should be called with a clear error message
+      mutation.mutate({ data: { name: 'Updated Name' } })
+
+      // Wait a tick for async execution
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Verify that onError was called with appropriate error
+      expect(onError).toHaveBeenCalled()
+      const error = onError.mock.calls[0][0]
+      expect(error).toBeInstanceOf(Error)
+      expect(error.message).toContain('path parameters not resolved')
+    })
+
+    it('should reject mutateAsync() when isEnabled is false', async () => {
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }))
+
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // mutateAsync should reject with a clear error
+      await expect(mutation.mutateAsync({ data: { name: 'Updated Name' } })).rejects.toThrow(
+        /path parameters not resolved/,
+      )
+    })
+
+    it('should allow mutation when isEnabled becomes true', async () => {
+      let petId: string | undefined = undefined
+      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId }))
+
+      // Initially disabled
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Enable by providing path param
+      petId = '123'
+
+      // Note: In a real Vue environment with refs, reactivity would update isEnabled
+      // For this test, we're verifying the structure is correct
+      expect(mutation).toHaveProperty('mutate')
+      expect(mutation).toHaveProperty('mutateAsync')
+      expect(mutation).toHaveProperty('isEnabled')
+    })
+
+    it('should use isEnabled as a guard in practical usage', () => {
+      const selectedRequestRef = { value: undefined as string | undefined }
+
+      const updateRequestTypeMutation = api.useMutation(MutationOperationId.updatePet, () => ({
+        petId: selectedRequestRef.value,
+      }))
+
+      // This is the pattern from the FIXME comment - isEnabled should guard execution
+      expect(updateRequestTypeMutation.isEnabled.value).toBe(false)
+
+      // Set the ref value
+      selectedRequestRef.value = '123'
+
+      // Verify mutation structure
+      expect(updateRequestTypeMutation).toHaveProperty('mutate')
+      expect(updateRequestTypeMutation).toHaveProperty('isEnabled')
     })
   })
 })

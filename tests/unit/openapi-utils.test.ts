@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolvePath, isPathResolved, generateQueryKey, getParamsOptionsFrom } from '@/openapi-utils'
+import { resolvePath, isPathResolved, generateQueryKey, normalizeParamsOptions } from '@/openapi-utils'
 import { QQueryOptions } from '@/types'
 
 import { type OpenApiOperations } from '../fixtures/openapi-typed-operations'
@@ -33,7 +33,7 @@ describe('openapi-utils', () => {
 
     it('should skip null/undefined parameter values', () => {
       const path = '/pets/{petId}/tags/{tagId}'
-      const params = { petId: '123', tagId: undefined }
+      const params = { petId: '123', tagId: undefined } as unknown as Record<string, string | number>
       expect(resolvePath(path, params)).toBe('/pets/123/tags/{tagId}')
     })
 
@@ -84,78 +84,36 @@ describe('openapi-utils', () => {
     })
   })
 
-  describe('getParamsOptionsFrom', () => {
-    it('should extract path params when provided as first parameter and options as second', () => {
-      const path = '/pets/{petId}'
+  describe('normalizeParamsOptions', () => {
+    it('should return provided path params and options', () => {
       const pathParams = { petId: '123' }
-      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
-        path,
-        pathParams,
-        {}, // empty options object
-      )
-
-      expect(result.pathParams).toBe(pathParams)
-      expect(result.options).toEqual({})
-    })
-
-    it('should treat object as options when it has option-like properties', () => {
-      const options: QQueryOptions<OpenApiOperations, 'getPet'> = {
-        enabled: true,
-        onLoad: vi.fn(),
-      }
-      const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
-        path,
-        options,
-      )
-
-      // When an object with option-like properties is passed as first arg with no second arg,
-      // it's treated as options
-      expect(result.pathParams).toEqual({})
-      expect(result.options).toBe(options)
-    })
-
-    it('should extract both params and options when both provided', () => {
-      const pathParams = { petId: '123' }
-      const path = '/pets/{petId}'
       const options: QQueryOptions<OpenApiOperations, 'getPet'> = {
         enabled: true,
         onLoad: vi.fn(),
       }
 
-      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
-        path,
-        pathParams,
-        options,
-      )
+      const result = normalizeParamsOptions(pathParams, options)
 
       expect(result.pathParams).toBe(pathParams)
       expect(result.options).toBe(options)
     })
 
-    it('should handle null/undefined params gracefully', () => {
-      const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
-        path,
-        null,
-        undefined,
-      )
+    it('should default to empty params and options when omitted', () => {
+      const result = normalizeParamsOptions<Record<string, never>, QQueryOptions<OpenApiOperations, 'listPets'>>()
 
       expect(result.pathParams).toEqual({})
       expect(result.options).toEqual({})
     })
 
-    it('should handle empty object as path params', () => {
-      const path = '/pets/{petId}'
-      const result = getParamsOptionsFrom<OpenApiOperations, 'getPet', QQueryOptions<OpenApiOperations, 'getPet'>>(
-        path,
-        {},
-        undefined,
-      )
+    it('should allow options without path params', () => {
+      const options: QQueryOptions<OpenApiOperations, 'listPets'> = {
+        enabled: true,
+      }
 
-      // Empty object is treated as options when no second argument
+      const result = normalizeParamsOptions(undefined, options)
+
       expect(result.pathParams).toEqual({})
-      expect(result.options).toEqual({})
+      expect(result.options).toBe(options)
     })
   })
 })

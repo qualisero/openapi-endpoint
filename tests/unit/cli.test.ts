@@ -18,9 +18,7 @@ describe('CLI codegen functionality', () => {
       const operationIds: string[] = []
       const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
           const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
           if (!httpMethods.includes(method.toLowerCase())) {
@@ -392,7 +390,6 @@ describe('CLI codegen functionality', () => {
       }
 
       Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(pathItem as any).forEach(([method, operation]: [string, any]) => {
           const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
           if (!httpMethods.includes(method.toLowerCase())) {
@@ -424,11 +421,10 @@ describe('CLI codegen functionality', () => {
       // Pass empty string to not strip any prefix
       addMissingOperationIds(spec, '')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets/{petId}'] as any).get.operationId).toBe('getPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets/{petId}'] as any).put.operationId).toBe('updatePets')
     })
 
@@ -453,13 +449,12 @@ describe('CLI codegen functionality', () => {
       // Use default prefix '/api'
       addMissingOperationIds(spec)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/api/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}'] as any).get.operationId).toBe('getPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}'] as any).patch.operationId).toBe('updatePets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/api/pets/{petId}/adopt'] as any).post.operationId).toBe('postPetsAdopt')
     })
 
@@ -476,7 +471,6 @@ describe('CLI codegen functionality', () => {
 
       addMissingOperationIds(spec)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('customListPets')
     })
 
@@ -504,9 +498,8 @@ describe('CLI codegen functionality', () => {
       // Use empty string to not strip prefix
       addMissingOperationIds(spec, '')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((spec.paths['/pets'] as any).get.operationId).toBe('listPets')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((spec.paths['/pets'] as any).parameters).toEqual([{ name: 'test' }])
     })
   })
@@ -606,9 +599,7 @@ export type OperationId = keyof OpenApiOperations
         const operationIds: string[] = []
         const operationInfoMap: Record<string, { path: string; method: string }> = {}
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(openApiSpec.paths).forEach(([pathUrl, pathItem]: [string, any]) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
             const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
             if (!httpMethods.includes(method.toLowerCase())) return
@@ -640,6 +631,133 @@ export type OperationId = keyof OpenApiOperations
     })
   })
 
+  describe('enum extraction', () => {
+    // Helper function to extract enums from OpenAPI spec (mirrors CLI implementation)
+    const extractEnumsFromSpec = (openApiSpec: any) => {
+      const enums: { name: string; values: (string | number)[]; sourcePath: string }[] = []
+      const seenEnumValues = new Map<string, string>()
+
+      if (!openApiSpec.components?.schemas) {
+        return enums
+      }
+
+      const toPascalCase = (str: string) =>
+        str
+          .split(/[-_\s]+/)
+          .filter((part) => part.length > 0)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join('')
+
+      for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+        if (!(schema as any).properties) continue
+
+        for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
+          if (!(propSchema as any).enum) continue
+
+          const enumValues = (propSchema as any).enum as (string | number)[]
+          const enumName = toPascalCase(schemaName) + toPascalCase(propName)
+          const valuesKey = JSON.stringify([...enumValues].sort())
+
+          const existingName = seenEnumValues.get(valuesKey)
+          if (existingName) {
+            continue
+          }
+
+          seenEnumValues.set(valuesKey, enumName)
+          enums.push({
+            name: enumName,
+            values: enumValues,
+            sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
+          })
+        }
+      }
+
+      enums.sort((a, b) => a.name.localeCompare(b.name))
+      return enums
+    }
+
+    it('should extract enums from components.schemas', () => {
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('PetStatus')
+      expect(enums[0].values).toEqual(expect.arrayContaining(['available', 'pending', 'adopted']))
+    })
+
+    it('should deduplicate enums with same values', () => {
+      // Pet and NewPet both have the same status enum
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      // Should only have one enum, not two
+      expect(enums).toHaveLength(1)
+    })
+
+    it('should generate correct source path', () => {
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      expect(enums[0].sourcePath).toBe('components.schemas.Pet.properties.status')
+    })
+
+    it('should handle spec without components', () => {
+      const specWithoutComponents = { openapi: '3.0.0', paths: {} }
+      const enums = extractEnumsFromSpec(specWithoutComponents)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should handle spec without schemas', () => {
+      const specWithoutSchemas = { openapi: '3.0.0', paths: {}, components: {} }
+      const enums = extractEnumsFromSpec(specWithoutSchemas)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should handle spec with schemas but no enums', () => {
+      const specNoEnums = {
+        openapi: '3.0.0',
+        paths: {},
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+            },
+          },
+        },
+      }
+      const enums = extractEnumsFromSpec(specNoEnums)
+
+      expect(enums).toHaveLength(0)
+    })
+
+    it('should convert enum values to valid member names', () => {
+      const specWithVariousEnums = {
+        openapi: '3.0.0',
+        paths: {},
+        components: {
+          schemas: {
+            Order: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['in-progress', 'completed', 'pending_review'],
+                },
+              },
+            },
+          },
+        },
+      }
+      const enums = extractEnumsFromSpec(specWithVariousEnums)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('OrderStatus')
+      expect(enums[0].values).toEqual(['in-progress', 'completed', 'pending_review'])
+    })
+  })
+
   describe('URL validation patterns', () => {
     it('should identify HTTP URLs correctly', () => {
       const httpUrl = 'http://api.example.com/openapi.json'
@@ -666,5 +784,204 @@ export type OperationId = keyof OpenApiOperations
       const valid = validateArgs(['input.json', 'output/'])
       expect(valid).toEqual({ openapiInput: 'input.json', outputDir: 'output/' })
     })
+  })
+})
+
+describe('toCase and case conversion utilities', () => {
+  // Since we can't easily import the internal toCase function, we'll test through the behavior
+  // by simulating the transformation logic
+
+  const toCase = (str: string, capitalize: boolean): string => {
+    // If already camelCase or PascalCase, just adjust first letter
+    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
+      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
+    }
+
+    // Handle snake_case, kebab-case, spaces, etc.
+    const parts = str
+      .split(/[-_\s]+/)
+      .filter((part) => part.length > 0)
+      .map((part) => {
+        // If this part is already in camelCase, just capitalize the first letter
+        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+          return part.charAt(0).toUpperCase() + part.slice(1)
+        }
+        // Otherwise, capitalize and lowercase to normalize
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      })
+
+    if (parts.length === 0) return str
+
+    // Apply capitalization rule to first part
+    if (!capitalize) {
+      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
+    }
+
+    return parts.join('')
+  }
+
+  const toPascalCase = (str: string): string => toCase(str, true)
+  const toCamelCase = (str: string): string => toCase(str, false)
+
+  describe('toPascalCase', () => {
+    it('should convert snake_case to PascalCase', () => {
+      expect(toPascalCase('nuts_schema')).toBe('NutsSchema')
+      expect(toPascalCase('pet_status')).toBe('PetStatus')
+      expect(toPascalCase('user_profile_schema')).toBe('UserProfileSchema')
+    })
+
+    it('should convert kebab-case to PascalCase', () => {
+      expect(toPascalCase('pet-status')).toBe('PetStatus')
+      expect(toPascalCase('user-profile')).toBe('UserProfile')
+    })
+
+    it('should preserve already PascalCase strings', () => {
+      expect(toPascalCase('Pet')).toBe('Pet')
+      expect(toPascalCase('PetStatus')).toBe('PetStatus')
+      expect(toPascalCase('AssetTypeUpdate')).toBe('AssetTypeUpdate')
+    })
+
+    it('should convert camelCase to PascalCase', () => {
+      expect(toPascalCase('petStatus')).toBe('PetStatus')
+      expect(toPascalCase('userProfile')).toBe('UserProfile')
+    })
+
+    it('should handle single words', () => {
+      expect(toPascalCase('pet')).toBe('Pet')
+      expect(toPascalCase('Pet')).toBe('Pet')
+    })
+
+    it('should handle UPPERCASE strings', () => {
+      expect(toPascalCase('UPPERCASE')).toBe('Uppercase')
+      expect(toPascalCase('PET')).toBe('Pet')
+    })
+  })
+
+  describe('toCamelCase', () => {
+    it('should convert snake_case to camelCase', () => {
+      expect(toCamelCase('nuts_schema')).toBe('nutsSchema')
+      expect(toCamelCase('pet_status')).toBe('petStatus')
+      expect(toCamelCase('user_profile_schema')).toBe('userProfileSchema')
+    })
+
+    it('should convert kebab-case to camelCase', () => {
+      expect(toCamelCase('pet-status')).toBe('petStatus')
+      expect(toCamelCase('user-profile')).toBe('userProfile')
+    })
+
+    it('should convert PascalCase to camelCase', () => {
+      expect(toCamelCase('Pet')).toBe('pet')
+      expect(toCamelCase('PetStatus')).toBe('petStatus')
+      expect(toCamelCase('AssetTypeUpdate')).toBe('assetTypeUpdate')
+    })
+
+    it('should preserve already camelCase strings', () => {
+      expect(toCamelCase('pet')).toBe('pet')
+      expect(toCamelCase('petStatus')).toBe('petStatus')
+    })
+
+    it('should handle single words', () => {
+      expect(toCamelCase('pet')).toBe('pet')
+      expect(toCamelCase('Pet')).toBe('pet')
+    })
+
+    it('should handle UPPERCASE strings', () => {
+      expect(toCamelCase('UPPERCASE')).toBe('uppercase')
+      expect(toCamelCase('PET')).toBe('pet')
+    })
+  })
+})
+
+describe('removeSchemaSuffix', () => {
+  // Simulating the removeSchemaSuffix function
+  const removeSchemaSuffix = (name: string): string => {
+    return name.replace(/(_schema|Schema)$/i, '')
+  }
+
+  it('should remove _schema suffix', () => {
+    expect(removeSchemaSuffix('nuts_schema')).toBe('nuts')
+    expect(removeSchemaSuffix('address_schema')).toBe('address')
+    expect(removeSchemaSuffix('pet_status_schema')).toBe('pet_status')
+  })
+
+  it('should remove Schema suffix', () => {
+    expect(removeSchemaSuffix('petSchema')).toBe('pet')
+    expect(removeSchemaSuffix('addressSchema')).toBe('address')
+    expect(removeSchemaSuffix('userProfileSchema')).toBe('userProfile')
+  })
+
+  it('should handle mixed case Schema suffix', () => {
+    expect(removeSchemaSuffix('petSCHEMA')).toBe('pet') // Case-insensitive regex
+    expect(removeSchemaSuffix('petschema')).toBe('pet') // Matches case-insensitive
+    expect(removeSchemaSuffix('petScheMa')).toBe('pet') // Mixed case also matches
+  })
+
+  it('should not remove suffix if not present', () => {
+    expect(removeSchemaSuffix('Pet')).toBe('Pet')
+    expect(removeSchemaSuffix('borrower_info')).toBe('borrower_info')
+    expect(removeSchemaSuffix('Address')).toBe('Address')
+  })
+
+  it('should handle names with schema in the middle', () => {
+    // Should only remove trailing suffix
+    expect(removeSchemaSuffix('schema_pet_schema')).toBe('schema_pet')
+    expect(removeSchemaSuffix('SchemaType')).toBe('SchemaType') // Doesn't end with Schema
+  })
+})
+
+describe('schema name transformations', () => {
+  const removeSchemaSuffix = (name: string): string => name.replace(/(_schema|Schema)$/i, '')
+  const toPascalCase = (str: string, capitalize: boolean = true): string => {
+    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
+      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
+    }
+
+    const parts = str
+      .split(/[-_\s]+/)
+      .filter((part) => part.length > 0)
+      .map((part) => {
+        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+          return part.charAt(0).toUpperCase() + part.slice(1)
+        }
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      })
+
+    if (parts.length === 0) return str
+
+    if (!capitalize) {
+      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
+    }
+
+    return parts.join('')
+  }
+
+  const transformSchemaName = (schemaName: string): string => {
+    const cleaned = removeSchemaSuffix(schemaName)
+    return toPascalCase(cleaned)
+  }
+
+  it('should transform nuts_schema to Nuts', () => {
+    expect(transformSchemaName('nuts_schema')).toBe('Nuts')
+  })
+
+  it('should transform address_schema to Address', () => {
+    expect(transformSchemaName('address_schema')).toBe('Address')
+  })
+
+  it('should not change already normalized names', () => {
+    expect(transformSchemaName('Pet')).toBe('Pet')
+    expect(transformSchemaName('BorrowerInfo')).toBe('BorrowerInfo')
+    expect(transformSchemaName('AssetTypeUpdate')).toBe('AssetTypeUpdate')
+  })
+
+  it('should handle names without schema suffix', () => {
+    expect(transformSchemaName('borrower_info')).toBe('BorrowerInfo')
+    expect(transformSchemaName('user_profile')).toBe('UserProfile')
+  })
+
+  it('should handle complex names', () => {
+    expect(transformSchemaName('user_profile_schema')).toBe('UserProfile')
+    expect(transformSchemaName('pet_status_enum_schema')).toBe('PetStatusEnum')
+    expect(transformSchemaName('avm_response_schema')).toBe('AvmResponse')
   })
 })
