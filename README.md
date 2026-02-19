@@ -13,7 +13,7 @@ Turns your `openapi.json` into typesafe API composables using Vue Query (TanStac
 Let's you get TanStack Vue Query composables that enforce consistency (name of endpoints, typing) with your API's `openapi.json` file:
 
 ```typescript
-const { data, isLoading } = api.getPet.useQuery( { petId: '123' })
+const { data, isLoading } = api.getPet.useQuery({ petId: '123' })
 
 const createPetMutation = api.createPet.useMutation()
 createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
@@ -65,12 +65,13 @@ const api = useOpenApi(
     operations: openApiOperations,
     axios: axiosInstance,
   },
-  operationConfig
+  operationConfig,
 )
 
 export default api
 ```
-```
+
+````
 
 ### 2. Use the API in your components
 
@@ -89,7 +90,7 @@ const createPetMutation = api.createPet.useMutation()
 await createPetMutation.mutateAsync({
   data: { name: 'Fluffy', species: 'cat' },
 })
-```
+````
 
 ## Advanced Usage
 
@@ -157,15 +158,15 @@ const createPet = api.createPet.useMutation()
 // No additional configuration needed - cache management is automatic
 
 // Manual control over cache invalidation
-const updatePet = api.updatePet.useMutation( {
+const updatePet = api.updatePet.useMutation({
   dontInvalidate: true, // Disable automatic invalidation
   dontUpdateCache: true, // Disable automatic cache updates
-  invalidateOperations: ["listPets"], // Manually specify operations to invalidate
+  invalidateOperations: ['listPets'], // Manually specify operations to invalidate
 })
 
 // Refetch specific endpoints after mutation
 const petListQuery = api.listPets.useQuery()
-const createPetWithRefetch = api.createPet.useMutation( {
+const createPetWithRefetch = api.createPet.useMutation({
   refetchEndpoints: [petListQuery], // Manually refetch these endpoints
 })
 ```
@@ -290,7 +291,7 @@ import { ref } from 'vue'
 
 // Use reactive query parameters
 const limit = ref(10)
-const petsQuery = api.listPets.useQuery( {
+const petsQuery = api.listPets.useQuery({
   queryParams: { limit: limit.value },
 })
 

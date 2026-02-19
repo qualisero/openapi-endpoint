@@ -158,7 +158,7 @@ import { api } from './api/init'
 import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
-const petQuery = api.getPet.useQuery( { petId: '123' })
+const petQuery = api.getPet.useQuery({ petId: '123' })
 
 // Manually set data in cache
 queryClient.setQueryData(petQuery.queryKey.value, {
@@ -366,7 +366,7 @@ const handleMouseEnter = () => {
   queryClient.prefetchQuery({
     queryKey: ['pets', '123'],
     queryFn: async () => {
-      const result = await api.getPet.useQuery( { petId: '123' })
+      const result = await api.getPet.useQuery({ petId: '123' })
       return result.data.value
     },
     staleTime: 60 * 1000, // Fresh for 1 minute
@@ -384,7 +384,7 @@ import { operationConfig } from './api/generated/api-operations'
 const queryClient = useQueryClient()
 const page = ref(1)
 
-const { data: pets } = api.listPets.useQuery( {
+const { data: pets } = api.listPets.useQuery({
   queryParams: computed(() => ({
     page: page.value,
     limit: 20,
@@ -399,7 +399,7 @@ const loadNextPage = () => {
   queryClient.prefetchQuery({
     queryKey: ['pets', { page: nextPage, limit: 20 }],
     queryFn: async () => {
-      const result = await api.listPets.useQuery( {
+      const result = await api.listPets.useQuery({
         queryParams: { page: nextPage, limit: 20 },
       })
       return result.data.value

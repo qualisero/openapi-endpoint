@@ -21,7 +21,7 @@ async function uploadAvatar(userId: string, file: File) {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.uploadUserAvatar.useMutation( { userId })
+  const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -44,7 +44,7 @@ async function uploadDocument(userId: string, file: File, description: string) {
   formData.append('document', file)
   formData.append('description', description)
 
-  const uploadMutation = api.uploadUserDocument.useMutation( { userId })
+  const uploadMutation = api.uploadUserDocument.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -75,7 +75,7 @@ const uploadAvatar = async (userId: string, file: File) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const uploadMutation = api.uploadUserAvatar.useMutation( { userId })
+    const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
     await uploadMutation.mutateAsync({
       data: formData,
     })
@@ -176,7 +176,7 @@ async function uploadMultipleFiles(userId: string, files: File[]) {
     // formData.append('files', file)
   })
 
-  const uploadMutation = api.uploadUserFiles.useMutation( { userId })
+  const uploadMutation = api.uploadUserFiles.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -197,7 +197,7 @@ Some APIs accept binary data as string instead of FormData:
 import { api } from './api/init'
 
 async function uploadBinaryData(userId: string, binaryString: string) {
-  const uploadMutation = api.uploadUserAvatar.useMutation( { userId })
+  const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: {
@@ -221,7 +221,7 @@ reader.readAsBinaryString(file)
 ```typescript
 import { api } from './api/init'
 
-const { data: userProfile } = api.getUserProfile.useQuery( { userId: '123' })
+const { data: userProfile } = api.getUserProfile.useQuery({ userId: '123' })
 
 const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()

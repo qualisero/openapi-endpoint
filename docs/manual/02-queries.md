@@ -29,7 +29,7 @@ import { api } from './api/init'
 import { operationConfig } from './api/generated/api-operations'
 
 // Query with required path parameter
-const { data: pet } = api.getPet.useQuery( { petId: '123' })
+const { data: pet } = api.getPet.useQuery({ petId: '123' })
 
 console.log(pet.value) // Pet with id '123'
 ```
@@ -42,7 +42,7 @@ import { operationConfig } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Query with query parameters - use enum for type safety
-const { data: pets } = api.listPets.useQuery( {
+const { data: pets } = api.listPets.useQuery({
   queryParams: { limit: 10, status: PetStatus.Available },
 })
 

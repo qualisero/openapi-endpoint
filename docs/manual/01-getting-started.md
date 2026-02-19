@@ -149,7 +149,7 @@ import { operationConfig } from './api/generated/api-operations'
 
 const name = ref('')
 
-const createPet = api.createPet.useMutation( {
+const createPet = api.createPet.useMutation({
   onSuccess: () => {
     console.log('Pet created!')
     name.value = ''
@@ -185,7 +185,7 @@ import { operationConfig } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Use enum constants for intellisense and typo safety
-const { data: availablePets } = api.listPets.useQuery( {
+const { data: availablePets } = api.listPets.useQuery({
   queryParams: { status: PetStatus.Available },
 })
 

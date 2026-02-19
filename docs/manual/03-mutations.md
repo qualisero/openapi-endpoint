@@ -15,7 +15,7 @@ import { api } from './api/init'
 import { operationConfig } from './api/generated/api-operations'
 
 // Simple mutation for creating data
-const createPet = api.createPet.useMutation( {
+const createPet = api.createPet.useMutation({
   onSuccess: (data) => {
     console.log('Pet created:', data)
   },
@@ -36,7 +36,7 @@ await createPet.mutateAsync({
 import { api } from './api/init'
 
 // Mutation with path parameters
-const updatePet = api.updatePet.useMutation( { petId: '123' })
+const updatePet = api.updatePet.useMutation({ petId: '123' })
 
 // Execute mutation
 await updatePet.mutateAsync({
@@ -216,7 +216,7 @@ By default, mutations automatically:
 
 ```typescript
 // Automatic cache management (default)
-const createPet = api.createPet.useMutation( { petId: '123' })
+const createPet = api.createPet.useMutation({ petId: '123' })
 
 // This will:
 // 1. Update cache for getPet/123 with returned data

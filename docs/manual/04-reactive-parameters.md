@@ -74,7 +74,7 @@ import { PetStatus } from './api/generated/api-enums'
 const searchTerm = ref('')
 const statusFilter = ref<PetStatus>(PetStatus.Available)
 
-const { data: pets } = api.listPets.useQuery( {
+const { data: pets } = api.listPets.useQuery({
   queryParams: computed(() => ({
     search: searchTerm.value,
     status: statusFilter.value,
@@ -95,7 +95,7 @@ import { api } from './api/init'
 const page = ref(1)
 const limit = ref(20)
 
-const { data: pets } = api.listPets.useQuery( {
+const { data: pets } = api.listPets.useQuery({
   queryParams: computed(() => ({
     page: page.value,
     limit: limit.value,
@@ -224,7 +224,7 @@ watch(searchTerm, (newValue) => {
   }, 300)
 })
 
-const { data: pets } = api.listPets.useQuery( {
+const { data: pets } = api.listPets.useQuery({
   queryParams: computed(() => ({
     search: debouncedSearch.value,
   })),
@@ -246,7 +246,7 @@ const filters = ref({
   sortOrder: 'asc',
 })
 
-const { data: products } = api.listProducts.useQuery( {
+const { data: products } = api.listProducts.useQuery({
   queryParams: computed(() => {
     const params: Record<string, any> = {}
 
