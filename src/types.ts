@@ -625,8 +625,11 @@ export type OperationConfig<Ops extends Operations<Ops>> = {
 }
 
 /** @internal Determines if an operation uses a query-style HTTP method. */
-export type IsQueryOp<Ops extends Operations<Ops>, Op extends keyof Ops> =
-  Ops[Op] extends { method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS } ? true : false
+export type IsQueryOp<Ops extends Operations<Ops>, Op extends keyof Ops> = Ops[Op] extends {
+  method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS
+}
+  ? true
+  : false
 
 /**
  * Namespace for a GET/HEAD/OPTIONS operation.
@@ -640,7 +643,7 @@ export type IsQueryOp<Ops extends Operations<Ops>, Op extends keyof Ops> =
 export type QueryNamespace<
   Ops extends Operations<Ops>,
   Op extends keyof Ops,
-  TEnums extends Record<string, Record<string, string>>
+  TEnums extends Record<string, Record<string, string>>,
 > = {
   /**
    * Execute this query with automatic caching via Vue Query.
@@ -679,7 +682,7 @@ export type QueryNamespace<
 export type MutationNamespace<
   Ops extends Operations<Ops>,
   Op extends keyof Ops,
-  TEnums extends Record<string, Record<string, string>>
+  TEnums extends Record<string, Record<string, string>>,
 > = {
   /**
    * Set up this mutation with Vue Query.
@@ -717,7 +720,7 @@ export type MutationNamespace<
 export type OperationNamespace<
   Ops extends Operations<Ops>,
   Op extends keyof Ops,
-  TEnums extends Record<string, Record<string, string>>
+  TEnums extends Record<string, Record<string, string>>,
 > = Ops[Op] extends { method: HttpMethod.GET | HttpMethod.HEAD | HttpMethod.OPTIONS }
   ? QueryNamespace<Ops, Op, TEnums>
   : MutationNamespace<Ops, Op, TEnums>
@@ -769,9 +772,6 @@ export type OperationMutation<Ops extends Operations<Ops>, Op extends keyof Ops>
  * // typeof api == OpenApiInstance<OpenApiOperations, typeof operationConfig>
  * ```
  */
-export type OpenApiInstance<
-  Ops extends Operations<Ops>,
-  Config extends OperationConfig<Ops>
-> = {
+export type OpenApiInstance<Ops extends Operations<Ops>, Config extends OperationConfig<Ops>> = {
   [Op in keyof Config & keyof Ops]: OperationNamespace<Ops, Op, Config[Op]['enums']>
 }

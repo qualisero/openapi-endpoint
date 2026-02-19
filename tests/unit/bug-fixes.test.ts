@@ -3,11 +3,10 @@ import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
 import {
-  QueryOperationId,
-  MutationOperationId,
   openApiOperations,
+  operationConfig,
   type OpenApiOperations,
-} from '../fixtures/openapi-typed-operations'
+} from '../fixtures/api-operations'
 
 /**
  * Bug Fixes and Issue Reproductions
@@ -19,7 +18,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
   const mockOperations: OpenApiOperations = openApiOperations
 
   let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations>
+  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -27,7 +26,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       operations: mockOperations,
       axios: mockAxios,
     }
-    api = useOpenApi(mockConfig)
+    api = useOpenApi(mockConfig, operationConfig)
   })
 
   /**
@@ -49,7 +48,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should accept manualErrorHandling property without TypeScript errors', () => {
       // This exact code from the issue description should now work
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: vi.fn(),
         axiosOptions: { manualErrorHandling: true },
       })
@@ -66,7 +65,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
         return true
       }
 
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: vi.fn(),
         axiosOptions: {
           manualErrorHandling: errorHandler,
@@ -81,7 +80,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should accept both augmented properties from the issue', () => {
       // Test both properties mentioned in the user's augmented types
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: vi.fn(),
         axiosOptions: {
           manualErrorHandling: true,
@@ -96,7 +95,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should work with mutations as well', () => {
       // Ensure the fix works for mutations too
-      const createPet = api.useMutation(MutationOperationId.createPet, {
+      const createPet = api.createPet.useMutation({
         axiosOptions: {
           manualErrorHandling: true,
           handledByAxios: false,
@@ -110,7 +109,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should work in mutate calls', () => {
       // Ensure the fix works when passing axios options to mutate calls
-      const createPet = api.useMutation(MutationOperationId.createPet)
+      const createPet = api.createPet.useMutation()
 
       expect(() => {
         createPet.mutate({
@@ -125,7 +124,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should preserve standard axios properties alongside custom ones', () => {
       // Ensure standard axios properties still work with custom ones
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: vi.fn(),
         axiosOptions: {
           // Standard axios properties
@@ -152,7 +151,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       }
 
       // This is the EXACT code from the issue that was failing before
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: options.onLoad,
         axiosOptions: { manualErrorHandling: true },
       })
@@ -179,7 +178,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       }
 
       // Test the function variant
-      const currentUser = api.useQuery(QueryOperationId.listPets, {
+      const currentUser = api.listPets.useQuery( {
         onLoad: options.onLoad,
         axiosOptions: {
           manualErrorHandling: errorHandler,
@@ -207,7 +206,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       let userId: string | undefined = undefined
 
       // Create query with reactive function for path params
-      const myQuery = api.useQuery(QueryOperationId.listUserPets, () => ({ userId }))
+      const myQuery = api.listUserPets.useQuery( () => ({ userId }))
 
       // Initially, the path should not be resolved (contains {userId})
       expect(myQuery.isEnabled.value).toBe(false)
@@ -228,7 +227,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
       let petId: string | undefined = undefined
 
       // Create mutation endpoint with reactive path params
-      const updateEndpoint = api.useMutation(MutationOperationId.updatePet, () => ({ petId }))
+      const updateEndpoint = api.useMutation(updatePet, () => ({ petId }))
 
       // Initially should be disabled due to unresolved path params
       expect(updateEndpoint.isEnabled.value).toBe(false)
@@ -243,17 +242,17 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should support reactive enabling based on parameter availability', () => {
       // Test automatic disabling when path parameters are undefined
-      const queryWithoutParams = api.useQuery(QueryOperationId.getPet, () => ({
+      const queryWithoutParams = api.getPet.useQuery( () => ({
         petId: undefined,
       }))
       expect(queryWithoutParams.isEnabled.value).toBe(false)
 
-      const queryWithParams = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+      const queryWithParams = api.getPet.useQuery( { petId: '123' })
       expect(queryWithParams.isEnabled.value).toBe(true)
     })
 
     it('should handle missing path parameters gracefully', () => {
-      const query = api.useQuery(QueryOperationId.getPet, () => ({
+      const query = api.getPet.useQuery( () => ({
         petId: undefined,
       }))
       expect(query.isEnabled.value).toBe(false)
@@ -272,7 +271,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
   describe('Multipart Form Data Support (Feature Request)', () => {
     it('should support multipart/form-data with specific upload endpoints', () => {
       // Test with upload-specific endpoint
-      const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId: '123' })
+      const uploadMutation = api.useMutation(uploadPetPic, { petId: '123' })
 
       const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
       const formData = new FormData()
@@ -290,7 +289,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should support custom headers with multipart uploads', () => {
       const uploadMutation = api.useMutation(
-        MutationOperationId.uploadPetPic,
+        uploadPetPic,
         { petId: '123' },
         {
           axiosOptions: {
@@ -314,7 +313,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should support type safety for multipart/form-data schemas', () => {
-      const uploadMutation = api.useMutation(MutationOperationId.uploadPetPic, { petId: '123' })
+      const uploadMutation = api.useMutation(uploadPetPic, { petId: '123' })
 
       // Should accept FormData for upload endpoints
       expect(() => {
@@ -334,12 +333,11 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should integrate with cache invalidation after upload', () => {
-      const listPetsQuery = api.useQuery(QueryOperationId.listPets)
-      const uploadMutation = api.useMutation(
-        MutationOperationId.uploadPetPic,
+      const listPetsQuery = api.listPets.useQuery()
+      const uploadMutation = api.uploadPetPic.useMutation(
         { petId: '123' },
         {
-          invalidateOperations: [QueryOperationId.listPets],
+          invalidateOperations: ['listPets'],
         },
       )
 
@@ -364,7 +362,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
         console.log('Custom error handler called:', error)
       })
 
-      const query = api.useQuery(QueryOperationId.listPets, {
+      const query = api.listPets.useQuery( {
         errorHandler,
       })
 
@@ -375,7 +373,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     it('should support async error handlers', () => {
       const errorHandler = vi.fn().mockResolvedValue(undefined)
 
-      const query = api.useQuery(QueryOperationId.listPets, {
+      const query = api.listPets.useQuery( {
         errorHandler,
       })
 
@@ -383,7 +381,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle errors in mutations with custom handlers', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet, {
+      const mutation = api.useMutation(createPet, {
         onError: vi.fn((error) => {
           console.log('Mutation error:', error)
         }),
@@ -394,7 +392,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should handle errors in mutate calls with catch blocks', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet)
+      const mutation = api.createPet.useMutation()
 
       expect(async () => {
         try {
@@ -454,20 +452,20 @@ describe('Bug Fixes and Issue Reproductions', () => {
    */
   describe('Mutation isEnabled Enforcement (GitHub Issue)', () => {
     it('should have isEnabled=false when path parameters are undefined', () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }))
+      const mutation = api.useMutation(updatePet, () => ({ petId: undefined }))
 
       expect(mutation.isEnabled.value).toBe(false)
     })
 
     it('should have isEnabled=true when path parameters are provided', () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: '123' }))
+      const mutation = api.useMutation(updatePet, () => ({ petId: '123' }))
 
       expect(mutation.isEnabled.value).toBe(true)
     })
 
     it('should prevent mutate() when isEnabled is false', async () => {
       const onError = vi.fn()
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }), { onError })
+      const mutation = api.useMutation(updatePet, () => ({ petId: undefined }), { onError })
 
       expect(mutation.isEnabled.value).toBe(false)
 
@@ -486,7 +484,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     })
 
     it('should reject mutateAsync() when isEnabled is false', async () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId: undefined }))
+      const mutation = api.useMutation(updatePet, () => ({ petId: undefined }))
 
       expect(mutation.isEnabled.value).toBe(false)
 
@@ -498,7 +496,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
 
     it('should allow mutation when isEnabled becomes true', async () => {
       let petId: string | undefined = undefined
-      const mutation = api.useMutation(MutationOperationId.updatePet, () => ({ petId }))
+      const mutation = api.useMutation(updatePet, () => ({ petId }))
 
       // Initially disabled
       expect(mutation.isEnabled.value).toBe(false)
@@ -516,7 +514,7 @@ describe('Bug Fixes and Issue Reproductions', () => {
     it('should use isEnabled as a guard in practical usage', () => {
       const selectedRequestRef = { value: undefined as string | undefined }
 
-      const updateRequestTypeMutation = api.useMutation(MutationOperationId.updatePet, () => ({
+      const updateRequestTypeMutation = api.useMutation(updatePet, () => ({
         petId: selectedRequestRef.value,
       }))
 

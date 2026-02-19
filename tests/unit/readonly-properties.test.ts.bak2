@@ -22,7 +22,6 @@ import {
   type ApiPathParams,
   type ApiQueryParams,
 } from '../fixtures/api-operations'
-import { type OpType } from '../fixtures/openapi-typed-operations'
 import { PetStatus } from '../fixtures/api-enums'
 
 describe('ApiResponse - Response Types (All Fields Required)', () => {
@@ -327,7 +326,7 @@ describe('Integration with useOpenApi', () => {
 
   it('should enforce type safety with useMutation', () => {
     const api = useOpenApi(mockConfig, operationConfig)
-    const createPet = api.createPet.useMutation()
+    const createPet = api.useMutation(createPet)
 
     expect(createPet).toHaveProperty('mutate')
     expect(createPet).toHaveProperty('mutateAsync')
@@ -338,7 +337,7 @@ describe('Integration with useOpenApi', () => {
 
   it('should enforce type safety with useMutation for updatePet', () => {
     const api = useOpenApi(mockConfig, operationConfig)
-    const updatePet = api.updatePet.useMutation({ petId: '123' })
+    const updatePet = api.useMutation(updatePet, { petId: '123' })
 
     expect(updatePet).toBeTruthy()
 
@@ -348,21 +347,21 @@ describe('Integration with useOpenApi', () => {
 
   it('should work with useQuery for listPets', () => {
     const api = useOpenApi(mockConfig, operationConfig)
-    const listPets = api.listPets.useQuery()
+    const listPets = api.useQuery(listPets)
 
     expect(listPets).toHaveProperty('data')
   })
 
   it('should work with useQuery for getPet', () => {
     const api = useOpenApi(mockConfig, operationConfig)
-    const getPet = api.getPet.useQuery({ petId: '123' })
+    const getPet = api.getPet.useQuery( { petId: '123' })
 
     expect(getPet).toBeTruthy()
   })
 
   it('should return data with all fields required from useQuery', () => {
     const api = useOpenApi(mockConfig, operationConfig)
-    const result = api.getPet.useQuery({ petId: '123' })
+    const result = api.getPet.useQuery( { petId: '123' })
 
     // ApiResponse makes ALL fields required
     if (result.data.value) {

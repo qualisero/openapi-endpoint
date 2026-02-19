@@ -961,10 +961,7 @@ This command will generate:
  * @param excludePrefix Operations with this prefix are excluded
  * @returns Map of operation ID to { path, method }
  */
-function buildOperationMap(
-  openApiSpec: OpenAPISpec,
-  excludePrefix: string | null,
-): Record<string, OperationInfo> {
+function buildOperationMap(openApiSpec: OpenAPISpec, excludePrefix: string | null): Record<string, OperationInfo> {
   const map: Record<string, OperationInfo> = {}
 
   for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
@@ -1080,23 +1077,23 @@ function generateApiOperationsContent(
 ): string {
   const ids = Object.keys(operationMap).sort()
   const queryIds = ids.filter((id) => ['GET', 'HEAD', 'OPTIONS'].includes(operationMap[id].method))
-  const mutationIds = ids.filter((id) =>
-    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(operationMap[id].method),
-  )
+  const mutationIds = ids.filter((id) => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(operationMap[id].method))
 
   // Per-operation enum consts
-  const enumConsts = ids.map((id) => {
-    const fields = opEnums[id] ?? {}
-    const body = Object.entries(fields)
-      .map(([field, vals]) => {
-        const members = Object.entries(vals)
-          .map(([k, v]) => `    ${k}: ${JSON.stringify(v)} as const,`)
-          .join('\n')
-        return `  ${field}: {\n${members}\n  } as const,`
-      })
-      .join('\n')
-    return `export const ${id}_enums = {\n${body}\n} as const`
-  }).join('\n\n')
+  const enumConsts = ids
+    .map((id) => {
+      const fields = opEnums[id] ?? {}
+      const body = Object.entries(fields)
+        .map(([field, vals]) => {
+          const members = Object.entries(vals)
+            .map(([k, v]) => `    ${k}: ${JSON.stringify(v)} as const,`)
+            .join('\n')
+          return `  ${field}: {\n${members}\n  } as const,`
+        })
+        .join('\n')
+      return `export const ${id}_enums = {\n${body}\n} as const`
+    })
+    .join('\n\n')
 
   // Operations map
   const opEntries = ids
@@ -1122,9 +1119,12 @@ export type ApiPathParams<K extends AllOps> = _ApiPathParams<OpenApiOperations, 
 export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<OpenApiOperations, K>`
 
   // Re-exports
-  const reExports = schemaEnumNames.length > 0
-    ? schemaEnumNames.map((n) => `export { ${n} } from './api-enums'\nexport type { ${n} } from './api-enums'`).join('\n')
-    : '// No schema-level enums to re-export'
+  const reExports =
+    schemaEnumNames.length > 0
+      ? schemaEnumNames
+          .map((n) => `export { ${n} } from './api-enums'\nexport type { ${n} } from './api-enums'`)
+          .join('\n')
+      : '// No schema-level enums to re-export'
 
   return `// Auto-generated from OpenAPI specification - do not edit manually
 
@@ -1212,40 +1212,45 @@ function generateApiTypesContent(
   const ids = Object.keys(operationMap).sort()
   const isQuery = (id: string) => ['GET', 'HEAD', 'OPTIONS'].includes(operationMap[id].method)
 
-  const namespaces = ids.map((id) => {
-    const query = isQuery(id)
-    const fields = opEnums[id] ?? {}
+  const namespaces = ids
+    .map((id) => {
+      const query = isQuery(id)
+      const fields = opEnums[id] ?? {}
 
-    const enumTypes = Object.entries(fields)
-      .map(([fieldName, vals]) => {
-        const typeName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
-        const union = Object.values(vals).map((v) => `'${v}'`).join(' | ')
-        return `      /** \`${union}\` */\n      export type ${typeName} = ${union}`
-      })
-      .join('\n')
+      const enumTypes = Object.entries(fields)
+        .map(([fieldName, vals]) => {
+          const typeName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+          const union = Object.values(vals)
+            .map((v) => `'${v}'`)
+            .join(' | ')
+          return `      /** \`${union}\` */\n      export type ${typeName} = ${union}`
+        })
+        .join('\n')
 
-    const commonLines = [
-      `    /** Full response type - all fields required. */`,
-      `    export type Response     = _ApiResponse<OpenApiOperations, '${id}'>`,
-      `    /** Response type - only \`readonly\` fields required. */`,
-      `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
-    ]
-    if (!query) {
-      commonLines.push(`    /** Request body type. */`, `    export type Request      = _ApiRequest<OpenApiOperations, '${id}'>`)
-    }
-    commonLines.push(
-      `    /** Path parameters. */`,
-      `    export type PathParams   = _ApiPathParams<OpenApiOperations, '${id}'>`,
-      `    /** Query parameters. */`,
-      `    export type QueryParams  = _ApiQueryParams<OpenApiOperations, '${id}'>`,
-    )
+      const commonLines = [
+        `    /** Full response type - all fields required. */`,
+        `    export type Response     = _ApiResponse<OpenApiOperations, '${id}'>`,
+        `    /** Response type - only \`readonly\` fields required. */`,
+        `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
+      ]
+      if (!query) {
+        commonLines.push(
+          `    /** Request body type. */`,
+          `    export type Request      = _ApiRequest<OpenApiOperations, '${id}'>`,
+        )
+      }
+      commonLines.push(
+        `    /** Path parameters. */`,
+        `    export type PathParams   = _ApiPathParams<OpenApiOperations, '${id}'>`,
+        `    /** Query parameters. */`,
+        `    export type QueryParams  = _ApiQueryParams<OpenApiOperations, '${id}'>`,
+      )
 
-    const enumNs = enumTypes
-      ? `    export namespace Enums {\n${enumTypes}\n    }`
-      : `    export namespace Enums {}`
+      const enumNs = enumTypes ? `    export namespace Enums {\n${enumTypes}\n    }` : `    export namespace Enums {}`
 
-    return `  export namespace ${id} {\n${commonLines.join('\n')}\n${enumNs}\n  }`
-  }).join('\n\n')
+      return `  export namespace ${id} {\n${commonLines.join('\n')}\n${enumNs}\n  }`
+    })
+    .join('\n\n')
 
   return `// Auto-generated from OpenAPI specification — do not edit manually
 

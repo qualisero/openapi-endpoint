@@ -5,11 +5,10 @@ import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 
 import {
-  QueryOperationId,
-  MutationOperationId,
   openApiOperations,
+  operationConfig,
   type OpenApiOperations,
-} from '../fixtures/openapi-typed-operations'
+} from '../fixtures/api-operations'
 
 const mockOperations: OpenApiOperations = openApiOperations
 
@@ -69,7 +68,7 @@ describe('openapi-helpers', () => {
     describe('getOperationInfo', () => {
       it('should return operation info for valid operation ID', () => {
         const helpers = getHelpers(mockConfig)
-        const operationInfo = helpers.getOperationInfo(QueryOperationId.getPet)
+        const operationInfo = helpers.getOperationInfo('getPet' as keyof OpenApiOperations)
 
         expect(operationInfo).toEqual({
           method: 'GET',
@@ -79,7 +78,7 @@ describe('openapi-helpers', () => {
 
       it('should return operation info for POST operation', () => {
         const helpers = getHelpers(mockConfig)
-        const operationInfo = helpers.getOperationInfo(MutationOperationId.createPet)
+        const operationInfo = helpers.getOperationInfo('createPet' as keyof OpenApiOperations)
 
         expect(operationInfo).toEqual({
           method: 'POST',
@@ -91,59 +90,59 @@ describe('openapi-helpers', () => {
     describe('isQueryOperation', () => {
       it('should return true for GET operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation(QueryOperationId.listPets)).toBe(true)
-        expect(helpers.isQueryOperation(QueryOperationId.getPet)).toBe(true)
-        expect(helpers.isQueryOperation(QueryOperationId.listUserPets)).toBe(true)
+        expect(helpers.isQueryOperation('getPet' as keyof OpenApiOperations)).toBe(true)
+        expect(helpers.isQueryOperation('listPets' as keyof OpenApiOperations)).toBe(true)
+        expect(helpers.isQueryOperation('getOwners' as keyof OpenApiOperations)).toBe(true)
       })
 
       it('should return false for mutation operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isQueryOperation(MutationOperationId.createPet)).toBe(false)
-        expect(helpers.isQueryOperation(MutationOperationId.updatePet)).toBe(false)
-        expect(helpers.isQueryOperation(MutationOperationId.deletePet)).toBe(false)
+        expect(helpers.isQueryOperation('createPet' as keyof OpenApiOperations)).toBe(false)
+        expect(helpers.isQueryOperation('updatePet' as keyof OpenApiOperations)).toBe(false)
+        expect(helpers.isQueryOperation('deletePet' as keyof OpenApiOperations)).toBe(false)
       })
     })
 
     describe('isMutationOperation', () => {
       it('should return true for POST operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation(MutationOperationId.createPet)).toBe(true)
+        expect(helpers.isMutationOperation('createPet' as keyof OpenApiOperations)).toBe(true)
       })
 
       it('should return true for PUT operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation(MutationOperationId.updatePet)).toBe(true)
+        expect(helpers.isMutationOperation('updatePet' as keyof OpenApiOperations)).toBe(true)
       })
 
       it('should return true for DELETE operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation(MutationOperationId.deletePet)).toBe(true)
+        expect(helpers.isMutationOperation('deletePet' as keyof OpenApiOperations)).toBe(true)
       })
 
       it('should return false for query operations', () => {
         const helpers = getHelpers(mockConfig)
-        expect(helpers.isMutationOperation(QueryOperationId.listPets)).toBe(false)
-        expect(helpers.isMutationOperation(QueryOperationId.getPet)).toBe(false)
-        expect(helpers.isMutationOperation(QueryOperationId.listUserPets)).toBe(false)
+        expect(helpers.isMutationOperation('getPet' as keyof OpenApiOperations)).toBe(false)
+        expect(helpers.isMutationOperation('listPets' as keyof OpenApiOperations)).toBe(false)
+        expect(helpers.isMutationOperation('getOwners' as keyof OpenApiOperations)).toBe(false)
       })
     })
 
     describe('getListOperationPath', () => {
       it('should find list operation for create operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath(MutationOperationId.createPet)
+        const listPath = helpers.getListOperationPath('createPet' as keyof OpenApiOperations)
         expect(listPath).toBe('/pets')
       })
 
       it('should find list operation for update operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath(MutationOperationId.updatePet)
+        const listPath = helpers.getListOperationPath('updatePet' as keyof OpenApiOperations)
         expect(listPath).toBe('/pets')
       })
 
       it('should find list operation for delete operation', () => {
         const helpers = getHelpers(mockConfig)
-        const listPath = helpers.getListOperationPath(MutationOperationId.deletePet)
+        const listPath = helpers.getListOperationPath('deletePet' as keyof OpenApiOperations)
         expect(listPath).toBe('/pets')
       })
     })
@@ -151,20 +150,20 @@ describe('openapi-helpers', () => {
     describe('getCrudListPathPrefix', () => {
       it('should extract list path prefix from resource with ID parameter', () => {
         const helpers = getHelpers(mockConfig)
-        const pathPrefix = helpers.getCrudListPathPrefix(MutationOperationId.updatePet)
+        const pathPrefix = helpers.getCrudListPathPrefix('getPet' as keyof OpenApiOperations)
         expect(pathPrefix).toBe('/pets/')
       })
 
       it('should return null for operations without ID parameter at the end', () => {
         // listUserPets path is '/users/{userId}/pets' which doesn't end with {petId}
         const helpers = getHelpers(mockConfig)
-        const pathPrefix = helpers.getCrudListPathPrefix(QueryOperationId.listUserPets)
+        const pathPrefix = helpers.getCrudListPathPrefix('listUserPets' as keyof OpenApiOperations)
         expect(pathPrefix).toBeNull()
       })
 
       it('should return null for operations without ID parameter in path', () => {
         const helpers = getHelpers(mockConfig)
-        const pathPrefix = helpers.getCrudListPathPrefix(MutationOperationId.createPet)
+        const pathPrefix = helpers.getCrudListPathPrefix('listPets' as keyof OpenApiOperations)
         expect(pathPrefix).toBeNull()
       })
     })

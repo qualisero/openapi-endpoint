@@ -5,11 +5,10 @@ import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { QueryClient } from '@tanstack/vue-query'
 import { mockAxios } from '../setup'
 import {
-  QueryOperationId,
-  MutationOperationId,
   openApiOperations,
+  operationConfig,
   type OpenApiOperations,
-} from '../fixtures/openapi-typed-operations'
+} from '../fixtures/api-operations'
 
 /**
  * API Usage Patterns and Examples
@@ -25,7 +24,7 @@ describe('API Usage Patterns', () => {
   const mockOperations: OpenApiOperations = openApiOperations
 
   let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: OpenApiInstance<OpenApiOperations>
+  let api: OpenApiInstance<OpenApiOperations, typeof operationConfig>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -33,29 +32,30 @@ describe('API Usage Patterns', () => {
       operations: mockOperations,
       axios: mockAxios,
     }
-    api = useOpenApi(mockConfig)
+    api = useOpenApi(mockConfig, operationConfig)
   })
 
   describe('Basic API Structure', () => {
-    it('should return an object with useQuery and useMutation functions', () => {
-      expect(api).toHaveProperty('useQuery')
-      expect(api).toHaveProperty('useMutation')
-      expect(typeof api.useQuery).toBe('function')
-      expect(typeof api.useMutation).toBe('function')
+    it('should return an object with operation namespaces', () => {
+      expect(api).toHaveProperty('listPets')
+      expect(api).toHaveProperty('getPet')
+      expect(api).toHaveProperty('createPet')
+      expect(api.listPets).toHaveProperty('useQuery')
+      expect(api.createPet).toHaveProperty('useMutation')
     })
 
     it('should support OpenApiInstance type for typing API instances', () => {
       // Type assertion test - if this compiles, the types are working
-      const typedApi: OpenApiInstance<OpenApiOperations> = api
+      const typedApi: OpenApiInstance<OpenApiOperations, typeof operationConfig> = api
       expect(typedApi).toBeTruthy()
-      expect(typeof typedApi.useQuery).toBe('function')
-      expect(typeof typedApi.useMutation).toBe('function')
+      expect(typedApi.listPets).toHaveProperty('useQuery')
+      expect(typedApi.createPet).toHaveProperty('useMutation')
     })
   })
 
   describe('Query Usage Patterns', () => {
     it('should create a query for GET operations', () => {
-      const query = api.useQuery(QueryOperationId.listPets)
+      const query = api.listPets.useQuery()
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -63,7 +63,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should create a query with path parameters', () => {
-      const query = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+      const query = api.getPet.useQuery({ petId: '123' })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -73,7 +73,7 @@ describe('API Usage Patterns', () => {
 
     it('should create a query with options', () => {
       const onLoad = vi.fn()
-      const query = api.useQuery(QueryOperationId.listPets, { onLoad })
+      const query = api.listPets.useQuery({ onLoad })
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('data')
@@ -84,7 +84,7 @@ describe('API Usage Patterns', () => {
 
     it('should support TanStack Query options', () => {
       const selectFn = vi.fn((data) => data)
-      const query = api.useQuery(QueryOperationId.listPets, {
+      const query = api.listPets.useQuery({
         staleTime: 10000,
         retry: 3,
         refetchOnWindowFocus: false,
@@ -99,11 +99,11 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support enabled state control', () => {
-      const queryDisabled = api.useQuery(QueryOperationId.listPets, {
+      const queryDisabled = api.listPets.useQuery({
         enabled: false,
       })
 
-      const queryEnabled = api.useQuery(QueryOperationId.listPets, {
+      const queryEnabled = api.listPets.useQuery({
         enabled: true,
       })
 
@@ -113,7 +113,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should automatically disable queries with unresolved path parameters', () => {
-      const query = api.useQuery(QueryOperationId.getPet, () => ({ petId: undefined }))
+      const query = api.getPet.useQuery(() => ({ petId: undefined }))
 
       expect(query).toBeTruthy()
       expect(query).toHaveProperty('isEnabled')
@@ -121,9 +121,9 @@ describe('API Usage Patterns', () => {
     })
 
     it('should generate correct query keys', () => {
-      const listQuery = api.useQuery(QueryOperationId.listPets)
-      const petQuery = api.useQuery(QueryOperationId.getPet, { petId: '123' })
-      const userPetsQuery = api.useQuery(QueryOperationId.listUserPets, { userId: 'user1' })
+      const listQuery = api.listPets.useQuery()
+      const petQuery = api.getPet.useQuery({ petId: '123' })
+      const userPetsQuery = api.listUserPets.useQuery({ userId: 'user1' })
 
       expect(listQuery.queryKey).toBeTruthy()
       expect(petQuery.queryKey.value).toEqual(['pets', '123'])
@@ -132,7 +132,7 @@ describe('API Usage Patterns', () => {
 
     it('should support custom error handlers', () => {
       const errorHandler = vi.fn()
-      const query = api.useQuery(QueryOperationId.listPets, {
+      const query = api.listPets.useQuery({
         errorHandler,
       })
 
@@ -143,8 +143,8 @@ describe('API Usage Patterns', () => {
 
     it('should support onLoad callbacks for immediate data access', () => {
       const onLoad = vi.fn()
-      const query = api.useQuery(
-        QueryOperationId.getPet,
+      const query = api.getPet.useQuery(
+        
         { petId: '123' },
         {
           onLoad,
@@ -159,7 +159,7 @@ describe('API Usage Patterns', () => {
 
   describe('Mutation Usage Patterns', () => {
     it('should create a mutation for POST operations', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet)
+      const mutation = api.createPet.useMutation()
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -167,7 +167,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should create a mutation with path parameters', () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
+      const mutation = api.updatePet.useMutation({ petId: '123' })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -178,7 +178,7 @@ describe('API Usage Patterns', () => {
 
     it('should create a mutation with options', () => {
       const onSuccess = vi.fn()
-      const mutation = api.useMutation(MutationOperationId.createPet, { onSuccess })
+      const mutation = api.createPet.useMutation({ onSuccess })
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -191,7 +191,7 @@ describe('API Usage Patterns', () => {
       const onSettled = vi.fn()
       const meta = { description: 'Creating a new pet' }
 
-      const mutation = api.useMutation(MutationOperationId.createPet, {
+      const mutation = api.createPet.useMutation({
         onSuccess,
         onError,
         onSettled,
@@ -205,7 +205,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support cache invalidation options', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet, {
+      const mutation = api.createPet.useMutation({
         invalidateOperations: [QueryOperationId.listPets],
         dontInvalidate: false,
         dontUpdateCache: false,
@@ -216,8 +216,8 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support complex invalidateOperations with path parameters', () => {
-      const mutation = api.useMutation(
-        MutationOperationId.updatePet,
+      const mutation = api.updatePet.useMutation(
+        
         { petId: '123' },
         {
           invalidateOperations: {
@@ -232,8 +232,8 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support refetching specific endpoints after mutation', () => {
-      const petListQuery = api.useQuery(QueryOperationId.listPets)
-      const createPetWithRefetch = api.useMutation(MutationOperationId.createPet, {
+      const petListQuery = api.listPets.useQuery()
+      const createPetWithRefetch = api.createPet.useMutation({
         refetchEndpoints: [petListQuery],
       })
 
@@ -242,7 +242,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should handle mutations without data variables', () => {
-      const deleteEndpoint = api.useMutation(MutationOperationId.deletePet, { petId: '123' })
+      const deleteEndpoint = api.deletePet.useMutation({ petId: '123' })
 
       // Should have mutateAsync functions
       expect(typeof deleteEndpoint.mutateAsync).toBe('function')
@@ -257,7 +257,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support axios options in mutate calls', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet)
+      const mutation = api.createPet.useMutation()
 
       expect(() => {
         mutation.mutate({
@@ -273,7 +273,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should handle path parameter overrides in mutate calls', () => {
-      const mutation = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
+      const mutation = api.updatePet.useMutation({ petId: '123' })
 
       expect(() => {
         mutation.mutate({
@@ -287,7 +287,7 @@ describe('API Usage Patterns', () => {
   describe('Reactive Parameters and Conditional Enabling', () => {
     it('should support reactive path parameters with refs', () => {
       const reactiveParams = ref({ petId: '123' })
-      const query = api.useQuery(QueryOperationId.getPet, reactiveParams)
+      const query = api.getPet.useQuery(reactiveParams)
 
       expect(query).toBeTruthy()
       expect(query.queryKey).toBeDefined()
@@ -296,8 +296,8 @@ describe('API Usage Patterns', () => {
     it('should reactively enable/disable queries based on parameter availability', () => {
       const selectedPetId = ref<string | undefined>(undefined)
 
-      const petQuery = api.useQuery(
-        QueryOperationId.getPet,
+      const petQuery = api.getPet.useQuery(
+        
         computed(() => ({ petId: selectedPetId.value })),
         {
           enabled: computed(() => Boolean(selectedPetId.value)),
@@ -315,8 +315,8 @@ describe('API Usage Patterns', () => {
     it('should support chaining queries where one provides ID for another', () => {
       const selectedUserId = ref<string>('user1')
 
-      const userPetsQuery = api.useQuery(
-        QueryOperationId.listUserPets,
+      const userPetsQuery = api.getPet.useQuery(
+        
         computed(() => ({ userId: selectedUserId.value })),
         {
           enabled: computed(() => Boolean(selectedUserId.value)),
@@ -331,8 +331,8 @@ describe('API Usage Patterns', () => {
       const userId = ref<string>('user1')
       const shouldFetchPets = ref(true)
 
-      const userPetsQuery = api.useQuery(
-        QueryOperationId.listUserPets,
+      const userPetsQuery = api.getPet.useQuery(
+        
         computed(() => ({ userId: userId.value })),
         {
           enabled: computed(() => Boolean(userId.value) && shouldFetchPets.value),
@@ -345,7 +345,7 @@ describe('API Usage Patterns', () => {
 
     it('should handle reactive parameters with mutations', () => {
       const reactiveParams = ref({ petId: '123' })
-      const mutation = api.useMutation(MutationOperationId.updatePet, reactiveParams)
+      const mutation = api.updatePet.useMutation(reactiveParams)
 
       expect(mutation).toBeTruthy()
       expect(mutation).toHaveProperty('mutate')
@@ -357,7 +357,7 @@ describe('API Usage Patterns', () => {
       let userId: string | undefined = undefined
 
       // Create query with reactive function for path params
-      const myQuery = api.useQuery(QueryOperationId.listUserPets, () => ({ userId }))
+      const myQuery = api.listUserPets.useQuery(() => ({ userId }))
 
       // Initially, the path should not be resolved (contains {userId})
       expect(myQuery.isEnabled.value).toBe(false)
@@ -378,7 +378,7 @@ describe('API Usage Patterns', () => {
       let petId: string | undefined = undefined
 
       // Create mutation endpoint with reactive path params
-      const updateEndpoint = api.useMutation(MutationOperationId.updatePet, () => ({ petId }))
+      const updateEndpoint = api.updatePet.useMutation(() => ({ petId }))
 
       // Initially should be disabled due to unresolved path params
       expect(updateEndpoint.isEnabled.value).toBe(false)
@@ -401,7 +401,7 @@ describe('API Usage Patterns', () => {
         includeArchived: includeArchived.value,
       }))
 
-      const userQuery = api.useQuery(QueryOperationId.listUserPets, dynamicParams)
+      const userQuery = api.listUserPets.useQuery(dynamicParams)
 
       expect(userQuery).toBeTruthy()
       expect(userQuery.isEnabled).toBeDefined()
@@ -456,7 +456,7 @@ describe('API Usage Patterns', () => {
       const isOnline = ref(true)
 
       // Create queries with reactive enabling
-      const petListQuery = api.useQuery(QueryOperationId.listPets, {
+      const petListQuery = api.listPets.useQuery({
         enabled: computed(() => isOnline.value),
         staleTime: 60000,
         refetchOnWindowFocus: false,
@@ -465,8 +465,8 @@ describe('API Usage Patterns', () => {
         },
       })
 
-      const petQuery = api.useQuery(
-        QueryOperationId.getPet,
+      const petQuery = api.getPet.useQuery(
+        
         computed(() => ({ petId: selectedPetId.value })),
         {
           enabled: computed(() => Boolean(selectedPetId.value) && isOnline.value),
@@ -477,7 +477,7 @@ describe('API Usage Patterns', () => {
       )
 
       // Create mutations with advanced options
-      const createPet = api.useMutation(MutationOperationId.createPet, {
+      const createPet = api.createPet.useMutation({
         onSuccess: async () => {
           // Auto-refetch the list after creation
           await petListQuery.refetch()
@@ -488,8 +488,8 @@ describe('API Usage Patterns', () => {
         },
       })
 
-      const updatePet = api.useMutation(
-        MutationOperationId.updatePet,
+      const updatePet = api.updatePet.useMutation(
+        
         computed(() => ({ petId: selectedPetId.value })),
         {
           dontInvalidate: false, // Allow automatic invalidation
@@ -512,7 +512,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support default automatic cache invalidation workflows', () => {
-      const createPet = api.useMutation(MutationOperationId.createPet, {
+      const createPet = api.createPet.useMutation({
         onSuccess: () => {
           // onSuccess callback is configured
           expect(true).toBe(true)
@@ -524,8 +524,8 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support manual control over cache invalidation workflows', () => {
-      const updatePet = api.useMutation(
-        MutationOperationId.updatePet,
+      const updatePet = api.updatePet.useMutation(
+        
         { petId: '123' },
         {
           dontInvalidate: true, // Disable automatic invalidation
@@ -544,8 +544,8 @@ describe('API Usage Patterns', () => {
       const selectedPet = ref<string | undefined>(undefined)
 
       // User's pets query with conditional enabling
-      const userPetsQuery = api.useQuery(
-        QueryOperationId.listUserPets,
+      const userPetsQuery = api.getPet.useQuery(
+        
         computed(() => ({ userId: currentUser.value.id })),
         {
           enabled: computed(() => Boolean(currentUser.value?.id)),
@@ -554,8 +554,8 @@ describe('API Usage Patterns', () => {
       )
 
       // Selected pet details with conditional enabling
-      const petDetailsQuery = api.useQuery(
-        QueryOperationId.getPet,
+      const petDetailsQuery = api.getPet.useQuery(
+        
         computed(() => ({ petId: selectedPet.value })),
         {
           enabled: computed(() => Boolean(selectedPet.value)),
@@ -566,7 +566,7 @@ describe('API Usage Patterns', () => {
       )
 
       // Create pet mutation with comprehensive options
-      const createPetMutation = api.useMutation(MutationOperationId.createPet, {
+      const createPetMutation = api.createPet.useMutation({
         onSuccess: async (newPet: unknown, _variables: unknown) => {
           // Invalidate user's pets list
           await userPetsQuery.refetch()
@@ -587,8 +587,8 @@ describe('API Usage Patterns', () => {
       })
 
       // Update pet mutation with cache management
-      const updatePetMutation = api.useMutation(
-        MutationOperationId.updatePet,
+      const updatePetMutation = api.updatePet.useMutation(
+        
         computed(() => ({ petId: selectedPet.value })),
         {
           invalidateOperations: {
@@ -616,7 +616,7 @@ describe('API Usage Patterns', () => {
   describe('Error Handling Patterns', () => {
     it('should support error handling in queries with custom handlers', () => {
       const errorHandler = vi.fn()
-      const query = api.useQuery(QueryOperationId.listPets, {
+      const query = api.listPets.useQuery({
         errorHandler,
       })
 
@@ -626,7 +626,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should support error handling in mutations with callbacks', () => {
-      const mutation = api.useMutation(MutationOperationId.createPet, {
+      const mutation = api.createPet.useMutation({
         onError: vi.fn((error) => {
           console.log('Mutation error:', error)
         }),
@@ -637,7 +637,7 @@ describe('API Usage Patterns', () => {
     })
 
     it('should handle errors in async mutation calls', async () => {
-      const mutation = api.useMutation(MutationOperationId.createPet)
+      const mutation = api.createPet.useMutation()
 
       await expect(
         mutation

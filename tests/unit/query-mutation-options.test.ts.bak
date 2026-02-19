@@ -6,12 +6,13 @@ import { getHelpers } from '@/openapi-helpers'
 import { OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 import {
+  QueryOperationId,
+  MutationOperationId,
+  OpType,
   openApiOperations,
-  operationConfig,
   type OpenApiOperations,
   type ApiPathParams,
 } from '../fixtures/api-operations'
-import { type OpType } from '../fixtures/openapi-typed-operations'
 
 /**
  * Query and Mutation Options Testing
@@ -26,7 +27,7 @@ describe('Query and Mutation Options', () => {
   const mockOperations: OpenApiOperations = openApiOperations
 
   let mockConfig: OpenApiConfig<OpenApiOperations>
-  let api: ReturnType<typeof useOpenApi<OpenApiOperations, typeof operationConfig>>
+  let api: ReturnType<typeof useOpenApi<OpenApiOperations>>
   let helpers: ReturnType<typeof getHelpers<OpenApiOperations, keyof OpenApiOperations>>
 
   beforeEach(() => {

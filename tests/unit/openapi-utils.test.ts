@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { resolvePath, isPathResolved, generateQueryKey, normalizeParamsOptions } from '@/openapi-utils'
 import { QQueryOptions } from '@/types'
 
-import { type OpenApiOperations } from '../fixtures/openapi-typed-operations'
+import { type OpenApiOperations } from '../fixtures/api-operations'
 
 describe('openapi-utils', () => {
   describe('resolvePath', () => {

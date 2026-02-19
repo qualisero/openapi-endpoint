@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useOpenApi } from '@/index'
 import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from '../setup'
-import {
-  openApiOperations,
-  operationConfig,
-  type OpenApiOperations,
-} from '../fixtures/api-operations'
+import { openApiOperations, operationConfig, type OpenApiOperations } from '../fixtures/api-operations'
 
 /**
  * Consolidated Axios Configuration Tests
@@ -76,7 +72,8 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle axios options with path parameters', () => {
-      const query = api.getPet.useQuery({ petId: '123' },
+      const query = api.getPet.useQuery(
+        { petId: '123' },
         {
           axiosOptions: {
             headers: { Accept: 'application/json' },
@@ -85,7 +82,8 @@ describe('Axios Configuration Integration', () => {
         },
       )
 
-      const mutation = api.updatePet.useMutation({ petId: '123' },
+      const mutation = api.updatePet.useMutation(
+        { petId: '123' },
         {
           axiosOptions: {
             headers: { 'Content-Type': 'application/json' },
@@ -290,7 +288,8 @@ describe('Axios Configuration Integration', () => {
         return true
       }
 
-      const query = api.getPet.useQuery({ petId: '123' },
+      const query = api.getPet.useQuery(
+        { petId: '123' },
         {
           axiosOptions: {
             manualErrorHandling: customErrorHandler,
@@ -327,7 +326,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support axios options in mutateAsync calls', async () => {
-      const mutation = api.useMutation(createPet)
+      const mutation = api.createPet.useMutation()
 
       await expect(
         mutation.mutateAsync({
@@ -373,7 +372,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle complex custom properties in mutation calls', () => {
-      const mutation = api.useMutation(createPet)
+      const mutation = api.createPet.useMutation(
 
       expect(() => {
         mutation.mutate({
@@ -439,7 +438,7 @@ describe('Axios Configuration Integration', () => {
       }
 
       const apiWithGlobal = useOpenApi(configWithGlobalAxios)
-      const query = apiWithGlobal.useQuery(QueryOperationId.listPets, {
+      const query = apiWithGlobal.useQuery(listPets, {
         axiosOptions: {
           headers: { 'Request-Specific': 'request-value' },
         },
@@ -530,7 +529,8 @@ describe('Axios Configuration Integration', () => {
       const errorHandler = vi.fn()
       const onLoad = vi.fn()
 
-      const query = api.getPet.useQuery({ petId: '123' },
+      const query = api.getPet.useQuery(
+        { petId: '123' },
         {
           // Custom options
           errorHandler,
