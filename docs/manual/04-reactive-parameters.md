@@ -22,12 +22,10 @@ import { api } from './api/init'
 const selectedPetId = ref<string | null>(null)
 
 const { data: pet } = api.getPet.useQuery(
-api.getPet.useQuery(
   { petId: selectedPetId.value }, // Static value - won't refetch
 )
 
 const { data: reactivePet } = api.getPet.useQuery(
-api.getPet.useQuery(
   computed(() => ({ petId: selectedPetId.value })), // Reactive!
 )
 
@@ -44,8 +42,7 @@ import { api } from './api/init'
 const userId = ref('123')
 const includeArchived = ref(false)
 
-const { data: userPets } = api.getPet.useQuery(
-api.listUserPets.useQuery(
+const { data: userPets } = api.listUserPets.useQuery(
   computed(() => ({ userId: userId.value })), // Reactive path param
   {
     queryParams: computed(() => ({
@@ -122,8 +119,7 @@ import { api } from './api/init'
 const { data: user } = api.getUser.useQuery( { userId: '123' })
 
 // Second query depends on first query's result
-const { data: userPets } = api.getPet.useQuery(
-api.listUserPets.useQuery(
+const { data: userPets } = api.listUserPets.useQuery(
   computed(() => ({
     userId: user.value?.id, // Only runs when user is loaded
   })),
@@ -139,8 +135,7 @@ import { api } from './api/init'
 const selectedUserId = ref<string | undefined>(undefined)
 const shouldFetchPets = ref(true)
 
-const { data: userPets } = api.getPet.useQuery(
-api.listUserPets.useQuery(
+const { data: userPets } = api.listUserPets.useQuery(
   computed(() => {
     if (!selectedUserId.value || !shouldFetchPets.value) {
       return null // Return null to disable query
@@ -162,8 +157,7 @@ import { api } from './api/init'
 
 const isAuthenticated = ref(false)
 
-const { data: profile } = api.getPet.useQuery(
-  api.getProfile.useQuery(
+const { data: profile } = api.getProfile.useQuery(
   {},
   {
     enabled: computed(() => isAuthenticated.value),
@@ -184,8 +178,7 @@ import { api } from './api/init'
 
 const selectedPetId = ref('123')
 
-const updatePet = api.createPet.useMutation(
-api.updatePet.useMutation(
+const updatePet = api.updatePet.useMutation(
   { petId: selectedPetId.value }, // Not reactive - static value
 )
 
@@ -270,7 +263,6 @@ const showDetails = ref(false)
 const petId = ref('123')
 
 const { data: pet } = api.getPet.useQuery(
-api.getPet.useQuery(
   computed(() => {
     // Return null when details shouldn't be shown
     if (!showDetails.value) return null
@@ -295,7 +287,6 @@ const shouldLoad = ref(false)
 const petId = ref('123')
 
 const { data: pet, refetch } = api.getPet.useQuery(
-api.getPet.useQuery(
   computed(() => {
     if (!shouldLoad.value) return null
     return { petId: petId.value }

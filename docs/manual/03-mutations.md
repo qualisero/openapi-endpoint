@@ -50,7 +50,6 @@ import { api } from './api/init'
 
 // Mutation with query parameters
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   {},
   {
     queryParams: { userId: '456' },
@@ -102,9 +101,7 @@ try {
 ### Success Handler
 
 ```typescript
-
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   {},
   {
     onSuccess: (data, variables, context) => {
@@ -119,9 +116,7 @@ api.createPet.useMutation(
 ### Error Handler
 
 ```typescript
-
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   {},
   {
     onError: (error, variables, context) => {
@@ -138,9 +133,7 @@ api.createPet.useMutation(
 ### Settled Handler
 
 ```typescript
-
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   {},
   {
     onSettled: (data, error, variables, context) => {
@@ -159,8 +152,7 @@ import { api } from './api/init'
 
 const queryClient = useQueryClient()
 const petQuery = api.getPet.useQuery( { petId: '123' })
-const updatePet = api.createPet.useMutation(
-api.updatePet.useMutation(
+const updatePet = api.updatePet.useMutation(
   { petId: '123' },
   {
     onMutate: async (variables) => {
@@ -223,9 +215,7 @@ const createPet = api.createPet.useMutation({ petId: '123' })
 ### Disable Automatic Invalidation
 
 ```typescript
-
-const updatePet = api.createPet.useMutation(
-api.updatePet.useMutation(
+const updatePet = api.updatePet.useMutation(
   { petId: '123' },
   {
     dontInvalidate: true, // Don't auto-invalidate
@@ -237,15 +227,10 @@ api.updatePet.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
-
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   { petId: '123' },
   {
-    invalidateOperations: [
-    api.listPets.useQuery( // Invalidate specific operations
-      ["getUserPets"],
-    ],
+    invalidateOperations: ['listPets', 'getUserPets'],
   },
 )
 ```
@@ -253,10 +238,8 @@ api.createPet.useMutation(
 ### Manually Refetch Endpoints
 
 ```typescript
-
 const petListQuery = api.listPets.useQuery()
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   { petId: '123' },
   {
     refetchEndpoints: [petListQuery], // Refetch these endpoints
@@ -277,7 +260,6 @@ const name = ref('')
 const species = ref('cat')
 
 const createPet = api.createPet.useMutation(
-api.createPet.useMutation(
   {},
   {
     onSuccess: () => {
@@ -318,8 +300,7 @@ const handleSubmit = async () => {
 <script setup lang="ts">
 import { api } from './api/init'
 
-const deletePet = api.createPet.useMutation(
-api.deletePet.useMutation(
+const deletePet = api.deletePet.useMutation(
   { petId: '123' },
   {
     onSuccess: () => {
@@ -351,8 +332,7 @@ import { api } from './api/init'
 
 const petName = ref('Fluffy')
 
-const updatePet = api.createPet.useMutation(
-api.updatePet.useMutation(
+const updatePet = api.updatePet.useMutation(
   { petId: '123' },
   {
     onSuccess: (data) => {

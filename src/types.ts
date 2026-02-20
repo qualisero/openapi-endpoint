@@ -43,6 +43,26 @@ export function isMutationMethod(method: HttpMethod): boolean {
 export type ReactiveOr<T> = T | Ref<T> | ComputedRef<T> | (() => T)
 
 /**
+ * Constrains a getter function `F` so that its return type has no excess
+ * properties beyond the expected type `T`.
+ *
+ * Evaluates to `F` when the return type is valid, or `never` when the
+ * function returns unexpected extra properties — causing a type error at the
+ * call site.
+ *
+ * @example
+ * ```ts
+ * type PP = { petId: string | undefined }
+ * type F1 = () => { petId: string }         // NoExcessReturn<PP, F1> → F1   ✅
+ * type F2 = () => { petId: string; bad: 'x' } // NoExcessReturn<PP, F2> → never ❌
+ * ```
+ *
+ * @internal Used in generated `api-client.ts` to enforce strict path params on getter fns.
+ */
+export type NoExcessReturn<T extends Record<string, unknown>, F extends () => T> =
+  Exclude<keyof ReturnType<F>, keyof T> extends never ? F : never
+
+/**
  * Reactive value that excludes function getters.
  */
 export type ReactiveValue<T> = T | Ref<T> | ComputedRef<T>
@@ -281,7 +301,17 @@ type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] ext
   responses: { 200: { content: { 'application/json': infer Data } } }
 }
   ? Data
-  : unknown
+  : Ops[Op] extends { responses: { 201: { content: { 'application/json': infer Data } } } }
+    ? Data
+    : Ops[Op] extends { responses: { 202: { content: { 'application/json': infer Data } } } }
+      ? Data
+      : Ops[Op] extends { responses: { 203: { content: { 'application/json': infer Data } } } }
+        ? Data
+        : Ops[Op] extends { responses: { 204: { content: { 'application/json': infer Data } } } }
+          ? Data
+          : Ops[Op] extends { responses: { 206: { content: { 'application/json': infer Data } } } }
+            ? Data
+            : unknown
 
 /**
  * Extract the response data type (all fields required).

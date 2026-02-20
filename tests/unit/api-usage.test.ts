@@ -10,7 +10,7 @@ import type { Types } from '../fixtures/api-types'
  * API Usage Patterns and Examples
  *
  * This file consolidates all API usage patterns, from basic to advanced:
- * - Main composable API (useOpenApi)
+ * - Generated API client usage with createApiClient
  * - Query and mutation usage patterns
  * - Advanced composable functionality
  * - Integration examples and real-world scenarios
@@ -57,6 +57,20 @@ describe('API Usage Patterns', () => {
       expect(query).toHaveProperty('data')
       expect(query).toHaveProperty('isLoading')
       expect(query).toHaveProperty('queryKey')
+    })
+
+    it('should not accept unknown path parameters', () => {
+      // @ts-expect-error - unexpectedParam is not defined in getPet path params
+      api.getPet.useQuery({ petId: '123', unexpectedParam: 'value' })
+
+      // @ts-expect-error - unexpectedParam is not defined in updatePet path params
+      api.updatePet.useMutation({ petId: '123', unexpectedParam: 'value' })
+
+      // @ts-expect-error - unexpectedParam is not defined in getPet path params (getter fn)
+      api.getPet.useQuery(() => ({ petId: '123', unexpectedParam: 'value' }))
+
+      // @ts-expect-error - unexpectedParam is not defined in updatePet path params (getter fn)
+      api.updatePet.useMutation(() => ({ petId: '123', unexpectedParam: 'value' }))
     })
 
     it('should create a query with options', () => {
@@ -760,12 +774,22 @@ describe('API Usage Patterns', () => {
       // TypeScript should know response is AxiosResponse
       expect(response).toBeDefined()
 
-      // TypeScript should know response.data is of type Pet (when properly mocked)
-      // In mock environment, response.data may be undefined or empty object
       if (response.data) {
-        const pet: Types.createPet.Response = response.data as any
+        const pet = response.data
         expect(typeof pet.name).toBe('string')
       }
+
+      mutation
+        .mutateAsync({
+          data: { name: 'New Pet' },
+        })
+        .then((res) => {
+          expect(res).toBeDefined()
+          if (res.data) {
+            const pet = res.data
+            expect(typeof pet.name).toBe('string')
+          }
+        })
     })
 
     it('should correctly type onSuccess callback with response data', async () => {

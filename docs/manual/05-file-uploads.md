@@ -125,8 +125,7 @@ const uploadFile = async () => {
     const formData = new FormData()
     formData.append('file', file.value)
 
-    const uploadMutation = api.createPet.useMutation(
-      'uploadDocument',
+    const uploadMutation = api.uploadDocument.useMutation(
       {},
       {
         axiosOptions: {
@@ -226,8 +225,7 @@ const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.createPet.useMutation(
-    'uploadUserAvatar',
+  const uploadMutation = api.uploadUserAvatar.useMutation(
     { userId },
     {
       // Automatically invalidate related queries after upload
@@ -290,8 +288,7 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('file', file.value)
 
-  const uploadMutation = api.createPet.useMutation(
-    'uploadDocument',
+  const uploadMutation = api.uploadDocument.useMutation(
     {},
     {
       onSuccess: () => {
@@ -344,8 +341,7 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('avatar', file.value)
 
-  const uploadMutation = api.createPet.useMutation(
-    'uploadUserAvatar',
+  const uploadMutation = api.uploadUserAvatar.useMutation(
     { userId: '123' },
     {
       onSuccess: () => {

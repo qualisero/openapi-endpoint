@@ -53,9 +53,7 @@ You can pass additional options to customize query behavior:
 ### Enabled/Disabled Queries
 
 ```typescript
-
 const { data: pet } = api.getPet.useQuery(
-api.getPet.useQuery(
   { petId: '123' },
   {
     enabled: computed(() => Boolean(selectedPetId.value)),
@@ -68,9 +66,7 @@ api.getPet.useQuery(
 ### Stale Time
 
 ```typescript
-
-const { data: pets } = api.getPet.useQuery(
-api.listPets.useQuery(
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     staleTime: 60 * 1000, // 1 minute
@@ -83,9 +79,7 @@ api.listPets.useQuery(
 ### Garbage Collection Time (gcTime)
 
 ```typescript
-
-const { data: pets } = api.getPet.useQuery(
-api.listPets.useQuery(
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -98,9 +92,7 @@ api.listPets.useQuery(
 ### Retry Behavior
 
 ```typescript
-
-const { data: pets } = api.getPet.useQuery(
-api.listPets.useQuery(
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     retry: 3, // Retry failed requests 3 times
@@ -112,9 +104,7 @@ api.listPets.useQuery(
 ### Custom Success/Error Handlers
 
 ```typescript
-
-const { data: pets } = api.getPet.useQuery(
-api.listPets.useQuery(
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     onSuccess: (data) => {
@@ -199,8 +189,7 @@ const handleRefresh = () => {
 const { data: user } = api.getUser.useQuery( { userId: '123' })
 
 // Second query depends on first query's result
-const { data: userPets } = api.getPet.useQuery(
-api.listUserPets.useQuery(
+const { data: userPets } = api.listUserPets.useQuery(
   { userId: user.value?.id }, // Only fetches when user is loaded
   {
     enabled: computed(() => Boolean(user.value)),

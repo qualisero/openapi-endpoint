@@ -141,8 +141,7 @@ status.value = 'pending'
 // Query refetches with: GET /pets?limit=20&status=pending
 
 // Combine with path parameters
-const userPetsQuery = api.useQuery(
-  api.listUserPets.useQuery(
+const userPetsQuery = api.listUserPets.useQuery(
   computed(() => ({ userId: userId.value })),
   {
     queryParams: computed(() => ({
@@ -229,8 +228,7 @@ async function handleFileUpload(event: Event, petId: string) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const uploadMutation = api.useMutation(
-    api.uploadPetPic.useMutation(
+  const uploadMutation = api.uploadPetPic.useMutation(
     { petId },
     {
       invalidateOperations: ["getPet", "listPets"],
@@ -262,8 +260,7 @@ import { ref, computed } from 'vue'
 const userQuery = api.getUser.useQuery( { userId: 123 })
 
 // Second query that depends on the first query's result
-const userPetsQuery = api.useQuery(
-  api.listUserPets.useQuery(
+const userPetsQuery = api.listUserPets.useQuery(
   computed(() => ({
     userId: userQuery.data.value?.id, // Chain: use ID from first query
   })),
@@ -272,9 +269,7 @@ const userPetsQuery = api.useQuery(
 // Reactive parameter example
 const selectedPetId = ref<string | undefined>(undefined)
 
-const petQuery = api.getPet.useQuery({ petId: selectedPet.value })
-const petQuery = api.useQuery(
-  api.getPet.useQuery(
+const petQuery = api.getPet.useQuery(
   computed(() => ({ petId: selectedPetId.value })),
 )
 
@@ -289,8 +284,7 @@ console.log(petQuery.isEnabled.value) // true when selectedPetId.value is set
 const userId = ref<string>('user1')
 const shouldFetchPets = ref(true)
 
-const userPetsQuery = api.useQuery(
-  api.listUserPets.useQuery(
+const userPetsQuery = api.listUserPets.useQuery(
   computed(() => ({ userId: userId.value })),
   {
     enabled: computed(

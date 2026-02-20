@@ -12,6 +12,9 @@ import {
   type QueryReturn,
   type MutationReturn,
   type ReactiveOr,
+  type NoExcessReturn,
+  type Ref,
+  type ComputedRef,
   type QueryClientLike,
   type MaybeRefOrGetter,
 } from '@qualisero/openapi-endpoint'
@@ -103,9 +106,25 @@ function _queryNoParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
+  const useQuery = (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
+    useEndpointQuery<Response, Record<string, never>, QueryParams>({ ...base, ...cfg }, undefined, options)
+
   return {
-    useQuery: (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>({ ...base, ...cfg }, undefined, options),
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - `data`: The response data
+     * - `isLoading`: Whether the query is loading
+     * - `error`: Error object if the query failed
+     * - `refetch`: Function to manually trigger a refetch
+     * - `isPending`: Alias for isLoading
+     * - `status`: 'pending' | 'error' | 'success'
+     *
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery,
     enums,
   } as const
 }
@@ -124,12 +143,42 @@ function _queryWithParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
+  // Two-overload interface: non-function (exact via object-literal checking) +
+  // getter function (exact via NoExcessReturn constraint).
+  type _UseQuery = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
       options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams> =>
-      useEndpointQuery<Response, PathParams, QueryParams>({ ...base, ...cfg }, pathParams as _PathParamsCast, options),
+    ): QueryReturn<Response, PathParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams>
+  }
+
+  const _impl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: QueryOptions<Response, QueryParams>,
+  ): QueryReturn<Response, PathParams> =>
+    useEndpointQuery<Response, PathParams, QueryParams>({ ...base, ...cfg }, pathParams as _PathParamsCast, options)
+
+  return {
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - `data`: The response data
+     * - `isLoading`: Whether the query is loading
+     * - `error`: Error object if the query failed
+     * - `refetch`: Function to manually trigger a refetch
+     * - `isPending`: Alias for isLoading
+     * - `status`: 'pending' | 'error' | 'success'
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery: _impl as _UseQuery,
     enums,
   } as const
 }
@@ -147,15 +196,32 @@ function _mutationNoParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
+  const useMutation = (
+    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
+  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
+    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
   return {
-    useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
-    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        { ...base, ...cfg },
-        undefined,
-        options,
-      ),
+    /**
+     * Mutation hook for this operation.
+     *
+     * Returns an object with:
+     * - `mutate`: Synchronous mutation function (returns void)
+     * - `mutateAsync`: Async mutation function (returns Promise)
+     * - `data`: The response data
+     * - `isLoading`: Whether the mutation is in progress
+     * - `error`: Error object if the mutation failed
+     * - `isPending`: Alias for isLoading
+     * - `status`: 'idle' | 'pending' | 'error' | 'success'
+     *
+     * @param options - Mutation options (onSuccess, onError, etc.)
+     * @returns Mutation result object
+     */
+    useMutation,
     enums,
   } as const
 }
@@ -175,16 +241,47 @@ function _mutationWithParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
+  // Two-overload interface: non-function (exact via object-literal checking) +
+  // getter function (exact via NoExcessReturn constraint).
+  type _UseMutation = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, ...cfg },
-        pathParams as _PathParamsCast,
-        options,
-      ),
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+  }
+
+  const _impl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+  ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
+    useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  return {
+    /**
+     * Mutation hook for this operation.
+     *
+     * Returns an object with:
+     * - `mutate`: Synchronous mutation function (returns void)
+     * - `mutateAsync`: Async mutation function (returns Promise)
+     * - `data`: The response data
+     * - `isLoading`: Whether the mutation is in progress
+     * - `error`: Error object if the mutation failed
+     * - `isPending`: Alias for isLoading
+     * - `status`: 'idle' | 'pending' | 'error' | 'success'
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Mutation options (onSuccess, onError, etc.)
+     * @returns Mutation result object
+     */
+    useMutation: _impl as _UseMutation,
     enums,
   } as const
 }
@@ -217,76 +314,139 @@ function _mutationWithParams<Op extends AllOps>(
 export function createApiClient(axios: AxiosInstance, queryClient: QueryClientLike = defaultQueryClient) {
   const base: _Config = { axios, queryClient, operationsRegistry: _registry }
   return {
+    /**
+     * Create a new pet
+     * @param body - Request body type: NewPet
+     * @returns Response type: Pet
+     */
     createPet: _mutationNoParams<'createPet'>(
       base,
       { path: '/pets', method: HttpMethod.POST, listPath: '/pets' },
       createPet_enums,
     ),
+    /**
+     * Delete a pet
+     * @param pathParams - { petId: string }
+     */
     deletePet: _mutationWithParams<'deletePet'>(
       base,
       { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' },
       deletePet_enums,
     ),
+    /**
+     * Get config file (tests file extension handling)
+     */
     getConfigJson: _queryNoParams<'getConfigJson'>(
       base,
       { path: '/api/config.json', method: HttpMethod.GET, listPath: null },
       getConfigJson_enums,
     ),
+    /**
+     * Get data file with periods (tests period handling)
+     */
     getDataV1Json: _queryNoParams<'getDataV1Json'>(
       base,
       { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null },
       getDataV1Json_enums,
     ),
+    /**
+     * List all owners (no operationId)
+     */
     getOwners: _queryNoParams<'getOwners'>(
       base,
       { path: '/owners', method: HttpMethod.GET, listPath: null },
       getOwners_enums,
     ),
+    /**
+     * Get a pet by ID
+     * @param pathParams - { petId: string }
+     * @returns Response type: Pet
+     */
     getPet: _queryWithParams<'getPet'>(
       base,
       { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null },
       getPet_enums,
     ),
+    /**
+     * Get a pet by ID (no operationId)
+     * @param pathParams - { pet_id: string }
+     * @returns Response type: Pet
+     */
     getPetPetId: _queryWithParams<'getPetPetId'>(
       base,
       { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null },
       getPetPetId_enums,
     ),
+    /**
+     * List all pets
+     */
     listPets: _queryNoParams<'listPets'>(
       base,
       { path: '/pets', method: HttpMethod.GET, listPath: null },
       listPets_enums,
     ),
+    /**
+     * List pets for a specific user
+     * @param pathParams - { userId: string }
+     */
     listUserPets: _queryWithParams<'listUserPets'>(
       base,
       { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null },
       listUserPets_enums,
     ),
+    /**
+     * Create a new owner (no operationId)
+     */
     postOwners: _mutationNoParams<'postOwners'>(
       base,
       { path: '/owners', method: HttpMethod.POST, listPath: null },
       postOwners_enums,
     ),
+    /**
+     * Adopt a pet (no operationId)
+     * @param pathParams - { pet_id: string }
+     * @returns Response type: Pet
+     */
     postPetAdopt: _mutationWithParams<'postPetAdopt'>(
       base,
       { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null },
       postPetAdopt_enums,
     ),
+    /**
+     * Give treats to pets (no operationId, tests snake_case conversion)
+     */
     postPetGiveTreats: _mutationNoParams<'postPetGiveTreats'>(
       base,
       { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null },
       postPetGiveTreats_enums,
     ),
+    /**
+     * Update a pet
+     * @param pathParams - { petId: string }
+     * @param body - Request body type: NewPet
+     * @returns Response type: Pet
+     */
     updatePet: _mutationWithParams<'updatePet'>(
       base,
       { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' },
       updatePet_enums,
     ),
+    /**
+     * Partially update a pet (no operationId)
+     * @param pathParams - { pet_id: string }
+     * @param body - Request body type: NewPet
+     * @returns Response type: Pet
+     */
     updatePetPetId: _mutationWithParams<'updatePetPetId'>(
       base,
       { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' },
       updatePetPetId_enums,
     ),
+    /**
+     * Upload a picture for a pet
+     * @param pathParams - { petId: string }
+     * @returns Response type: Pet
+     */
     uploadPetPic: _mutationWithParams<'uploadPetPic'>(
       base,
       { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null },

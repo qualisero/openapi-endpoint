@@ -40,6 +40,12 @@ interface OpenAPISchema {
 interface OperationInfo {
   path: string
   method: HttpMethod
+  summary?: string
+  description?: string
+  pathParams?: Array<{ name: string; type: string }>
+  queryParams?: Array<{ name: string; type: string }>
+  requestBodySchema?: string // Schema name like "NewPet"
+  responseSchema?: string // Schema name like "Pet"
 }
 
 interface EnumInfo {
@@ -1030,15 +1036,31 @@ function _queryNoParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
+  const useQuery = (
+    options?: QueryOptions<Response, QueryParams>,
+  ): QueryReturn<Response, Record<string, never>> =>
+    useEndpointQuery<Response, Record<string, never>, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
   return {
-    useQuery: (
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, Record<string, never>> =>
-      useEndpointQuery<Response, Record<string, never>, QueryParams>(
-        { ...base, ...cfg },
-        undefined,
-        options,
-      ),
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the query is loading
+     * - \`error\`: Error object if the query failed
+     * - \`refetch\`: Function to manually trigger a refetch
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'pending' | 'error' | 'success'
+     *
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery,
     enums,
   } as const
 }
@@ -1057,16 +1079,46 @@ function _queryWithParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
-  return {
-    useQuery: (
-      pathParams: ReactiveOr<PathParamsInput>,
+  // Two-overload interface: non-function (exact via object-literal checking) +
+  // getter function (exact via NoExcessReturn constraint).
+  type _UseQuery = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
       options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams> =>
-      useEndpointQuery<Response, PathParams, QueryParams>(
-        { ...base, ...cfg },
-        pathParams as _PathParamsCast,
-        options,
-      ),
+    ): QueryReturn<Response, PathParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams>
+  }
+
+  const _impl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: QueryOptions<Response, QueryParams>,
+  ): QueryReturn<Response, PathParams> =>
+    useEndpointQuery<Response, PathParams, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  return {
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the query is loading
+     * - \`error\`: Error object if the query failed
+     * - \`refetch\`: Function to manually trigger a refetch
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'pending' | 'error' | 'success'
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery: _impl as _UseQuery,
     enums,
   } as const
 }
@@ -1084,15 +1136,32 @@ function _mutationNoParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
+  const useMutation = (
+    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
+  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
+    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
   return {
-    useMutation: (
-      options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
-    ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
-        { ...base, ...cfg },
-        undefined,
-        options,
-      ),
+    /**
+     * Mutation hook for this operation.
+     *
+     * Returns an object with:
+     * - \`mutate\`: Synchronous mutation function (returns void)
+     * - \`mutateAsync\`: Async mutation function (returns Promise)
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the mutation is in progress
+     * - \`error\`: Error object if the mutation failed
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'idle' | 'pending' | 'error' | 'success'
+     *
+     * @param options - Mutation options (onSuccess, onError, etc.)
+     * @returns Mutation result object
+     */
+    useMutation,
     enums,
   } as const
 }
@@ -1112,16 +1181,47 @@ function _mutationWithParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
-  return {
-    useMutation: (
-      pathParams: ReactiveOr<PathParamsInput>,
+  // Two-overload interface: non-function (exact via object-literal checking) +
+  // getter function (exact via NoExcessReturn constraint).
+  type _UseMutation = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
-      useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
-        { ...base, ...cfg },
-        pathParams as _PathParamsCast,
-        options,
-      ),
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+  }
+
+  const _impl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+  ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
+    useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  return {
+    /**
+     * Mutation hook for this operation.
+     *
+     * Returns an object with:
+     * - \`mutate\`: Synchronous mutation function (returns void)
+     * - \`mutateAsync\`: Async mutation function (returns Promise)
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the mutation is in progress
+     * - \`error\`: Error object if the mutation failed
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'idle' | 'pending' | 'error' | 'success'
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Mutation options (onSuccess, onError, etc.)
+     * @returns Mutation result object
+     */
+    useMutation: _impl as _UseMutation,
     enums,
   } as const
 }`
@@ -1129,8 +1229,9 @@ function _mutationWithParams<Op extends AllOps>(
   // createApiClient factory with operation calls
   const factoryCalls = ids
     .map((id) => {
-      const { path: apiPath, method } = operationMap[id]
-      const listPath = computeListPath(id, operationMap[id], operationMap)
+      const op = operationMap[id]
+      const { path: apiPath, method } = op
+      const listPath = computeListPath(id, op, operationMap)
       const listPathStr = listPath ? `'${listPath}'` : 'null'
       const query = isQuery(id)
       const withParams = hasPathParams(id)
@@ -1144,9 +1245,38 @@ function _mutationWithParams<Op extends AllOps>(
           ? '_mutationWithParams'
           : '_mutationNoParams'
 
-      return `    ${id}: ${helper}<'${id}'>(base, ${cfg}, ${id}_enums),`
+      // Build JSDoc comment
+      const docLines: string[] = []
+
+      // Summary/description
+      if (op.summary) {
+        docLines.push(op.summary)
+      }
+      if (op.description && op.description !== op.summary) {
+        docLines.push(op.description)
+      }
+
+      // Path parameters
+      if (op.pathParams && op.pathParams.length > 0) {
+        const paramList = op.pathParams.map((p) => `${p.name}: ${p.type}`).join(', ')
+        docLines.push(`@param pathParams - { ${paramList} }`)
+      }
+
+      // Request body
+      if (op.requestBodySchema) {
+        docLines.push(`@param body - Request body type: ${op.requestBodySchema}`)
+      }
+
+      // Response
+      if (op.responseSchema) {
+        docLines.push(`@returns Response type: ${op.responseSchema}`)
+      }
+
+      const jsDoc = docLines.length > 0 ? `\n    /**\n     * ${docLines.join('\n     * ')}\n     */` : ''
+
+      return `${jsDoc}\n    ${id}: ${helper}<'${id}'>(base, ${cfg}, ${id}_enums),`
     })
-    .join('\n')
+    .join('')
 
   // Enum imports
   const enumImports = ids.map((id) => `  ${id}_enums,`).join('\n')
@@ -1154,8 +1284,7 @@ function _mutationWithParams<Op extends AllOps>(
   // Type alias for AllOps
   const allOpsType = `type AllOps = keyof operations`
 
-  return `/* eslint-disable */
-// Auto-generated from OpenAPI specification - do not edit manually
+  return `// Auto-generated from OpenAPI specification - do not edit manually
 // Use \`createApiClient\` to instantiate a fully-typed API client.
 
 import type { AxiosInstance } from 'axios'
@@ -1169,6 +1298,9 @@ import {
   type QueryReturn,
   type MutationReturn,
   type ReactiveOr,
+  type NoExcessReturn,
+  type Ref,
+  type ComputedRef,
   type QueryClientLike,
   type MaybeRefOrGetter,
 } from '@qualisero/openapi-endpoint'
@@ -1318,10 +1450,74 @@ function buildOperationMap(openApiSpec: OpenAPISpec, excludePrefix: string | nul
   for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
     for (const [method, rawOp] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
-      const op = rawOp as OpenAPIOperation
+      const op = rawOp as OpenAPIOperation & {
+        summary?: string
+        description?: string
+        parameters?: Array<{ name: string; in: string; schema?: { type?: string; $ref?: string } }>
+        requestBody?: {
+          content?: {
+            'application/json'?: {
+              schema?: { $ref?: string; type?: string }
+            }
+          }
+        }
+        responses?: Record<
+          string,
+          {
+            content?: {
+              'application/json'?: {
+                schema?: { $ref?: string; type?: string }
+              }
+            }
+          }
+        >
+      }
       if (!op.operationId) continue
       if (excludePrefix && op.operationId.startsWith(excludePrefix)) continue
-      map[op.operationId] = { path: pathUrl, method: method.toUpperCase() as HttpMethod }
+
+      // Extract path and query parameters
+      const pathParams: Array<{ name: string; type: string }> = []
+      const queryParams: Array<{ name: string; type: string }> = []
+      if (op.parameters) {
+        for (const param of op.parameters) {
+          const type = param.schema?.type || 'string'
+          if (param.in === 'path') {
+            pathParams.push({ name: param.name, type })
+          } else if (param.in === 'query') {
+            queryParams.push({ name: param.name, type })
+          }
+        }
+      }
+
+      // Extract request body schema
+      let requestBodySchema: string | undefined
+      const reqBodyRef = op.requestBody?.content?.['application/json']?.schema?.$ref
+      if (reqBodyRef) {
+        requestBodySchema = reqBodyRef.split('/').pop()
+      }
+
+      // Extract response schema (from 200/201 responses)
+      let responseSchema: string | undefined
+      if (op.responses) {
+        for (const statusCode of ['200', '201']) {
+          const resRef = op.responses[statusCode]?.content?.['application/json']?.schema?.$ref
+          if (resRef) {
+            responseSchema = resRef.split('/').pop()
+            break
+          }
+        }
+      }
+
+      map[op.operationId] = {
+        path: pathUrl,
+        method: method.toUpperCase() as HttpMethod,
+        summary: op.summary,
+        description: op.description,
+        pathParams: pathParams.length > 0 ? pathParams : undefined,
+        queryParams: queryParams.length > 0 ? queryParams : undefined,
+        requestBodySchema,
+        responseSchema,
+      }
     }
   }
 
@@ -1469,15 +1665,14 @@ export type ApiPathParamsInput<K extends AllOps> = _ApiPathParamsInput<operation
 export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>`
 
   // Re-exports
+  // Use type-only wildcard export to avoid duplicate identifier errors
   const reExports =
     schemaEnumNames.length > 0
-      ? schemaEnumNames
-          .map((n) => `export { ${n} } from './api-enums'\nexport type { ${n} } from './api-enums'`)
-          .join('\n')
+      ? schemaEnumNames.map((n) => `export { ${n} } from './api-enums'`).join('\n') +
+        "\nexport type * from './api-enums'"
       : '// No schema-level enums to re-export'
 
-  return `/* eslint-disable */
-// Auto-generated from OpenAPI specification - do not edit manually
+  return `// Auto-generated from OpenAPI specification - do not edit manually
 
 import type { operations } from './openapi-types'
 import { HttpMethod } from '@qualisero/openapi-endpoint'
