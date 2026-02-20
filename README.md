@@ -54,14 +54,14 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/gener
 
 Generated files:
 
-| File | Description |
-|------|-------------|
-| `api-client.ts` | `createApiClient` factory (main entry point) |
-| `api-operations.ts` | Operations map and type helpers |
-| `api-types.ts` | Type namespace for response/request types |
-| `api-enums.ts` | Schema enums |
-| `api-schemas.ts` | Schema type aliases |
-| `openapi-types.ts` | Raw OpenAPI types |
+| File                | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `api-client.ts`     | `createApiClient` factory (main entry point) |
+| `api-operations.ts` | Operations map and type helpers              |
+| `api-types.ts`      | Type namespace for response/request types    |
+| `api-enums.ts`      | Schema enums                                 |
+| `api-schemas.ts`    | Schema type aliases                          |
+| `openapi-types.ts`  | Raw OpenAPI types                            |
 
 ## API Reference
 
@@ -133,6 +133,7 @@ const mutation = api.createPet.useMutation({
 ### Return Types
 
 **Query Return:**
+
 ```typescript
 {
   data: ComputedRef<T | undefined>
@@ -146,6 +147,7 @@ const mutation = api.createPet.useMutation({
 ```
 
 **Mutation Return:**
+
 ```typescript
 {
   data: ComputedRef<AxiosResponse<T> | undefined>
@@ -161,11 +163,11 @@ const mutation = api.createPet.useMutation({
 
 ```typescript
 import type {
-  ApiResponse,      // Response type (all fields required)
-  ApiResponseSafe,  // Response with optional fields
-  ApiRequest,       // Request body type
-  ApiPathParams,    // Path parameters type
-  ApiQueryParams,   // Query parameters type
+  ApiResponse, // Response type (all fields required)
+  ApiResponseSafe, // Response with optional fields
+  ApiRequest, // Request body type
+  ApiPathParams, // Path parameters type
+  ApiQueryParams, // Query parameters type
 } from './generated/api-operations'
 
 // ApiResponse - ALL fields required

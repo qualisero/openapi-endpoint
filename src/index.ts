@@ -67,4 +67,5 @@ export { HttpMethod, QUERY_METHODS, MUTATION_METHODS, isQueryMethod, isMutationM
 // ============================================================================
 // Re-export Vue types (ensures consumer's version is used)
 // ============================================================================
-export type { MaybeRefOrGetter, Ref, ComputedRef } from 'vue'
+export type { Ref, ComputedRef } from 'vue'
+export type { MaybeRefOrGetter } from '@vue/reactivity'
