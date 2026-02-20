@@ -1288,6 +1288,7 @@ function _mutationWithParams<Op extends AllOps>(
 // Use \`createApiClient\` to instantiate a fully-typed API client.
 
 import type { AxiosInstance } from 'axios'
+import type { Ref, ComputedRef } from 'vue'
 import {
   useEndpointQuery,
   useEndpointMutation,
@@ -1299,8 +1300,6 @@ import {
   type MutationReturn,
   type ReactiveOr,
   type NoExcessReturn,
-  type Ref,
-  type ComputedRef,
   type QueryClientLike,
   type MaybeRefOrGetter,
 } from '@qualisero/openapi-endpoint'
