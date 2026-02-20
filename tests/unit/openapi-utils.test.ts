@@ -2,8 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { resolvePath, isPathResolved, generateQueryKey, normalizeParamsOptions } from '@/openapi-utils'
 import { QQueryOptions } from '@/types'
 
-import { type OpenApiOperations } from '../fixtures/api-operations'
-
 describe('openapi-utils', () => {
   describe('resolvePath', () => {
     it('should return path unchanged when no params provided', () => {
@@ -87,7 +85,7 @@ describe('openapi-utils', () => {
   describe('normalizeParamsOptions', () => {
     it('should return provided path params and options', () => {
       const pathParams = { petId: '123' }
-      const options: QQueryOptions<OpenApiOperations, 'getPet'> = {
+      const options: QQueryOptions<unknown, Record<string, never>> = {
         enabled: true,
         onLoad: vi.fn(),
       }
@@ -99,14 +97,14 @@ describe('openapi-utils', () => {
     })
 
     it('should default to empty params and options when omitted', () => {
-      const result = normalizeParamsOptions<Record<string, never>, QQueryOptions<OpenApiOperations, 'listPets'>>()
+      const result = normalizeParamsOptions<Record<string, never>, QQueryOptions<unknown, Record<string, never>>>()
 
       expect(result.pathParams).toEqual({})
       expect(result.options).toEqual({})
     })
 
     it('should allow options without path params', () => {
-      const options: QQueryOptions<OpenApiOperations, 'listPets'> = {
+      const options: QQueryOptions<unknown, Record<string, never>> = {
         enabled: true,
       }
 

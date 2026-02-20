@@ -4,16 +4,9 @@
 
 ```typescript
 // api/init.ts
-import { useOpenApi } from '@qualisero/openapi-endpoint'
-import { openApiOperations, operationConfig } from './generated/api-operations'
+import { createApiClient } from '@qualisero/openapi-endpoint'
 
-const api = useOpenApi(
-  {
-    operations: openApiOperations,
-    axios: axios.create({ baseURL: 'https://api.example.com' }),
-  },
-  operationConfig,
-)
+const api = createApiClient(axios.create({ baseURL: 'https://api.example.com' }))
 ```
 
 ## Queries (GET/HEAD/OPTIONS)

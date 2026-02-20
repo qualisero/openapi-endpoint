@@ -15,7 +15,6 @@ File uploads use the `multipart/form-data` content type, which allows sending bi
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 async function uploadAvatar(userId: string, file: File) {
   const formData = new FormData()

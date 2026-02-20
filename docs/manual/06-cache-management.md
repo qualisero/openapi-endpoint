@@ -16,7 +16,6 @@ Queries automatically cache their results based on:
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.listPets.useQuery()
 
@@ -51,7 +50,6 @@ await createPet.mutateAsync({
 `staleTime` determines how long data is considered "fresh":
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(
@@ -76,7 +74,6 @@ api.listPets.useQuery(
 `gcTime` (formerly `cacheTime`) determines how long data stays in memory:
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(
@@ -130,7 +127,6 @@ refetch()
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // Get the query client instance
 const queryClient = useQueryClient()
@@ -155,7 +151,6 @@ queryClient.invalidateQueries({
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const petQuery = api.getPet.useQuery({ petId: '123' })
@@ -175,7 +170,6 @@ queryClient.setQueryData(petQuery.queryKey.value, {
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const petsQuery = api.listPets.useQuery()
@@ -193,7 +187,6 @@ if (cachedPets) {
 ### Disable Automatic Invalidation
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const updatePet = api.createPet.useMutation(
 api.updatePet.useMutation(
@@ -207,7 +200,6 @@ api.updatePet.useMutation(
 ### Disable Automatic Cache Updates
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const updatePet = api.createPet.useMutation(
 api.updatePet.useMutation(
@@ -221,7 +213,6 @@ api.updatePet.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const createPet = api.createPet.useMutation(
 api.createPet.useMutation(
@@ -239,7 +230,6 @@ api.createPet.useMutation(
 ### Refetch Specific Endpoints
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const petListQuery = api.listPets.useQuery()
 const userPetsQuery = api.getUserPets.useQuery( { userId: '123' })
@@ -265,7 +255,6 @@ Optimistic updates show UI changes immediately, then rollback if the mutation fa
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const petQueryKey = ['pets', '123']
@@ -315,7 +304,6 @@ await updatePet.mutateAsync({
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const listQueryKey = ['pets']
@@ -357,7 +345,6 @@ Load data before it's needed:
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 
@@ -379,7 +366,6 @@ const handleMouseEnter = () => {
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const page = ref(1)
@@ -415,7 +401,6 @@ const loadNextPage = () => {
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const petQueryKey = ['pets', '123']

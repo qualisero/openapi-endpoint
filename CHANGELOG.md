@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning (https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING**: Simplified API client initialization with `createApiClient()` factory
+  - Removed two-argument `useOpenApi(config, operationConfig)` function
+  - New API: `createApiClient(axios, queryClient?)`
+  - No need for `operationConfig` - configuration is embedded in generated code
+  - See updated README.md and documentation for migration guide
+
+### Removed
+
+- `operationConfig` parameter from API initialization
+- `openapi-typed-operations.ts` file generation (replaced by `api-client.ts`)
+- Two-argument `useOpenApi` overload
+
+### Added
+
+- `api-client.ts` generated file with `createApiClient()` factory
+- Operation namespace pattern: `api.getPet.useQuery()`, `api.createPet.useMutation()`
+- Embedded per-operation configuration in generated code
+- Simplified type extraction helpers
+
 ## [0.13.2] - 2026-02-19
 
 ### Changed

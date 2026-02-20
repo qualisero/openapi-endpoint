@@ -14,7 +14,6 @@ import type {
 export type { operations }
 
 export { PetStatus } from './api-enums'
-export type { PetStatus } from './api-enums'
 
 // ============================================================================
 // Per-operation enum values

@@ -12,7 +12,6 @@ Queries are used for fetching data from your API. They wrap TanStack Query's `us
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // Simple query that fetches data on mount
 const { data: pets, isLoading, error, refetch } = api.listPets.useQuery()
@@ -26,7 +25,6 @@ console.log(error.value) // Error object if request failed
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // Query with required path parameter
 const { data: pet } = api.getPet.useQuery({ petId: '123' })
@@ -38,7 +36,6 @@ console.log(pet.value) // Pet with id '123'
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Query with query parameters - use enum for type safety
@@ -56,7 +53,6 @@ You can pass additional options to customize query behavior:
 ### Enabled/Disabled Queries
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pet } = api.getPet.useQuery(
 api.getPet.useQuery(
@@ -72,7 +68,6 @@ api.getPet.useQuery(
 ### Stale Time
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(
@@ -88,7 +83,6 @@ api.listPets.useQuery(
 ### Garbage Collection Time (gcTime)
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(
@@ -104,7 +98,6 @@ api.listPets.useQuery(
 ### Retry Behavior
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(
@@ -119,7 +112,6 @@ api.listPets.useQuery(
 ### Custom Success/Error Handlers
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const { data: pets } = api.getPet.useQuery(
 api.listPets.useQuery(

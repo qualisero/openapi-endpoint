@@ -18,7 +18,6 @@ Reactive parameters allow your API calls to automatically refetch when their dep
 ```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const selectedPetId = ref<string | null>(null)
 
@@ -41,7 +40,6 @@ selectedPetId.value = '123' // Triggers refetch
 ```typescript
 import { computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const userId = ref('123')
 const includeArchived = ref(false)
@@ -68,7 +66,6 @@ includeArchived.value = true // Refetches with ?includeArchived=true
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 const searchTerm = ref('')
@@ -120,7 +117,6 @@ const prevPage = () => {
 ```typescript
 import { computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // First query
 const { data: user } = api.getUser.useQuery( { userId: '123' })
@@ -139,7 +135,6 @@ api.listUserPets.useQuery(
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const selectedUserId = ref<string | undefined>(undefined)
 const shouldFetchPets = ref(true)
@@ -164,7 +159,6 @@ shouldFetchPets.value = false // Disables query
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const isAuthenticated = ref(false)
 
@@ -187,7 +181,6 @@ isAuthenticated.value = true // Starts fetching
 ```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const selectedPetId = ref('123')
 
@@ -272,7 +265,6 @@ filters.value.sortOrder = 'desc'
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const showDetails = ref(false)
 const petId = ref('123')
@@ -298,7 +290,6 @@ const toggleDetails = () => {
 ```typescript
 import { ref, computed } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const shouldLoad = ref(false)
 const petId = ref('123')

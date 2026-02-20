@@ -39,11 +39,12 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
 
 This will generate the following files in your specified output directory:
 
-- `openapi-types.ts` - TypeScript type definitions for your API
-- `api-operations.ts` - Operations map with `operationConfig` (includes enum configs)
-- `api-types.ts` - Types namespace for convenient type access
+- `openapi-types.ts` - TypeScript type definitions for your API (via openapi-typescript)
+- `api-client.ts` - Fully-typed createApiClient factory (main file to use)
+- `api-operations.ts` - Operations map and type helper aliases
+- `api-types.ts` - Types namespace for convenient type-only access
 - `api-enums.ts` - Schema enums (if present in your OpenAPI spec)
-- `api-schemas.ts` - Schema aliases (if present in your OpenAPI spec)
+- `api-schemas.ts` - Schema type aliases (if present in your OpenAPI spec)
 
 ## Usage
 
@@ -51,27 +52,42 @@ This will generate the following files in your specified output directory:
 
 ```typescript
 // api/init.ts
-import { useOpenApi } from '@qualisero/openapi-endpoint'
-import { openApiOperations, operationConfig } from './generated/api-operations'
+import { createApiClient } from '@qualisero/openapi-endpoint'
 import axios from 'axios'
 
 const axiosInstance = axios.create({
   baseURL: 'https://api.example.com',
 })
 
-// Initialize the package with the auto-generated operations
-const api = useOpenApi(
-  {
-    operations: openApiOperations,
-    axios: axiosInstance,
-  },
-  operationConfig,
-)
+// Create a fully-typed API client
+const api = createApiClient(axiosInstance)
 
 export default api
 ```
 
-````
+### Optional: Custom QueryClient
+
+```typescript
+// api/init.ts
+import { createApiClient } from '@qualisero/openapi-endpoint'
+import { QueryClient } from '@tanstack/vue-query'
+import axios from 'axios'
+
+const axiosInstance = axios.create({
+  baseURL: 'https://api.example.com',
+})
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 5 * 60 * 1000 }, // 5 minutes
+  },
+})
+
+// Create API client with custom QueryClient
+const api = createApiClient(axiosInstance, queryClient)
+
+export default api
+```
 
 ### 2. Use the API in your components
 
@@ -81,7 +97,7 @@ import { api } from './api/init'
 
 // Use queries for GET operations
 const { data: pets, isLoading } = api.listPets.useQuery()
-const { data: pet } = api.getPet.useQuery( { petId: '123' })
+const { data: pet } = api.getPet.useQuery({ petId: '123' })
 
 // Use mutations for POST/PUT/PATCH/DELETE operations
 const createPetMutation = api.createPet.useMutation()
@@ -90,7 +106,7 @@ const createPetMutation = api.createPet.useMutation()
 await createPetMutation.mutateAsync({
   data: { name: 'Fluffy', species: 'cat' },
 })
-````
+```
 
 ## Advanced Usage
 

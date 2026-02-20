@@ -12,7 +12,6 @@ Mutations are used for creating, updating, or deleting data on your API. They wr
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // Simple mutation for creating data
 const createPet = api.createPet.useMutation({
@@ -48,7 +47,6 @@ await updatePet.mutateAsync({
 
 ```typescript
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 // Mutation with query parameters
 const createPet = api.createPet.useMutation(
@@ -104,7 +102,6 @@ try {
 ### Success Handler
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const createPet = api.createPet.useMutation(
 api.createPet.useMutation(
@@ -122,7 +119,6 @@ api.createPet.useMutation(
 ### Error Handler
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const createPet = api.createPet.useMutation(
 api.createPet.useMutation(
@@ -142,7 +138,6 @@ api.createPet.useMutation(
 ### Settled Handler
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const createPet = api.createPet.useMutation(
 api.createPet.useMutation(
@@ -161,7 +156,6 @@ api.createPet.useMutation(
 ```typescript
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const queryClient = useQueryClient()
 const petQuery = api.getPet.useQuery( { petId: '123' })
@@ -229,7 +223,6 @@ const createPet = api.createPet.useMutation({ petId: '123' })
 ### Disable Automatic Invalidation
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const updatePet = api.createPet.useMutation(
 api.updatePet.useMutation(
@@ -244,7 +237,6 @@ api.updatePet.useMutation(
 ### Specify Operations to Invalidate
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const createPet = api.createPet.useMutation(
 api.createPet.useMutation(
@@ -261,7 +253,6 @@ api.createPet.useMutation(
 ### Manually Refetch Endpoints
 
 ```typescript
-import { operationConfig } from './api/generated/api-operations'
 
 const petListQuery = api.listPets.useQuery()
 const createPet = api.createPet.useMutation(
@@ -281,7 +272,6 @@ api.createPet.useMutation(
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const name = ref('')
 const species = ref('cat')
@@ -327,7 +317,6 @@ const handleSubmit = async () => {
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const deletePet = api.createPet.useMutation(
 api.deletePet.useMutation(
@@ -359,7 +348,6 @@ const handleDelete = async () => {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { operationConfig } from './api/generated/api-operations'
 
 const petName = ref('Fluffy')
 
