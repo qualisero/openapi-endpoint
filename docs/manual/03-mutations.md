@@ -151,7 +151,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { api } from './api/init'
 
 const queryClient = useQueryClient()
-const petQuery = api.getPet.useQuery( { petId: '123' })
+const petQuery = api.getPet.useQuery({ petId: '123' })
 const updatePet = api.updatePet.useMutation(
   { petId: '123' },
   {

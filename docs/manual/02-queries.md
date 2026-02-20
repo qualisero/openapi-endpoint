@@ -186,7 +186,7 @@ const handleRefresh = () => {
 
 ```typescript
 // First query
-const { data: user } = api.getUser.useQuery( { userId: '123' })
+const { data: user } = api.getUser.useQuery({ userId: '123' })
 
 // Second query depends on first query's result
 const { data: userPets } = api.listUserPets.useQuery(

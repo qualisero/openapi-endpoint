@@ -3,21 +3,38 @@
 [![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=1763799820)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero/openapi-endpoint)](https://bundlephobia.com/package/@qualisero/openapi-endpoint)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero%2Fopenapi-endpoint)](https://bundlephobia.com/package/@qualisero%2Fopenapi-endpoint)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
 
-Turns your `openapi.json` into typesafe API composables using Vue Query (TanStack Query): guaranteeing that your frontend and backend share the same contract.
+Type-safe API composables for Vue using TanStack Query. Generate fully-typed API clients from your OpenAPI specification.
 
-## Overview
-
-Let's you get TanStack Vue Query composables that enforce consistency (name of endpoints, typing) with your API's `openapi.json` file:
+## Quick Start
 
 ```typescript
-const { data, isLoading } = api.getPet.useQuery({ petId: '123' })
+// 1. Generate types from your OpenAPI spec
+npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 
-const createPetMutation = api.createPet.useMutation()
-createPetMutation.mutate({ data: { name: 'Fluffy', species: 'cat' } })
+// 2. Initialize the API client
+import { createApiClient } from '@qualisero/openapi-endpoint'
+import axios from 'axios'
+
+const api = createApiClient(axios.create({ baseURL: 'https://api.example.com' }))
+
+// 3. Use in your Vue components
+const { data: pets, isLoading } = api.listPets.useQuery()
+const { data: pet } = api.getPet.useQuery({ petId: '123' })
+
+const createPet = api.createPet.useMutation()
+await createPet.mutateAsync({ data: { name: 'Fluffy', species: 'cat' } })
 ```
+
+## Features
+
+- **Fully typed** - Operations, parameters, and responses type-checked against your OpenAPI spec
+- **Reactive parameters** - Query params automatically refetch when values change
+- **Automatic cache management** - Mutations invalidate and update related queries
+- **Vue 3 + TanStack Query** - Built on proven reactive patterns
+- **File uploads** - Support for multipart/form-data endpoints
 
 ## Installation
 
@@ -27,296 +44,167 @@ npm install @qualisero/openapi-endpoint
 
 ## Code Generation
 
-This package includes a command-line tool to generate TypeScript types and operation definitions from your OpenAPI specification:
-
 ```bash
-# Generate from local file
+# From local file
 npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 
-# Generate from remote URL
-npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
+# From remote URL
+npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/generated
 ```
 
-This will generate the following files in your specified output directory:
+Generated files:
 
-- `openapi-types.ts` - TypeScript type definitions for your API (via openapi-typescript)
-- `api-client.ts` - Fully-typed createApiClient factory (main file to use)
-- `api-operations.ts` - Operations map and type helper aliases
-- `api-types.ts` - Types namespace for convenient type-only access
-- `api-enums.ts` - Schema enums (if present in your OpenAPI spec)
-- `api-schemas.ts` - Schema type aliases (if present in your OpenAPI spec)
+| File | Description |
+|------|-------------|
+| `api-client.ts` | `createApiClient` factory (main entry point) |
+| `api-operations.ts` | Operations map and type helpers |
+| `api-types.ts` | Type namespace for response/request types |
+| `api-enums.ts` | Schema enums |
+| `api-schemas.ts` | Schema type aliases |
+| `openapi-types.ts` | Raw OpenAPI types |
 
-## Usage
+## API Reference
 
-### 1. Initialize the package
+### Initialization
 
 ```typescript
-// api/init.ts
 import { createApiClient } from '@qualisero/openapi-endpoint'
 import axios from 'axios'
 
-const axiosInstance = axios.create({
-  baseURL: 'https://api.example.com',
-})
-
-// Create a fully-typed API client
-const api = createApiClient(axiosInstance)
-
-export default api
+const api = createApiClient(axiosInstance, queryClient?)
 ```
 
-### Optional: Custom QueryClient
+### Queries (GET/HEAD/OPTIONS)
 
 ```typescript
-// api/init.ts
-import { createApiClient } from '@qualisero/openapi-endpoint'
-import { QueryClient } from '@tanstack/vue-query'
-import axios from 'axios'
+// No parameters
+const { data, isLoading, error, refetch } = api.listPets.useQuery()
 
-const axiosInstance = axios.create({
-  baseURL: 'https://api.example.com',
+// With path parameters
+const { data } = api.getPet.useQuery({ petId: '123' })
+
+// With query parameters
+const { data } = api.listPets.useQuery({
+  queryParams: { limit: 10, status: 'available' },
 })
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000 }, // 5 minutes
-  },
-})
-
-// Create API client with custom QueryClient
-const api = createApiClient(axiosInstance, queryClient)
-
-export default api
-```
-
-### 2. Use the API in your components
-
-```typescript
-// In your Vue components
-import { api } from './api/init'
-
-// Use queries for GET operations
-const { data: pets, isLoading } = api.listPets.useQuery()
-const { data: pet } = api.getPet.useQuery({ petId: '123' })
-
-// Use mutations for POST/PUT/PATCH/DELETE operations
-const createPetMutation = api.createPet.useMutation()
-
-// Execute mutations
-await createPetMutation.mutateAsync({
-  data: { name: 'Fluffy', species: 'cat' },
-})
-```
-
-## Advanced Usage
-
-### Reactive Query Parameters
-
-The library supports type-safe, reactive query parameters that automatically trigger refetches when their values change:
-
-```typescript
-import { ref, computed } from 'vue'
-import { api } from './api/init'
-
-// Static query parameters
-const { data: pets } = api.listPets.useQuery( {
-  queryParams: { limit: 10 },
-})
-// Results in: GET /pets?limit=10
-
-// Reactive query parameters with computed
+// Reactive parameters
 const limit = ref(10)
-const status = ref<'available' | 'pending' | 'sold'>('available')
+const { data } = api.listPets.useQuery({
+  queryParams: computed(() => ({ limit: limit.value })),
+})
+// Automatically refetches when limit.value changes
 
-const petsQuery = api.listPets.useQuery( {
-  queryParams: computed(() => ({
-    limit: limit.value,
-    status: status.value,
-  })),
+// With options
+const { data, onLoad } = api.listPets.useQuery({
+  enabled: computed(() => isLoggedIn.value),
+  staleTime: 5000,
+  onLoad: (data) => console.log('Loaded:', data),
 })
 
-// When limit or status changes, query automatically refetches
-limit.value = 20
-status.value = 'pending'
-// Query refetches with: GET /pets?limit=20&status=pending
-
-// Combine with path parameters
-const userPetsQuery = api.listUserPets.useQuery(
-  computed(() => ({ userId: userId.value })),
-  {
-    queryParams: computed(() => ({
-      includeArchived: includeArchived.value,
-    })),
-  },
-)
-// Results in: GET /users/user-123/pets?includeArchived=false
+// onLoad callback method
+const query = api.getPet.useQuery({ petId: '123' })
+query.onLoad((pet) => console.log('Pet:', pet.name))
 ```
 
-**Key Features:**
-
-- **Type-safe**: Query parameters are typed based on your OpenAPI specification
-- **Reactive**: Supports `ref`, `computed`, and function-based values
-- **Automatic refetch**: Changes to query params trigger automatic refetch via TanStack Query's key mechanism
-- **Backward compatible**: Works alongside existing `axiosOptions.params`
-
-### Automatic Cache Management and Refetching
-
-By default, mutations automatically:
-
-1. Update cache for matching queries with returned data
-2. Invalidate them to trigger a reload
-3. Invalidate matching list endpoints
+### Mutations (POST/PUT/PATCH/DELETE)
 
 ```typescript
-// Default behavior: automatic cache management
+// Simple mutation
 const createPet = api.createPet.useMutation()
-// No additional configuration needed - cache management is automatic
+await createPet.mutateAsync({ data: { name: 'Fluffy' } })
 
-// Manual control over cache invalidation
-const updatePet = api.updatePet.useMutation({
-  dontInvalidate: true, // Disable automatic invalidation
-  dontUpdateCache: true, // Disable automatic cache updates
-  invalidateOperations: ['listPets'], // Manually specify operations to invalidate
-})
+// With path parameters
+const updatePet = api.updatePet.useMutation({ petId: '123' })
+await updatePet.mutateAsync({ data: { name: 'Updated' } })
 
-// Refetch specific endpoints after mutation
-const petListQuery = api.listPets.useQuery()
-const createPetWithRefetch = api.createPet.useMutation({
-  refetchEndpoints: [petListQuery], // Manually refetch these endpoints
+// Override path params at call time
+const deletePet = api.deletePet.useMutation()
+await deletePet.mutateAsync({ pathParams: { petId: '123' } })
+
+// With options
+const mutation = api.createPet.useMutation({
+  dontInvalidate: true,
+  invalidateOperations: ['listPets'],
+  onSuccess: (response) => console.log('Created:', response.data),
 })
 ```
 
-### File Upload Support with Multipart/Form-Data
+### Return Types
 
-The library supports file uploads through endpoints that accept `multipart/form-data` content type. For these endpoints, you can pass either a `FormData` object or the schema-defined object structure:
-
+**Query Return:**
 ```typescript
-// Example file upload endpoint usage
-async function uploadPetPicture(petId: string, file: File) {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const uploadMutation = api.uploadPetPic.useMutation( { petId })
-
-  return uploadMutation.mutateAsync({
-    data: formData,
-    axiosOptions: {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-  })
-}
-
-// Alternative: using the object structure (if your API supports binary strings)
-async function uploadPetPictureAsString(petId: string, binaryData: string) {
-  const uploadMutation = api.uploadPetPic.useMutation( { petId })
-
-  return uploadMutation.mutateAsync({
-    data: {
-      file: binaryData, // Binary data as string
-    },
-  })
-}
-
-// Complete example with error handling and cache invalidation
-async function handleFileUpload(event: Event, petId: string) {
-  const files = (event.target as HTMLInputElement).files
-  if (!files || files.length === 0) return
-
-  const file = files[0]
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const uploadMutation = api.uploadPetPic.useMutation(
-    { petId },
-    {
-      invalidateOperations: ["getPet", "listPets"],
-      onSuccess: (data) => {
-        console.log('Upload successful:', data)
-      },
-      onError: (error) => {
-        console.error('Upload failed:', error)
-      },
-    },
-  )
-
-  try {
-    await uploadMutation.mutateAsync({ data: formData })
-  } catch (error) {
-    console.error('Upload error:', error)
-  }
+{
+  data: ComputedRef<T | undefined>
+  isLoading: ComputedRef<boolean>
+  error: ComputedRef<Error | null>
+  isEnabled: ComputedRef<boolean>
+  queryKey: ComputedRef<unknown[]>
+  onLoad: (cb: (data: T) => void) => void
+  refetch: () => Promise<void>
 }
 ```
 
-### Reactive Enabling/Disabling Based on Path Parameters
-
-You can chain queries where one query provides the parameters for another:
-
+**Mutation Return:**
 ```typescript
-import { ref, computed } from 'vue'
-
-// First query to get user information
-const userQuery = api.getUser.useQuery( { userId: 123 })
-
-// Second query that depends on the first query's result
-const userPetsQuery = api.listUserPets.useQuery(
-  computed(() => ({
-    userId: userQuery.data.value?.id, // Chain: use ID from first query
-  })),
-)
-
-// Reactive parameter example
-const selectedPetId = ref<string | undefined>(undefined)
-
-const petQuery = api.getPet.useQuery(
-  computed(() => ({ petId: selectedPetId.value })),
-)
-
-// Query is automatically disabled when petId is null/undefined
-console.log(petQuery.isEnabled.value) // false when selectedPetId.value is null
-
-// Enable the query by setting the parameter
-selectedPetId.value = '123'
-console.log(petQuery.isEnabled.value) // true when selectedPetId.value is set
-
-// Complex conditional enabling
-const userId = ref<string>('user1')
-const shouldFetchPets = ref(true)
-
-const userPetsQuery = api.listUserPets.useQuery(
-  computed(() => ({ userId: userId.value })),
-  {
-    enabled: computed(
-      () => shouldFetchPets.value, // Additional business logic
-    ),
-  },
-)
+{
+  data: ComputedRef<AxiosResponse<T> | undefined>
+  isPending: ComputedRef<boolean>
+  error: ComputedRef<Error | null>
+  mutate: (vars) => void
+  mutateAsync: (vars) => Promise<AxiosResponse>
+  extraPathParams: Ref<PathParams> // for dynamic path params
+}
 ```
 
-### Reactive Query Parameters with Refs
+### Type Helpers
 
 ```typescript
-import { ref } from 'vue'
+import type {
+  ApiResponse,      // Response type (all fields required)
+  ApiResponseSafe,  // Response with optional fields
+  ApiRequest,       // Request body type
+  ApiPathParams,    // Path parameters type
+  ApiQueryParams,   // Query parameters type
+} from './generated/api-operations'
 
-// Use reactive query parameters
-const limit = ref(10)
-const petsQuery = api.listPets.useQuery({
-  queryParams: { limit: limit.value },
+// ApiResponse - ALL fields required
+type PetResponse = ApiResponse<OpType.getPet>
+// { readonly id: string, name: string, tag: string, status: 'available' | ... }
+
+// ApiResponseSafe - only readonly required, others optional
+type PetResponseSafe = ApiResponseSafe<OpType.getPet>
+// { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
+```
+
+### Enums
+
+The CLI generates type-safe enum constants:
+
+```typescript
+import { PetStatus } from './generated/api-enums'
+
+// Use enum for intellisense and typo safety
+const { data } = api.listPets.useQuery({
+  queryParams: { status: PetStatus.Available },
 })
 
-// When limit changes, the query automatically refetches
-limit.value = 20 // Query refetches with new parameter
-// Results in: GET /pets?limit=20
+// Still works with string literals
+const { data } = api.listPets.useQuery({
+  queryParams: { status: 'available' }, // also valid
+})
 ```
 
-## API Documentation
+## Documentation
 
-Full API documentation is available at [https://qualisero.github.io/openapi-endpoint/](https://qualisero.github.io/openapi-endpoint/). The documentation includes detailed information about all methods, types, and configuration options.
+For detailed guides, see [docs/manual/](docs/manual/):
 
-## Contributing
-
-Contributions are welcome! Please read our contributing guidelines and ensure all tests pass.
+- [Getting Started](docs/manual/01-getting-started.md)
+- [Queries](docs/manual/02-queries.md)
+- [Mutations](docs/manual/03-mutations.md)
+- [Reactive Parameters](docs/manual/04-reactive-parameters.md)
+- [File Uploads](docs/manual/05-file-uploads.md)
+- [Cache Management](docs/manual/06-cache-management.md)
 
 ## License
 
