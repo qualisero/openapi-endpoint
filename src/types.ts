@@ -64,6 +64,7 @@ export type NoExcessReturn<T extends Record<string, unknown>, F extends () => T>
 
 /**
  * Reactive value that excludes function getters.
+ * @internal Used for internal type inference.
  */
 export type ReactiveValue<T> = T | Ref<T> | ComputedRef<T>
 
@@ -373,50 +374,3 @@ export type ApiQueryParams<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] e
     ? { [K in keyof QueryParams]?: QueryParams[K] }
     : Record<string, never>
   : Record<string, never>
-
-// ============================================================================
-// Legacy / compat type aliases (kept for external consumers)
-// ============================================================================
-
-/**
- * @deprecated Use `QueryOptions` instead.
- */
-export type QQueryOptions<
-  TResponse,
-  TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = QueryOptions<TResponse, TQueryParams>
-
-/**
- * @deprecated Use `MutationOptions` instead.
- */
-export type QMutationOptions<
-  TResponse,
-  TPathParams extends Record<string, unknown>,
-  TRequest,
-  TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = MutationOptions<TResponse, TPathParams, TRequest, TQueryParams>
-
-/**
- * @deprecated Use `MutationVars` instead.
- */
-export type QMutationVars<
-  TPathParams extends Record<string, unknown>,
-  TRequest,
-  TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = MutationVars<TPathParams, TRequest, TQueryParams>
-
-/**
- * Validates that path parameters have no excess properties.
- * @internal
- */
-export type HasExcessPathParams<Provided extends Record<string, unknown>, Expected extends Record<string, unknown>> =
-  Exclude<keyof Provided, keyof Expected> extends never ? true : false
-
-/**
- * Error type shown when an operation requires path parameters but none were provided.
- * @internal
- */
-export type RequiresPathParameters<Op extends string> = {
-  readonly __error: `Operation '${Op}' requires path parameters as the first argument`
-  readonly __fix: 'Provide path parameters as the first argument'
-}

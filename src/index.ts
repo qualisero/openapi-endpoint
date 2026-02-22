@@ -8,8 +8,8 @@ export { defaultQueryClient } from './openapi-helpers'
 // ============================================================================
 // Return types (used in component / composable signatures)
 // ============================================================================
-export type { QueryReturn, EndpointQueryReturn } from './openapi-query'
-export type { MutationReturn, EndpointMutationReturn } from './openapi-mutation'
+export type { QueryReturn } from './openapi-query'
+export type { MutationReturn } from './openapi-mutation'
 
 // ============================================================================
 // Option types (used in component / composable signatures)
@@ -34,7 +34,6 @@ export type {
 
   // Reactive helpers
   ReactiveOr,
-  ReactiveValue,
   NoExcessReturn,
 
   // Axios
@@ -50,13 +49,6 @@ export type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
-
-  // Legacy compat aliases
-  HasExcessPathParams,
-  RequiresPathParameters,
-  QQueryOptions,
-  QMutationOptions,
-  QMutationVars,
 } from './types'
 
 // ============================================================================

@@ -40,14 +40,6 @@ export interface QueryReturn<TResponse, TPathParams extends Record<string, unkno
 }
 
 /**
- * @deprecated Use `QueryReturn` instead.
- */
-export type EndpointQueryReturn<
-  TResponse,
-  TPathParams extends Record<string, unknown> = Record<string, never>,
-> = QueryReturn<TResponse, TPathParams>
-
-/**
  * Execute a type-safe query (GET/HEAD/OPTIONS) with automatic caching.
  *
  * This is a low-level primitive — in normal usage it is called by the generated

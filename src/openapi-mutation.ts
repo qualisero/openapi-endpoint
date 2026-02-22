@@ -61,16 +61,6 @@ export interface MutationReturn<
 }
 
 /**
- * @deprecated Use `MutationReturn` instead.
- */
-export type EndpointMutationReturn<
-  TResponse,
-  TPathParams extends Record<string, unknown> = Record<string, never>,
-  TRequest = never,
-  TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = MutationReturn<TResponse, TPathParams, TRequest, TQueryParams>
-
-/**
  * Execute a type-safe mutation (POST/PUT/PATCH/DELETE) with automatic cache management.
  *
  * This is a low-level primitive — in normal usage it is called by the generated
