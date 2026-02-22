@@ -15,13 +15,12 @@ File uploads use the `multipart/form-data` content type, which allows sending bi
 
 ```typescript
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 async function uploadAvatar(userId: string, file: File) {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.useMutation(MutationOperationId.uploadUserAvatar, { userId })
+  const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -44,7 +43,7 @@ async function uploadDocument(userId: string, file: File, description: string) {
   formData.append('document', file)
   formData.append('description', description)
 
-  const uploadMutation = api.useMutation(MutationOperationId.uploadUserDocument, { userId })
+  const uploadMutation = api.uploadUserDocument.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -75,7 +74,7 @@ const uploadAvatar = async (userId: string, file: File) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const uploadMutation = api.useMutation(MutationOperationId.uploadUserAvatar, { userId })
+    const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
     await uploadMutation.mutateAsync({
       data: formData,
     })
@@ -126,8 +125,7 @@ const uploadFile = async () => {
     const formData = new FormData()
     formData.append('file', file.value)
 
-    const uploadMutation = api.useMutation(
-      'uploadDocument',
+    const uploadMutation = api.uploadDocument.useMutation(
       {},
       {
         axiosOptions: {
@@ -176,7 +174,7 @@ async function uploadMultipleFiles(userId: string, files: File[]) {
     // formData.append('files', file)
   })
 
-  const uploadMutation = api.useMutation(MutationOperationId.uploadUserFiles, { userId })
+  const uploadMutation = api.uploadUserFiles.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: formData,
@@ -197,7 +195,7 @@ Some APIs accept binary data as string instead of FormData:
 import { api } from './api/init'
 
 async function uploadBinaryData(userId: string, binaryString: string) {
-  const uploadMutation = api.useMutation(MutationOperationId.uploadUserAvatar, { userId })
+  const uploadMutation = api.uploadUserAvatar.useMutation({ userId })
 
   return uploadMutation.mutateAsync({
     data: {
@@ -221,14 +219,13 @@ reader.readAsBinaryString(file)
 ```typescript
 import { api } from './api/init'
 
-const { data: userProfile } = api.useQuery(QueryOperationId.getUserProfile, { userId: '123' })
+const { data: userProfile } = api.getUserProfile.useQuery({ userId: '123' })
 
 const uploadAvatar = async (userId: string, file: File) => {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const uploadMutation = api.useMutation(
-    'uploadUserAvatar',
+  const uploadMutation = api.uploadUserAvatar.useMutation(
     { userId },
     {
       // Automatically invalidate related queries after upload
@@ -291,8 +288,7 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('file', file.value)
 
-  const uploadMutation = api.useMutation(
-    'uploadDocument',
+  const uploadMutation = api.uploadDocument.useMutation(
     {},
     {
       onSuccess: () => {
@@ -345,8 +341,7 @@ const uploadFile = async () => {
   const formData = new FormData()
   formData.append('avatar', file.value)
 
-  const uploadMutation = api.useMutation(
-    'uploadUserAvatar',
+  const uploadMutation = api.uploadUserAvatar.useMutation(
     { userId: '123' },
     {
       onSuccess: () => {

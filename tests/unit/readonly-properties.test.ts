@@ -9,26 +9,20 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { useOpenApi } from '@/index'
-import { type OpenApiConfig } from '@/types'
 import { mockAxios } from '../setup'
 import {
-  QueryOperationId,
-  MutationOperationId,
-  OpType,
-  openApiOperations,
-  type OpenApiOperations,
   type ApiResponse,
   type ApiResponseSafe,
   type ApiRequest,
   type ApiPathParams,
   type ApiQueryParams,
-} from '../fixtures/openapi-typed-operations'
+} from '../fixtures/api-operations'
+import { createApiClient } from '../fixtures/api-client'
 import { PetStatus } from '../fixtures/api-enums'
 
 describe('ApiResponse - Response Types (All Fields Required)', () => {
   it('should make readonly id REQUIRED in ApiResponse', () => {
-    type PetResponse = ApiResponse<OpType.getPet>
+    type PetResponse = ApiResponse<'getPet'>
 
     const response: PetResponse = {
       id: 'readonly-uuid',
@@ -46,7 +40,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
   })
 
   it('should make ALL fields required, including optional ones', () => {
-    type PetResponse = ApiResponse<OpType.getPet>
+    type PetResponse = ApiResponse<'getPet'>
 
     // @ts-expect-error - Property 'tag' is missing
     const _missingTag: PetResponse = {
@@ -75,7 +69,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
   })
 
   it('should allow direct access to all fields without null check', () => {
-    type PetResponse = ApiResponse<OpType.getPet>
+    type PetResponse = ApiResponse<'getPet'>
 
     const response: PetResponse = {
       id: 'uuid-123',
@@ -97,7 +91,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
   })
 
   it('should work with list operations returning arrays', () => {
-    type ListResponse = ApiResponse<OpType.listPets>
+    type ListResponse = ApiResponse<'listPets'>
 
     const pets: ListResponse = [
       { id: 'uuid-1', name: 'Fluffy', tag: 'friendly', status: PetStatus.Available },
@@ -111,7 +105,7 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
 
 describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   it('should make only readonly id REQUIRED, others optional', () => {
-    type PetResponse = ApiResponseSafe<OpType.getPet>
+    type PetResponse = ApiResponseSafe<'getPet'>
 
     // Valid: only readonly id and required name
     const minimal: PetResponse = {
@@ -136,7 +130,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should still require readonly id', () => {
-    type PetResponse = ApiResponseSafe<OpType.getPet>
+    type PetResponse = ApiResponseSafe<'getPet'>
 
     // @ts-expect-error - Property 'id' is missing (readonly is required)
     const _noId: PetResponse = {
@@ -145,7 +139,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should require null checks for optional fields', () => {
-    type PetResponse = ApiResponseSafe<OpType.getPet>
+    type PetResponse = ApiResponseSafe<'getPet'>
 
     const pet: PetResponse = {
       id: 'uuid',
@@ -172,7 +166,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should accept enum values for status when provided', () => {
-    type PetResponse = ApiResponseSafe<OpType.getPet>
+    type PetResponse = ApiResponseSafe<'getPet'>
 
     const available: PetResponse = { id: '1', name: 'Pet', status: PetStatus.Available }
     const pending: PetResponse = { id: '2', name: 'Pet', status: PetStatus.Pending }
@@ -187,7 +181,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should still accept string literals (backward compatibility)', () => {
-    type PetResponse = ApiResponseSafe<OpType.getPet>
+    type PetResponse = ApiResponseSafe<'getPet'>
 
     // String literals still work for backward compatibility
     const withStringLiteral: PetResponse = { id: '1', name: 'Pet', status: 'available' }
@@ -201,7 +195,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
 
 describe('ApiRequest - Mutation Request Bodies', () => {
   it('should EXCLUDE readonly id from ApiRequest', () => {
-    type CreateRequestBody = ApiRequest<OpType.createPet>
+    type CreateRequestBody = ApiRequest<'createPet'>
 
     const body: CreateRequestBody = {
       name: 'Fluffy',
@@ -215,7 +209,7 @@ describe('ApiRequest - Mutation Request Bodies', () => {
   })
 
   it('should allow all writable properties in request body', () => {
-    type CreateRequestBody = ApiRequest<OpType.createPet>
+    type CreateRequestBody = ApiRequest<'createPet'>
 
     const fullPet: CreateRequestBody = {
       name: 'Fluffy',
@@ -233,7 +227,7 @@ describe('ApiRequest - Mutation Request Bodies', () => {
   })
 
   it('should work the same for PUT operations', () => {
-    type UpdateRequestBody = ApiRequest<OpType.updatePet>
+    type UpdateRequestBody = ApiRequest<'updatePet'>
 
     const updateBody: UpdateRequestBody = {
       name: 'Updated Fluffy',
@@ -247,7 +241,7 @@ describe('ApiRequest - Mutation Request Bodies', () => {
   })
 
   it('should handle operations without request body', () => {
-    type DeleteRequest = ApiRequest<OpType.deletePet>
+    type DeleteRequest = ApiRequest<'deletePet'>
 
     // Should be never (no request body)
     const checkNever: DeleteRequest = undefined as never
@@ -256,8 +250,8 @@ describe('ApiRequest - Mutation Request Bodies', () => {
 })
 
 describe('ApiPathParams and ApiQueryParams', () => {
-  it('should use ApiPathParams<OpType.getPet> for path parameters', () => {
-    type Params = ApiPathParams<OpType.getPet>
+  it('should use ApiPathParams<"getPet"> for path parameters', () => {
+    type Params = ApiPathParams<'getPet'>
 
     const params: Params = {
       petId: '123',
@@ -269,8 +263,8 @@ describe('ApiPathParams and ApiQueryParams', () => {
     const _invalid: Params = { wrongParam: '123' }
   })
 
-  it('should use ApiQueryParams<OpType.listPets> for query parameters', () => {
-    type Params = ApiQueryParams<OpType.listPets>
+  it('should use ApiQueryParams<"listPets"> for query parameters', () => {
+    type Params = ApiQueryParams<'listPets'>
 
     const params: Params = {
       limit: 100,
@@ -280,7 +274,7 @@ describe('ApiPathParams and ApiQueryParams', () => {
   })
 
   it('should handle operations without path parameters', () => {
-    type Params = ApiPathParams<OpType.createPet>
+    type Params = ApiPathParams<'createPet'>
 
     const params: Params = {}
     expect(Object.keys(params)).toHaveLength(0)
@@ -290,9 +284,9 @@ describe('ApiPathParams and ApiQueryParams', () => {
 describe('OpType Namespace', () => {
   it('should prevent typos in operation IDs', () => {
     // @ts-expect-error - Property 'getPetzzz' does not exist
-    type _TypoResponse = ApiResponse<OpType.getPetzzz>
+    type _TypoResponse = ApiResponse<'getPetzzz'>
 
-    type CorrectResponse = ApiResponse<OpType.getPet>
+    type CorrectResponse = ApiResponse<'getPet'>
 
     const pet: CorrectResponse = {
       id: 'uuid',
@@ -305,12 +299,12 @@ describe('OpType Namespace', () => {
   })
 
   it('should work with both query and mutation operations', () => {
-    type GetResponse = ApiResponse<OpType.getPet>
+    type GetResponse = ApiResponse<'getPet'>
     const getPet: GetResponse = { id: 'uuid', name: 'Pet', tag: 't', status: PetStatus.Available }
     expect(getPet.id).toBe('uuid')
 
-    type CreateRequest = ApiRequest<OpType.createPet>
-    type CreateResponse = ApiResponse<OpType.createPet>
+    type CreateRequest = ApiRequest<'createPet'>
+    type CreateResponse = ApiResponse<'createPet'>
 
     const createBody: CreateRequest = { name: 'New Pet' }
     const createResponse: CreateResponse = { id: 'new-uuid', name: 'New Pet', tag: 't', status: PetStatus.Available }
@@ -320,15 +314,11 @@ describe('OpType Namespace', () => {
   })
 })
 
-describe('Integration with useOpenApi', () => {
-  const mockConfig: OpenApiConfig<OpenApiOperations> = {
-    operations: openApiOperations,
-    axios: mockAxios,
-  }
+describe('Integration with createApiClient', () => {
+  const api = createApiClient(mockAxios)
 
   it('should enforce type safety with useMutation', () => {
-    const api = useOpenApi(mockConfig)
-    const createPet = api.useMutation(MutationOperationId.createPet)
+    const createPet = api.createPet.useMutation()
 
     expect(createPet).toHaveProperty('mutate')
     expect(createPet).toHaveProperty('mutateAsync')
@@ -338,8 +328,7 @@ describe('Integration with useOpenApi', () => {
   })
 
   it('should enforce type safety with useMutation for updatePet', () => {
-    const api = useOpenApi(mockConfig)
-    const updatePet = api.useMutation(MutationOperationId.updatePet, { petId: '123' })
+    const updatePet = api.updatePet.useMutation({ petId: '123' })
 
     expect(updatePet).toBeTruthy()
 
@@ -348,22 +337,19 @@ describe('Integration with useOpenApi', () => {
   })
 
   it('should work with useQuery for listPets', () => {
-    const api = useOpenApi(mockConfig)
-    const listPets = api.useQuery(QueryOperationId.listPets)
+    const listPets = api.listPets.useQuery()
 
     expect(listPets).toHaveProperty('data')
   })
 
   it('should work with useQuery for getPet', () => {
-    const api = useOpenApi(mockConfig)
-    const getPet = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+    const getPet = api.getPet.useQuery({ petId: '123' })
 
     expect(getPet).toBeTruthy()
   })
 
   it('should return data with all fields required from useQuery', () => {
-    const api = useOpenApi(mockConfig)
-    const result = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+    const result = api.getPet.useQuery({ petId: '123' })
 
     // ApiResponse makes ALL fields required
     if (result.data.value) {

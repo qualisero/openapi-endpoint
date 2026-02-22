@@ -12,10 +12,9 @@ Queries are used for fetching data from your API. They wrap TanStack Query's `us
 
 ```typescript
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Simple query that fetches data on mount
-const { data: pets, isLoading, error, refetch } = api.useQuery(QueryOperationId.listPets)
+const { data: pets, isLoading, error, refetch } = api.listPets.useQuery()
 
 console.log(pets.value) // Array of pets
 console.log(isLoading.value) // true while fetching
@@ -26,10 +25,9 @@ console.log(error.value) // Error object if request failed
 
 ```typescript
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 // Query with required path parameter
-const { data: pet } = api.useQuery(QueryOperationId.getPet, { petId: '123' })
+const { data: pet } = api.getPet.useQuery({ petId: '123' })
 
 console.log(pet.value) // Pet with id '123'
 ```
@@ -38,11 +36,10 @@ console.log(pet.value) // Pet with id '123'
 
 ```typescript
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Query with query parameters - use enum for type safety
-const { data: pets } = api.useQuery(QueryOperationId.listPets, {
+const { data: pets } = api.listPets.useQuery({
   queryParams: { limit: 10, status: PetStatus.Available },
 })
 
@@ -56,10 +53,7 @@ You can pass additional options to customize query behavior:
 ### Enabled/Disabled Queries
 
 ```typescript
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
-
-const { data: pet } = api.useQuery(
-  QueryOperationId.getPet,
+const { data: pet } = api.getPet.useQuery(
   { petId: '123' },
   {
     enabled: computed(() => Boolean(selectedPetId.value)),
@@ -72,10 +66,7 @@ const { data: pet } = api.useQuery(
 ### Stale Time
 
 ```typescript
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
-
-const { data: pets } = api.useQuery(
-  QueryOperationId.listPets,
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     staleTime: 60 * 1000, // 1 minute
@@ -88,10 +79,7 @@ const { data: pets } = api.useQuery(
 ### Garbage Collection Time (gcTime)
 
 ```typescript
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
-
-const { data: pets } = api.useQuery(
-  QueryOperationId.listPets,
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -104,10 +92,7 @@ const { data: pets } = api.useQuery(
 ### Retry Behavior
 
 ```typescript
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
-
-const { data: pets } = api.useQuery(
-  QueryOperationId.listPets,
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     retry: 3, // Retry failed requests 3 times
@@ -119,10 +104,7 @@ const { data: pets } = api.useQuery(
 ### Custom Success/Error Handlers
 
 ```typescript
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
-
-const { data: pets } = api.useQuery(
-  QueryOperationId.listPets,
+const { data: pets } = api.listPets.useQuery(
   {},
   {
     onSuccess: (data) => {
@@ -161,7 +143,7 @@ interface QueryResult {
 <script setup lang="ts">
 import { api } from './api/init'
 
-const { data: pets, isLoading, error } = api.useQuery(QueryOperationId.listPets)
+const { data: pets, isLoading, error } = api.listPets.useQuery()
 </script>
 
 <template>
@@ -185,7 +167,7 @@ const { data: pets, isLoading, error } = api.useQuery(QueryOperationId.listPets)
 <script setup lang="ts">
 import { api } from './api/init'
 
-const { data: pets, refetch, isFetching } = api.useQuery(QueryOperationId.listPets)
+const { data: pets, refetch, isFetching } = api.listPets.useQuery()
 
 const handleRefresh = () => {
   refetch()
@@ -204,11 +186,10 @@ const handleRefresh = () => {
 
 ```typescript
 // First query
-const { data: user } = api.useQuery(QueryOperationId.getUser, { userId: '123' })
+const { data: user } = api.getUser.useQuery({ userId: '123' })
 
 // Second query depends on first query's result
-const { data: userPets } = api.useQuery(
-  QueryOperationId.listUserPets,
+const { data: userPets } = api.listUserPets.useQuery(
   { userId: user.value?.id }, // Only fetches when user is loaded
   {
     enabled: computed(() => Boolean(user.value)),

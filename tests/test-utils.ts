@@ -1,15 +1,6 @@
 import { vi, expect } from 'vitest'
-import { useOpenApi } from '@/index'
-import { OpenApiConfig, type OpenApiInstance } from '@/types'
 import { mockAxios } from './setup'
-import {
-  QueryOperationId,
-  MutationOperationId,
-  OperationId,
-  AllOperationIds,
-  openApiOperations,
-  type OpenApiOperations,
-} from './fixtures/openapi-typed-operations'
+import { createApiClient } from './fixtures/api-client'
 
 /**
  * Shared Test Utilities and Fixtures
@@ -22,19 +13,11 @@ import {
  * Creates a standard API instance with mock configuration
  */
 export function createTestApiInstance(): {
-  api: OpenApiInstance<OpenApiOperations>
-  mockConfig: OpenApiConfig<OpenApiOperations>
+  api: ReturnType<typeof createApiClient>
 } {
   vi.clearAllMocks()
-
-  const mockConfig: OpenApiConfig<OpenApiOperations> = {
-    operations: openApiOperations,
-    axios: mockAxios,
-  }
-
-  const api = useOpenApi(mockConfig)
-
-  return { api, mockConfig }
+  const api = createApiClient(mockAxios)
+  return { api }
 }
 
 /**
@@ -199,8 +182,8 @@ export const testScenarios = {
   /**
    * Standard query test scenario
    */
-  basicQuery: (api: OpenApiInstance<OpenApiOperations>) => {
-    const query = api.useQuery(QueryOperationId.listPets)
+  basicQuery: (api: ReturnType<typeof createApiClient>) => {
+    const query = api.listPets.useQuery()
     testPatterns.assertQueryResult(query)
     return query
   },
@@ -208,8 +191,8 @@ export const testScenarios = {
   /**
    * Query with path parameters test scenario
    */
-  queryWithParams: (api: OpenApiInstance<OpenApiOperations>, petId = '123') => {
-    const query = api.useQuery(QueryOperationId.getPet, { petId })
+  queryWithParams: (api: ReturnType<typeof createApiClient>, petId = '123') => {
+    const query = api.getPet.useQuery({ petId })
     testPatterns.assertQueryResult(query)
     expect(query.queryKey.value).toEqual(['pets', petId])
     return query
@@ -218,8 +201,8 @@ export const testScenarios = {
   /**
    * Standard mutation test scenario
    */
-  basicMutation: (api: OpenApiInstance<OpenApiOperations>) => {
-    const mutation = api.useMutation(MutationOperationId.createPet)
+  basicMutation: (api: ReturnType<typeof createApiClient>) => {
+    const mutation = api.createPet.useMutation()
     testPatterns.assertMutationResult(mutation)
     return mutation
   },
@@ -227,27 +210,11 @@ export const testScenarios = {
   /**
    * Mutation with path parameters test scenario
    */
-  mutationWithParams: (api: OpenApiInstance<OpenApiOperations>, petId = '123') => {
-    const mutation = api.useMutation(MutationOperationId.updatePet, { petId })
+  mutationWithParams: (api: ReturnType<typeof createApiClient>, petId = '123') => {
+    const mutation = api.updatePet.useMutation({ petId })
     testPatterns.assertMutationResult(mutation)
     expect(mutation.isEnabled.value).toBe(true)
     return mutation
-  },
-}
-
-/**
- * Common test data for different operation types
- */
-export const operationExamples = {
-  queries: {
-    simple: QueryOperationId.listPets,
-    withParams: QueryOperationId.getPet,
-    nested: QueryOperationId.listUserPets,
-  },
-  mutations: {
-    create: MutationOperationId.createPet,
-    update: MutationOperationId.updatePet,
-    delete: MutationOperationId.deletePet,
   },
 }
 
@@ -280,11 +247,5 @@ export const axiosConfigExamples = {
   },
 }
 
-export {
-  QueryOperationId,
-  MutationOperationId,
-  OperationId,
-  openApiOperations,
-  type OpenApiOperations,
-  type AllOperationIds,
-}
+// Note: Old operation ID types (QueryOperationId, MutationOperationId, etc.)
+// have been removed. Use the new API: api.operationName.useQuery() etc.

@@ -71,18 +71,14 @@ axiosInstance.interceptors.request.use((config) => {
 
 ## Step 3: Initialize the API Client
 
-Create a typed API client using the generated operations:
+Create a typed API client using the generated `createApiClient` factory:
 
 ```typescript
 // api/init.ts
-import { useOpenApi } from '@qualisero/openapi-endpoint'
+import { createApiClient } from '@qualisero/openapi-endpoint'
 import { axiosInstance } from './axios'
-import { openApiOperations, type OpenApiOperations } from './generated/api-operations'
 
-const api = useOpenApi<OpenApiOperations>({
-  operations: openApiOperations,
-  axios: axiosInstance,
-})
+const api = createApiClient(axiosInstance)
 
 export { api }
 ```
@@ -92,8 +88,10 @@ export { api }
 If you need to customize the TanStack Query client, you can provide your own:
 
 ```typescript
-import { useOpenApi } from '@qualisero/openapi-endpoint'
+// api/init.ts
+import { createApiClient } from '@qualisero/openapi-endpoint'
 import { QueryClient } from '@tanstack/vue-query'
+import { axiosInstance } from './axios'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,11 +105,9 @@ const queryClient = new QueryClient({
   },
 })
 
-const api = useOpenApi<OpenApiOperations>({
-  operations: openApiOperations,
-  axios: axiosInstance,
-  queryClient,
-})
+const api = createApiClient(axiosInstance, queryClient)
+
+export { api }
 ```
 
 ## Step 4: Use in Your Components
@@ -121,9 +117,8 @@ const api = useOpenApi<OpenApiOperations>({
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
-const { data: pets, isLoading, error } = api.useQuery(QueryOperationId.listPets)
+const { data: pets, isLoading, error } = api.listPets.useQuery()
 
 if (error.value) {
   console.error('Failed to load pets:', error.value)
@@ -145,11 +140,10 @@ if (error.value) {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 
 const name = ref('')
 
-const createPet = api.useMutation(MutationOperationId.createPet, {
+const createPet = api.createPet.useMutation({
   onSuccess: () => {
     console.log('Pet created!')
     name.value = ''
@@ -181,15 +175,14 @@ The CLI generates type-safe enum constants from your OpenAPI spec:
 ```vue
 <script setup lang="ts">
 import { api } from './api/init'
-import { QueryOperationId, MutationOperationId } from './api/generated/api-operations'
 import { PetStatus } from './api/generated/api-enums'
 
 // Use enum constants for intellisense and typo safety
-const { data: availablePets } = api.useQuery(QueryOperationId.listPets, {
+const { data: availablePets } = api.listPets.useQuery({
   queryParams: { status: PetStatus.Available },
 })
 
-const createPet = api.useMutation(MutationOperationId.createPet)
+const createPet = api.createPet.useMutation()
 
 const handleSubmit = async () => {
   await createPet.mutateAsync({

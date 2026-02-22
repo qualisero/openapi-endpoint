@@ -1,4 +1,5 @@
-import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import { computed, toValue, type ComputedRef } from 'vue'
+import type { MaybeRefOrGetter } from '@vue/reactivity'
 
 // Helper to resolve path parameters in a URL path
 export function resolvePath(
