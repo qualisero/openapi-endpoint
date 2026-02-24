@@ -18,3 +18,11 @@ docs/*
 # Agent documentation and planning (not for publication)
 AGENT_DOCS
 .ralph
+
+# Verification and summary docs (development only)
+CHANGES_SUMMARY.md
+VERIFICATION*.md
+SUMMARY*.md
+FINAL_*.md
+TYPE_CHECKING_VERIFICATION.md
+VERIFICATION_COMPLETE.txt
