@@ -19,10 +19,16 @@ docs/*
 AGENT_DOCS
 .ralph
 
-# Verification and summary docs (development only)
+# LLM-generated verification and summary docs (development only)
 CHANGES_SUMMARY.md
 VERIFICATION*.md
 SUMMARY*.md
+SUMMARY_FINAL.md
 FINAL_*.md
 TYPE_CHECKING_VERIFICATION.md
-VERIFICATION_COMPLETE.txt
+TEST_*.md
+TEST_CONSOLIDATION*.md
+PR_COMPLETE*.md
+DOCS_VERIFICATION*.md
+*.txt
+
