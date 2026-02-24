@@ -3,7 +3,38 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning (https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.15.0] - 2026-02-24
+
+### Changed
+
+- **BREAKING**: Removed `QueryClientLike` interface - use `QueryClient` directly
+  - `createApiClient()` now accepts `QueryClient` from `@tanstack/vue-query` instead of `QueryClientLike`
+  - Eliminates need for type casts like `as any` when creating API clients
+  - Improved TypeScript autocomplete and error messages
+  - Internal casts removed from `openapi-query.ts` and `openapi-mutation.ts`
+
+### Removed
+
+- `QueryClientLike` interface from public API exports
+- Internal `as QueryClient` type casts
+
+### Added
+
+- Comprehensive typing tests to prevent regression
+  - `tests/integration/no-cast-required.test.ts` (5 tests)
+  - `tests/typing/queryclient-any-bug.test.ts` (2 tests)
+  - `tests/typing/queryclient-like-issue.test.ts` (2 tests)
+  - `tests/typing/user-scenario.test.ts` (3 tests)
+
+### Migration
+
+1. Remove any `as any` or `as QueryClient` type casts when calling `createApiClient`
+2. Regenerate API clients to get updated type signatures
+3. If using `QueryClientLike` type directly, replace with `QueryClient` from `@tanstack/vue-query`
 
 ## [Unreleased]
 
