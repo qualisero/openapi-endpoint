@@ -12,7 +12,7 @@ describe('openapi-helpers', () => {
       expect(defaultQueryClient).toBeDefined()
     })
 
-    it('should have required QueryClientLike methods', () => {
+    it('should have required QueryClient methods', () => {
       expect(typeof defaultQueryClient.cancelQueries).toBe('function')
       expect(typeof defaultQueryClient.setQueryData).toBe('function')
       expect(typeof defaultQueryClient.invalidateQueries).toBe('function')

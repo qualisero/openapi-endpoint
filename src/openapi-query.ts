@@ -1,6 +1,6 @@
 import { computed, watch, toValue, type ComputedRef, type Ref } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
-import { useQuery, QueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { isAxiosError } from 'axios'
 
 import { type EndpointConfig, type QueryOptions, isQueryMethod } from './types'
@@ -130,7 +130,7 @@ export function useEndpointQuery<
     ...useQueryOptions,
   } as unknown as Parameters<typeof useQuery>[0]
 
-  const query = useQuery(queryOptions, config.queryClient as QueryClient)
+  const query = useQuery(queryOptions, config.queryClient)
 
   const onLoadCallbacks = new Set<(data: TResponse) => void>()
   if (onLoadInit) onLoadCallbacks.add(onLoadInit)
