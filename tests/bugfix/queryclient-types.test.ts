@@ -1,15 +1,16 @@
 /**
  * Bugfix type tests: QueryClient type compatibility
  *
- * This file contains type-level tests that verify QueryClient from
- * @tanstack/vue-query works correctly with the library's types.
- *
- * These tests are compile-time only - they don't need to run at runtime.
- * If they fail to compile, the type checking will fail.
+ * This file contains tests that verify QueryClient from @tanstack/vue-query
+ * works correctly with the library's types. Tests provide both runtime
+ * execution and compile-time type checking - if the types are incompatible,
+ * these tests will fail both at compile time and at runtime.
  */
 
+import type { AxiosInstance } from 'axios'
 import { QueryClient } from '@tanstack/vue-query'
 import type { EndpointConfig } from '@qualisero/openapi-endpoint'
+import { HttpMethod } from '@qualisero/openapi-endpoint'
 import { defaultQueryClient } from '@qualisero/openapi-endpoint'
 import { describe, it, expect } from 'vitest'
 
@@ -23,11 +24,14 @@ describe('Bugfix: QueryClient type compatibility', () => {
       queryClient: QueryClient
     }
 
+    // Use proper types instead of `as any` to ensure compile-time type checking
+    const mockAxios = {} as AxiosInstance
+
     const config: ConfigWithQueryClient = {
-      axios: {} as any, // Mock axios for type test
+      axios: mockAxios,
       queryClient,
       path: '/test',
-      method: 'GET' as any,
+      method: HttpMethod.GET,
     }
 
     expect(config.queryClient).toBe(queryClient)

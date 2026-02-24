@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: Simplified API client initialization with `createApiClient()` factory
+  - Removed two-argument `useOpenApi(config, operationConfig)` function
+  - New API: `createApiClient(axios, queryClient?)`
+  - No need for `operationConfig` - configuration is embedded in generated code
+  - See updated README.md and documentation for migration guide
+
+### Removed
+
+- `operationConfig` parameter from API initialization
+- `openapi-typed-operations.ts` file generation (replaced by `api-client.ts`)
+- Two-argument `useOpenApi` overload
+
+### Added
+
+- `api-client.ts` generated file with `createApiClient()` factory
+- Operation namespace pattern: `api.getPet.useQuery()`, `api.createPet.useMutation()`
+- Embedded per-operation configuration in generated code
+- Simplified type extraction helpers
+
 ## [0.15.0] - 2026-02-24
 
 ### Changed
@@ -24,11 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Comprehensive typing tests to prevent regression
-  - `tests/integration/no-cast-required.test.ts` (5 tests)
-  - `tests/typing/queryclient-any-bug.test.ts` (2 tests)
-  - `tests/typing/queryclient-like-issue.test.ts` (2 tests)
-  - `tests/typing/user-scenario.test.ts` (3 tests)
+- Comprehensive typing and regression tests to prevent `QueryClient` casting issues
+  - Runtime tests in `tests/bugfix/queryclient-no-cast.test.ts` (5 tests)
+  - Type compatibility tests in `tests/bugfix/queryclient-types.test.ts` (3 tests)
 
 ### Migration
 
@@ -36,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 2. Regenerate API clients to get updated type signatures
 3. If using `QueryClientLike` type directly, replace with `QueryClient` from `@tanstack/vue-query`
 
-## [Unreleased]
+## [0.14.0] - 2026-02-24
 
 ### Changed
 
