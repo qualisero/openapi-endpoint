@@ -1,6 +1,7 @@
 import { type AxiosInstance, type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import type { MutationObserverOptions, QueryKey, QueryObserverOptions } from '@tanstack/query-core'
 import type { ComputedRef, Ref } from 'vue'
+import type { QueryClient } from '@tanstack/vue-query'
 
 /**
  * Extended Axios request configuration that allows custom properties.
@@ -69,20 +70,6 @@ export type NoExcessReturn<T extends Record<string, unknown>, F extends () => T>
 export type ReactiveValue<T> = T | Ref<T> | ComputedRef<T>
 
 // ============================================================================
-// QueryClient Interface
-// ============================================================================
-
-export interface QueryClientLike {
-  cancelQueries(filters: { queryKey: unknown[]; exact?: boolean }): Promise<void>
-  setQueryData(queryKey: unknown[], data: unknown): void
-  invalidateQueries(filters: {
-    queryKey?: unknown[]
-    exact?: boolean
-    predicate?: (query: { queryKey: readonly unknown[] }) => boolean
-  }): Promise<void>
-}
-
-// ============================================================================
 // Endpoint Config (runtime config for each operation)
 // ============================================================================
 
@@ -95,7 +82,7 @@ export interface QueryClientLike {
  */
 export interface EndpointConfig {
   axios: AxiosInstance
-  queryClient: QueryClientLike
+  queryClient: QueryClient
   /** The OpenAPI path template, e.g. `/pets/{petId}` */
   path: string
   method: HttpMethod

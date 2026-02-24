@@ -1,6 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
-import { useMutation, QueryClient } from '@tanstack/vue-query'
+import { useMutation } from '@tanstack/vue-query'
 import { type AxiosResponse } from 'axios'
 
 import {
@@ -257,7 +257,7 @@ export function useEndpointMutation<
       },
       ...useMutationOptions,
     },
-    config.queryClient as QueryClient,
+    config.queryClient,
   )
 
   return {

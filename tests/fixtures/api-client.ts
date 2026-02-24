@@ -15,9 +15,10 @@ import {
   type NoExcessReturn,
   type Ref,
   type ComputedRef,
-  type QueryClientLike,
   type MaybeRefOrGetter,
 } from '@qualisero/openapi-endpoint'
+
+import type { QueryClient } from '@tanstack/vue-query'
 
 import type {
   ApiResponse,
@@ -74,7 +75,7 @@ const _registry = {
 
 type _Config = {
   axios: AxiosInstance
-  queryClient: QueryClientLike
+  queryClient: QueryClient
   operationsRegistry: typeof _registry
 }
 
@@ -311,7 +312,7 @@ function _mutationWithParams<Op extends AllOps>(
  * create.mutate({ data: { name: 'Fluffy' } })
  * ```
  */
-export function createApiClient(axios: AxiosInstance, queryClient: QueryClientLike = defaultQueryClient) {
+export function createApiClient(axios: AxiosInstance, queryClient: QueryClient = defaultQueryClient) {
   const base: _Config = { axios, queryClient, operationsRegistry: _registry }
   return {
     /**

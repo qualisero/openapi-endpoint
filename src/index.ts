@@ -39,9 +39,6 @@ export type {
   // Axios
   AxiosRequestConfigExtended,
 
-  // QueryClient
-  QueryClientLike,
-
   // Type extraction utilities (used in generated api-operations.ts / api-client.ts)
   ApiResponse,
   ApiResponseSafe,

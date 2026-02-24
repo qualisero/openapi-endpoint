@@ -421,15 +421,10 @@ describe('API Usage Patterns', () => {
       expect(apiWithDefault.listPets).toHaveProperty('useQuery')
     })
 
-    it('should work with QueryClient-like objects', () => {
-      const queryClientLike = {
-        cancelQueries: vi.fn(() => Promise.resolve()),
-        setQueryData: vi.fn(),
-        invalidateQueries: vi.fn(() => Promise.resolve()),
-      }
-
-      const apiWithLike = createApiClient(mockAxios, queryClientLike)
-      expect(apiWithLike).toBeTruthy()
+    it('should work with minimal QueryClient configuration', () => {
+      const minimalQueryClient = new QueryClient()
+      const minimalApi = createApiClient(mockAxios, minimalQueryClient)
+      expect(minimalApi).toBeTruthy()
     })
   })
 

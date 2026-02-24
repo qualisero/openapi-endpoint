@@ -3,9 +3,59 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning (https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+
+- **BREAKING**: Simplified API client initialization with `createApiClient()` factory
+  - Removed two-argument `useOpenApi(config, operationConfig)` function
+  - New API: `createApiClient(axios, queryClient?)`
+  - No need for `operationConfig` - configuration is embedded in generated code
+  - See updated README.md and documentation for migration guide
+
+### Removed
+
+- `operationConfig` parameter from API initialization
+- `openapi-typed-operations.ts` file generation (replaced by `api-client.ts`)
+- Two-argument `useOpenApi` overload
+
+### Added
+
+- `api-client.ts` generated file with `createApiClient()` factory
+- Operation namespace pattern: `api.getPet.useQuery()`, `api.createPet.useMutation()`
+- Embedded per-operation configuration in generated code
+- Simplified type extraction helpers
+
+## [0.15.0] - 2026-02-24
+
+### Changed
+
+- **BREAKING**: Removed `QueryClientLike` interface - use `QueryClient` directly
+  - `createApiClient()` now accepts `QueryClient` from `@tanstack/vue-query` instead of `QueryClientLike`
+  - Eliminates need for type casts like `as any` when creating API clients
+  - Improved TypeScript autocomplete and error messages
+  - Internal casts removed from `openapi-query.ts` and `openapi-mutation.ts`
+
+### Removed
+
+- `QueryClientLike` interface from public API exports
+- Internal `as QueryClient` type casts
+
+### Added
+
+- Comprehensive typing and regression tests to prevent `QueryClient` casting issues
+  - Runtime tests in `tests/bugfix/queryclient-no-cast.test.ts` (5 tests)
+  - Type compatibility tests in `tests/bugfix/queryclient-types.test.ts` (3 tests)
+
+### Migration
+
+1. Remove any `as any` or `as QueryClient` type casts when calling `createApiClient`
+2. Regenerate API clients to get updated type signatures
+3. If using `QueryClientLike` type directly, replace with `QueryClient` from `@tanstack/vue-query`
+
+## [0.14.0] - 2026-02-24
 
 ### Changed
 
