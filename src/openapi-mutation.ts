@@ -246,7 +246,6 @@ export function useEndpointMutation<
 
         const allRefetch = [
           ...(refetchEndpoints || []),
-          ...((vars as { refetchEndpoints?: Refetchable[] } | undefined)?.refetchEndpoints || []),
           ...(refetchEndpointsMutate || []),
         ]
         if (allRefetch.length > 0) {

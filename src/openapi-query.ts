@@ -1,4 +1,4 @@
-import { computed, watch, toValue, type ComputedRef, type Ref } from 'vue'
+import { computed, watch, toValue, type ComputedRef } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
 import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import { isAxiosError } from 'axios'

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
 import { QueryClient } from '@tanstack/vue-query'
-import type { UseQueryReturnType } from '@tanstack/vue-query'
 import type { QueryObserverResult } from '@tanstack/query-core'
 import type { AxiosResponse } from 'axios'
 import { mockAxios } from '../setup'
@@ -994,9 +993,15 @@ describe('API Usage Patterns', () => {
     it('should correctly type query refetch method', () => {
       const query = api.listPets.useQuery()
 
-      // refetch is fully typed by TanStack — no manual annotation needed
       const refetchResult = query.refetch()
-      expect(refetchResult).toBeUndefined() // In mock environment
+
+      // At the type level, refetch should return a Promise<QueryObserverResult<listPets.Response, Error>>
+      // (In the mock environment, the result is undefined, but the type is correct)
+      type RefetchRuntimeReturn = typeof refetchResult
+      type ExpectedRuntimeReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
+      const _forwardCheckRuntime: RefetchRuntimeReturn extends ExpectedRuntimeReturn ? true : false = true
+      const _backwardCheckRuntime: ExpectedRuntimeReturn extends RefetchRuntimeReturn ? true : false = true
+      expect(_forwardCheckRuntime && _backwardCheckRuntime).toBe(true)
     })
 
     it('refetch return type should be Promise<QueryObserverResult<Pet[], Error>> from OpenAPI spec', () => {
