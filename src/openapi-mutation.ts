@@ -243,11 +243,7 @@ export function useEndpointMutation<
           await Promise.all(promises)
         }
 
-        const allRefetch = [
-          ...(refetchEndpoints || []),
-          ...((vars as { refetchEndpoints?: { refetch: () => Promise<void> }[] } | undefined)?.refetchEndpoints || []),
-          ...(refetchEndpointsMutate || []),
-        ]
+        const allRefetch = [...(refetchEndpoints || []), ...(refetchEndpointsMutate || [])]
         if (allRefetch.length > 0) {
           await Promise.all(allRefetch.map((ep) => ep.refetch()))
         }

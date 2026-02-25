@@ -1,6 +1,6 @@
-import { computed, watch, toValue, type ComputedRef, type Ref } from 'vue'
+import { computed, watch, toValue, type ComputedRef } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import { isAxiosError } from 'axios'
 
 import { type EndpointConfig, type QueryOptions, isQueryMethod } from './types'
@@ -9,26 +9,25 @@ import { normalizeParamsOptions, useResolvedOperation } from './openapi-utils'
 /**
  * Return type of `useEndpointQuery` (the `useQuery` composable on a generated namespace).
  *
+ * Extends TanStack's `UseQueryReturnType<TResponse, Error>` so all fields — including
+ * `refetch`, `isPending`, `isLoading`, `isSuccess`, `isError`, `error`, etc. — carry
+ * their real TanStack types. `data` is overridden with a `ComputedRef` typed to
+ * `TResponse | undefined`, and three extra fields are added for our own abstractions.
+ *
  * @template TResponse   Response data type
  * @template TPathParams Path parameters type (concrete, no undefined)
  *
  * @group Types
  */
-export interface QueryReturn<TResponse, TPathParams extends Record<string, unknown> = Record<string, never>> {
+export type QueryReturn<TResponse, TPathParams extends Record<string, unknown> = Record<string, never>> = Omit<
+  UseQueryReturnType<TResponse, Error>,
+  // `data` is replaced with a ComputedRef typed to TResponse | undefined.
+  // `isEnabled` is replaced with our own computed that also gates on path-param resolution
+  // (TanStack's isEnabled only tracks the `enabled` option flag).
+  'data' | 'isEnabled'
+> & {
   /** The response data (undefined until loaded). */
   data: ComputedRef<TResponse | undefined>
-  /** The error if the query failed. */
-  error: Ref<Error | null>
-  /** True while the query is loading. */
-  isPending: Ref<boolean>
-  /** True while loading (alias for isPending). */
-  isLoading: Ref<boolean>
-  /** True when the query succeeded. */
-  isSuccess: Ref<boolean>
-  /** True when the query failed. */
-  isError: Ref<boolean>
-  /** Manually trigger a refetch. */
-  refetch: () => Promise<void>
   /** Whether the query is currently enabled. */
   isEnabled: ComputedRef<boolean>
   /** The resolved query key. */

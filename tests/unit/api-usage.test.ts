@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
 import { QueryClient } from '@tanstack/vue-query'
+import type { QueryObserverResult } from '@tanstack/query-core'
 import type { AxiosResponse } from 'axios'
 import { mockAxios } from '../setup'
 import { createApiClient } from '../fixtures/api-client'
 import type { Types } from '../fixtures/api-types'
+import type { Refetchable } from '@qualisero/openapi-endpoint'
 
 /**
  * API Usage Patterns and Examples
@@ -723,10 +725,17 @@ describe('API Usage Patterns', () => {
     it('should correctly type query response data', () => {
       const query = api.listPets.useQuery()
 
+      // Compile-time check: query.data.value should be inferred as Pet[] | undefined from OpenAPI
+      type InferredDataType = typeof query.data.value
+      type ExpectedDataType = Types.listPets.Response | undefined
+      const _typeCheck: InferredDataType extends ExpectedDataType ? true : false = true
+      const _reverseCheck: ExpectedDataType extends InferredDataType ? true : false = true
+      expect(_typeCheck && _reverseCheck).toBe(true)
+
       // The data property should be Types.listPets.Response (Pet[])
       if (query.data.value) {
-        // TypeScript should know this is an array of Pet objects
-        const pets = query.data.value as Types.listPets.Response
+        // TypeScript infers this is Pet[] from the OpenAPI spec (no cast needed)
+        const pets = query.data.value
 
         // Each pet should have the expected structure
         pets.forEach((pet) => {
@@ -740,12 +749,19 @@ describe('API Usage Patterns', () => {
     it('should correctly type single item query response', () => {
       const query = api.getPet.useQuery({ petId: '123' })
 
-      // Type assertion: query.data should have type Types.getPet.Response | undefined
-      const petData: Types.getPet.Response | undefined = query.data.value
+      // Compile-time check: data type flows from OpenAPI spec
+      type InferredDataType = typeof query.data.value
+      type ExpectedDataType = Types.getPet.Response | undefined
+      const _typeCheck: InferredDataType extends ExpectedDataType ? true : false = true
+      const _reverseCheck: ExpectedDataType extends InferredDataType ? true : false = true
+      expect(_typeCheck && _reverseCheck).toBe(true)
+
+      // TypeScript infers query.data.value is Types.getPet.Response | undefined from OpenAPI
+      const petData = query.data.value
 
       // TypeScript should know the Pet structure when data is present
       if (petData) {
-        // TypeScript should enforce these properties exist on Pet
+        // TypeScript infers these properties from the OpenAPI Pet schema
         const name: string = petData.name
         const _id: string | undefined = petData.id
         const _tag: string | undefined = petData.tag
@@ -758,13 +774,26 @@ describe('API Usage Patterns', () => {
     it('should correctly type mutation response data', async () => {
       const mutation = api.createPet.useMutation()
 
-      // Type assertion: mutateAsync returns Promise<AxiosResponse<TResponse>>
+      // Compile-time check: mutateAsync returns Promise<AxiosResponse<Pet>> from OpenAPI
+      type MutateAsyncReturn = ReturnType<typeof mutation.mutateAsync>
+      type ExpectedReturn = Promise<AxiosResponse<Types.createPet.Response>>
+      const _typeCheck: MutateAsyncReturn extends ExpectedReturn ? true : false = true
+      const _reverseCheck: ExpectedReturn extends MutateAsyncReturn ? true : false = true
+      expect(_typeCheck && _reverseCheck).toBe(true)
+
       const responsePromise = mutation.mutateAsync({
         data: { name: 'New Pet' },
       })
 
       // The promise resolves to AxiosResponse with data of type Types.createPet.Response
       const response = await responsePromise
+
+      // Compile-time check: response.data is inferred as Pet from OpenAPI
+      type ResponseDataType = typeof response.data
+      type ExpectedDataType = Types.createPet.Response
+      const _dataTypeCheck: ResponseDataType extends ExpectedDataType ? true : false = true
+      const _dataReverseCheck: ExpectedDataType extends ResponseDataType ? true : false = true
+      expect(_dataTypeCheck && _dataReverseCheck).toBe(true)
 
       // TypeScript should know response is AxiosResponse
       expect(response).toBeDefined()
@@ -962,24 +991,115 @@ describe('API Usage Patterns', () => {
     })
 
     it('should correctly type query refetch method', () => {
+      const _query = api.listPets.useQuery()
+
+      const _refetchResult = _query.refetch()
+
+      // At the type level, refetch should return a Promise<QueryObserverResult<listPets.Response, Error>>
+      // (In the mock environment, the result is undefined, but the type is correct)
+      type RefetchRuntimeReturn = typeof _refetchResult
+      type ExpectedRuntimeReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
+      const _forwardCheckRuntime: RefetchRuntimeReturn extends ExpectedRuntimeReturn ? true : false = true
+      const _backwardCheckRuntime: ExpectedRuntimeReturn extends RefetchRuntimeReturn ? true : false = true
+      expect(_forwardCheckRuntime && _backwardCheckRuntime).toBe(true)
+    })
+
+    it('refetch return type should be Promise<QueryObserverResult<Pet[], Error>> from OpenAPI spec', () => {
+      const _query = api.listPets.useQuery()
+
+      // The refetch return type should flow from the OpenAPI spec: listPets returns Pet[]
+      // So refetch should return Promise<QueryObserverResult<Pet[], Error>>, not Promise<void>
+      type RefetchReturn = ReturnType<typeof _query.refetch>
+      type ExpectedReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
+
+      // Compile-time check: the return types must be assignable both ways (i.e., equivalent)
+      const _forwardCheck: RefetchReturn extends ExpectedReturn ? true : false = true
+      const _backwardCheck: ExpectedReturn extends RefetchReturn ? true : false = true
+      expect(_forwardCheck && _backwardCheck).toBe(true)
+    })
+
+    it('should expose TanStack-native fields that were absent from the old manual QueryReturn', () => {
       const query = api.listPets.useQuery()
 
-      // Type assertion: refetch returns Promise<void>
-      const refetchResult: ReturnType<typeof query.refetch> = query.refetch()
-      expect(refetchResult).toBeUndefined() // In mock environment
+      // These are purely compile-time checks: the fields exist on the QueryReturn TYPE
+      // because it now extends UseQueryReturnType. The test mock only stubs a subset of
+      // TanStack fields at runtime, so we assert only on types here.
+
+      // status: Ref<'pending' | 'error' | 'success'>
+      type Status = (typeof query)['status']['value']
+      const _statusCheck: Status extends 'pending' | 'error' | 'success' ? true : false = true
+      expect(_statusCheck).toBe(true)
+
+      // isFetching: Ref<boolean>
+      type IsFetching = (typeof query)['isFetching']
+      const _isFetchingCheck: IsFetching extends { value: boolean } ? true : false = true
+      expect(_isFetchingCheck).toBe(true)
+
+      // fetchStatus: Ref<'fetching' | 'paused' | 'idle'>
+      type FetchStatus = (typeof query)['fetchStatus']['value']
+      const _fetchStatusCheck: FetchStatus extends 'fetching' | 'paused' | 'idle' ? true : false = true
+      expect(_fetchStatusCheck).toBe(true)
+
+      // isStale: Ref<boolean>
+      type IsStale = (typeof query)['isStale']
+      const _isStaleCheck: IsStale extends { value: boolean } ? true : false = true
+      expect(_isStaleCheck).toBe(true)
+
+      // refetch IS in the mock — verify it also still works at runtime
+      expect(typeof query.refetch).toBe('function')
+    })
+
+    it('QueryReturn should still satisfy Refetchable after the type change', () => {
+      const query = api.listPets.useQuery()
+
+      // Assignment without cast proves structural compatibility.
+      // Refetchable.refetch is () => Promise<unknown>, which is satisfied by
+      // TanStack's (options?: RefetchOptions) => Promise<QueryObserverResult<T, E>>
+      // because: optional params ✓ and Promise<QueryObserverResult> extends Promise<unknown> ✓
+      const refetchable: Refetchable = query
+      expect(typeof refetchable.refetch).toBe('function')
+    })
+
+    it('QueryReturn should be structurally compatible with UseQueryReturnType on shared fields', () => {
+      const query = api.listPets.useQuery()
+
+      // UseQueryReturnType maps every QueryObserverResult key (except refetch) to Ref<...>.
+      // Our QueryReturn extends Omit<UseQueryReturnType, 'data'> so all shared fields must align.
+      // These assignments are compile-time checks: they prove the types are structurally correct.
+      // (The mock stubs only a subset at runtime, so we only assert on refetch at runtime.)
+      type Q = typeof query
+      const _isPending: Q['isPending'] = query.isPending
+      const _isSuccess: Q['isSuccess'] = query.isSuccess
+      const _isError: Q['isError'] = query.isError
+      const _error: Q['error'] = query.error
+      const _refetch: Q['refetch'] = query.refetch
+
+      // Suppress unused-variable warnings while keeping the compile-time checks active
+      void _isPending
+      void _isSuccess
+      void _isError
+      void _error
+
+      // refetch IS stubbed by the mock — verify runtime too
+      expect(typeof _refetch).toBe('function')
     })
 
     it('should correctly type mutation methods', () => {
       const mutation = api.createPet.useMutation()
 
-      // Type assertion: mutate returns void
+      // mutate returns void (fire-and-forget)
       expect(typeof mutation.mutate).toBe('function')
 
-      // Type assertion: mutateAsync returns Promise with AxiosResponse
-      const mutateAsyncResult: ReturnType<typeof mutation.mutateAsync> = mutation.mutateAsync({
+      // mutateAsync returns Promise<AxiosResponse<Pet>> from the OpenAPI spec
+      const mutateAsyncResult = mutation.mutateAsync({
         data: { name: 'Test' },
       })
 
+      // Verify the return type flows from OpenAPI: createPet returns Pet
+      type ExpectedReturn = Promise<AxiosResponse<Types.createPet.Response>>
+      type ActualReturn = typeof mutateAsyncResult
+      const _check: ActualReturn extends ExpectedReturn ? true : false = true
+      expect(_check).toBe(true)
       expect(mutateAsyncResult).toBeInstanceOf(Promise)
     })
 

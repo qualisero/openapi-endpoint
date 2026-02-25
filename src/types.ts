@@ -107,9 +107,12 @@ export interface EndpointConfig {
 /**
  * Minimal interface satisfied by `QueryReturn`. Used for `refetchEndpoints`
  * in cache invalidation options.
+ *
+ * Uses `Promise<unknown>` so this is compatible with TanStack's real `refetch`
+ * return type (`Promise<QueryObserverResult<TData, TError>>`).
  */
 export interface Refetchable {
-  refetch: () => Promise<void>
+  refetch: () => Promise<unknown>
 }
 
 // ============================================================================
