@@ -991,13 +991,13 @@ describe('API Usage Patterns', () => {
     })
 
     it('should correctly type query refetch method', () => {
-      const query = api.listPets.useQuery()
+      const _query = api.listPets.useQuery()
 
-      const refetchResult = query.refetch()
+      const _refetchResult = _query.refetch()
 
       // At the type level, refetch should return a Promise<QueryObserverResult<listPets.Response, Error>>
       // (In the mock environment, the result is undefined, but the type is correct)
-      type RefetchRuntimeReturn = typeof refetchResult
+      type RefetchRuntimeReturn = typeof _refetchResult
       type ExpectedRuntimeReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
       const _forwardCheckRuntime: RefetchRuntimeReturn extends ExpectedRuntimeReturn ? true : false = true
       const _backwardCheckRuntime: ExpectedRuntimeReturn extends RefetchRuntimeReturn ? true : false = true
@@ -1005,11 +1005,11 @@ describe('API Usage Patterns', () => {
     })
 
     it('refetch return type should be Promise<QueryObserverResult<Pet[], Error>> from OpenAPI spec', () => {
-      const query = api.listPets.useQuery()
+      const _query = api.listPets.useQuery()
 
       // The refetch return type should flow from the OpenAPI spec: listPets returns Pet[]
       // So refetch should return Promise<QueryObserverResult<Pet[], Error>>, not Promise<void>
-      type RefetchReturn = ReturnType<typeof query.refetch>
+      type RefetchReturn = ReturnType<typeof _query.refetch>
       type ExpectedReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
 
       // Compile-time check: the return types must be assignable both ways (i.e., equivalent)

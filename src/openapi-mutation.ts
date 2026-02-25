@@ -9,7 +9,6 @@ import {
   type MutationVars,
   type MutateFn,
   type MutateAsyncFn,
-  type Refetchable,
   HttpMethod,
   isMutationMethod,
 } from './types'
@@ -244,10 +243,7 @@ export function useEndpointMutation<
           await Promise.all(promises)
         }
 
-        const allRefetch = [
-          ...(refetchEndpoints || []),
-          ...(refetchEndpointsMutate || []),
-        ]
+        const allRefetch = [...(refetchEndpoints || []), ...(refetchEndpointsMutate || [])]
         if (allRefetch.length > 0) {
           await Promise.all(allRefetch.map((ep) => ep.refetch()))
         }
