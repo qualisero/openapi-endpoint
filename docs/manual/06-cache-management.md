@@ -220,8 +220,8 @@ If you don't have path parameters at hook creation time, you can still configure
 
 ```typescript
 // Create mutation without path params but with cache options
+// Note: dontInvalidate disables automatic invalidation only; invalidateOperations still applies
 const updatePet = api.updatePet.useMutation(undefined, {
-  dontInvalidate: true,
   invalidateOperations: { listPets: {} },
 })
 

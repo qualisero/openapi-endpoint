@@ -173,14 +173,14 @@ isAuthenticated.value = true // Starts fetching
 ### Mutation With Reactive Path Params
 
 ```typescript
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { api } from './api/init'
 
 const selectedPetId = ref('123')
 
-// Mutations support reactive path params (ref, computed, getter functions)
+// Mutations support reactive path params (computed, getter function, or ref of the whole params object)
 const updatePet = api.updatePet.useMutation(
-  { petId: selectedPetId }, // Reactive - passes the ref
+  computed(() => ({ petId: selectedPetId.value })), // Reactive - recomputed when selectedPetId changes
 )
 
 // Note: Unlike queries, mutations won't auto-execute when path params change.
@@ -189,6 +189,16 @@ const handleUpdate = async () => {
   await updatePet.mutateAsync({ data: { name: 'Updated' } })
 }
 ```
+
+**Alternative: Getter Function**
+
+You can also use a getter function for reactivity:
+
+```typescript
+const updatePet = api.updatePet.useMutation(() => ({ petId: selectedPetId.value }))
+```
+
+**Note:** Don't pass a ref as a primitive value inside the params object (e.g., `{ petId: selectedPetId }`). This would pass the ref object itself, not its value. Use `computed()`, a getter function, or `ref({ petId: ... })` for the whole params object.
 
 ### When to Recreate Mutation Instances
 
