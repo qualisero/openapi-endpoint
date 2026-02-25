@@ -75,6 +75,7 @@ await updatePet.mutateAsync({
 ```
 
 This is useful when:
+
 - Path parameters are loaded asynchronously (e.g., from user selection)
 - The same mutation component is reused across different items
 - You need to dynamically provide IDs at execution time

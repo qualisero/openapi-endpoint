@@ -233,6 +233,7 @@ await updatePet.mutateAsync({
 ```
 
 This is useful when:
+
 - Path parameters are loaded asynchronously
 - You need cache configuration but the ID is determined later
 - The mutation is used in a context where the ID changes
