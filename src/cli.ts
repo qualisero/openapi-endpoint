@@ -1181,9 +1181,15 @@ function _mutationWithParams<Op extends AllOps>(
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
-  // Two-overload interface: non-function (exact via object-literal checking) +
-  // getter function (exact via NoExcessReturn constraint).
+  // Three-overload interface:
+  // 1. Deferred path params — omit or pass undefined/null; supply at mutateAsync() time via pathParams variable
+  // 2. Eager path params — object, Ref, or ComputedRef (exact via object-literal checking)
+  // 3. Getter function — exact via NoExcessReturn constraint
   type _UseMutation = {
+    (
+      pathParams?: undefined | null,
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
       options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
@@ -1195,7 +1201,7 @@ function _mutationWithParams<Op extends AllOps>(
   }
 
   const _impl = (
-    pathParams: ReactiveOr<PathParamsInput>,
+    pathParams: ReactiveOr<PathParamsInput> | undefined | null,
     options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
   ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
     useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
