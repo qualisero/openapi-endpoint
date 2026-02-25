@@ -1,6 +1,6 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=1763799820)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?refresh=20260225)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@qualisero%2Fopenapi-endpoint)](https://bundlephobia.com/package/@qualisero%2Fopenapi-endpoint)
