@@ -1223,7 +1223,7 @@ function _mutationWithParams<Op extends AllOps>(
      * - \`isPending\`: Alias for isLoading
      * - \`status\`: 'idle' | 'pending' | 'error' | 'success'
      *
-     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param pathParams - Path parameters (object, ref, computed, getter function, or undefined/null for deferred supply at call time)
      * @param options - Mutation options (onSuccess, onError, etc.)
      * @returns Mutation result object
      */

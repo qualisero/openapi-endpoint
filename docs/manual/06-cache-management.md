@@ -214,6 +214,29 @@ const createPet = api.createPet.useMutation({
 })
 ```
 
+### Deferred Path Parameters with Cache Options
+
+If you don't have path parameters at hook creation time, you can still configure cache options:
+
+```typescript
+// Create mutation without path params but with cache options
+const updatePet = api.updatePet.useMutation(undefined, {
+  dontInvalidate: true,
+  invalidateOperations: { listPets: {} },
+})
+
+// Later, provide path params at call time
+await updatePet.mutateAsync({
+  data: { name: 'Updated' },
+  pathParams: { petId: '123' },
+})
+```
+
+This is useful when:
+- Path parameters are loaded asynchronously
+- You need cache configuration but the ID is determined later
+- The mutation is used in a context where the ID changes
+
 ## Optimistic Updates
 
 Optimistic updates show UI changes immediately, then rollback if the mutation fails.

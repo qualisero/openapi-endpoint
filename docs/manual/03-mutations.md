@@ -43,6 +43,42 @@ await updatePet.mutateAsync({
 })
 ```
 
+#### Deferred Path Parameters
+
+If path parameters aren't available at hook creation time, you can omit them and provide them later when calling `mutateAsync`:
+
+```typescript
+import { api } from './api/init'
+
+// Create mutation without path parameters (isEnabled is initially false)
+const updatePet = api.updatePet.useMutation()
+
+// Later, when you have the petId:
+await updatePet.mutateAsync({
+  data: { name: 'Updated Fluffy' },
+  pathParams: { petId: '789' },
+})
+```
+
+You can also pass mutation options while deferring path params:
+
+```typescript
+const updatePet = api.updatePet.useMutation(undefined, {
+  invalidateOperations: { listPets: {} },
+})
+
+// ...later:
+await updatePet.mutateAsync({
+  data: { name: 'Updated' },
+  pathParams: { petId: '789' },
+})
+```
+
+This is useful when:
+- Path parameters are loaded asynchronously (e.g., from user selection)
+- The same mutation component is reused across different items
+- You need to dynamically provide IDs at execution time
+
 ### Mutation With Query Parameters
 
 ```typescript

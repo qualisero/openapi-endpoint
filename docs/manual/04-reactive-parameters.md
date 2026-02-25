@@ -188,7 +188,34 @@ watch(selectedPetId, () => {
 })
 ```
 
-**Note:** Mutations don't support reactive path parameters like queries. Create a new mutation instance when path parameters change.
+**Alternative: Deferred Path Parameters**
+
+Instead of creating a new mutation instance, you can omit path parameters at hook time and provide them when calling `mutateAsync`:
+
+```typescript
+import { ref } from 'vue'
+import { api } from './api/init'
+
+const selectedPetId = ref('123')
+
+// Create mutation once without path params
+const updatePet = api.updatePet.useMutation()
+
+// Provide path params at call time (works with any petId)
+const handleUpdate = async () => {
+  await updatePet.mutateAsync({
+    data: { name: 'Updated' },
+    pathParams: { petId: selectedPetId.value },
+  })
+}
+```
+
+This approach is simpler when:
+- You need to call the mutation with different IDs dynamically
+- You're working inside a component where the ID changes
+- You want to avoid recreating mutation instances
+
+**Note:** Mutations don't support reactive path parameters like queries. Either create a new mutation instance when path parameters change, or use the deferred pattern to provide them at call time.
 
 ## Common Reactive Patterns
 
