@@ -5,28 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- **BREAKING**: Simplified API client initialization with `createApiClient()` factory
-  - Removed two-argument `useOpenApi(config, operationConfig)` function
-  - New API: `createApiClient(axios, queryClient?)`
-  - No need for `operationConfig` - configuration is embedded in generated code
-  - See updated README.md and documentation for migration guide
-
-### Removed
-
-- `operationConfig` parameter from API initialization
-- `openapi-typed-operations.ts` file generation (replaced by `api-client.ts`)
-- Two-argument `useOpenApi` overload
+## [0.17.0] - 2025-02-25
 
 ### Added
 
-- `api-client.ts` generated file with `createApiClient()` factory
-- Operation namespace pattern: `api.getPet.useQuery()`, `api.createPet.useMutation()`
-- Embedded per-operation configuration in generated code
-- Simplified type extraction helpers
+- **Deferred path parameters for mutations** — Create mutations without path params at hook time, then provide them at call time via `mutateAsync({ pathParams: { ... } })`
+  - New third overload for `_UseMutation`: `(pathParams?: undefined | null, options?) => MutationReturn<...>`
+  - Enables pattern: `const mutation = api.updatePet.useMutation()` then `await mutation.mutateAsync({ data, pathParams: { petId } })`
+  - Supports providing mutation options without path params: `useMutation(undefined, { invalidateOperations: ... })`
+  - Useful when path params loaded asynchronously or mutation used across different items
+
+### Changed
+
+- **Type improvements** — `QueryReturn` now extends TanStack's `UseQueryReturnType<T, Error>` instead of manually redeclaring fields
+  - Removed manual field declarations for `refetch`, `isPending`, `isLoading`, `isSuccess`, `isError`, `error`
+  - Now inherits all TanStack fields: `status`, `isFetching`, `fetchStatus`, `isStale`, etc.
+  - `refetch()` return type is now `Promise<QueryObserverResult<T, E>>` (was incorrectly `Promise<void>`)
+
+### Changed
+
+- **Breaking change (minor)**: `refetch()` return type is more specific
+  - Old: `Promise<void>` (incorrect)
+  - New: `Promise<QueryObserverResult<T, E>>` (accurate to TanStack)
+  - Most calling code unaffected (just `await query.refetch()`)
+  - Only breaks explicit `Promise<void>` type annotations (which were incorrect)
+
+### Fixed
+
+- `QueryReturn.isEnabled` now explicitly overrides TanStack's version to add path-parameter validation
+  - TanStack's `isEnabled` only tracks the `enabled` option
+  - Ours also gates on whether path params are fully resolved
+- Removed duplicate `refetchEndpoints` spreading in mutation `onSuccess` callback
+- Removed unused type imports (`Ref`, `UseQueryReturnType`, `Refetchable`) for cleaner linting
+
+### Documentation
+
+- Added comprehensive examples for deferred path parameters in mutations
+- Clarified that mutations DO support reactive path params (`ref`, `computed`, getter functions)
+  - Key difference from queries: mutations don't auto-execute when params change
+  - Updated examples to use `computed(() => ({ petId: ... }))` instead of incorrect `{ petId: ref }`
+- Added section on using cache options with deferred path params
+- Updated all JSDoc comments to document the new third overload
+
+## [0.16.0] - 2025-02-24
+
+### Added
+
+- Query return types test suite with 67 tests for end-to-end type verification
+- Compile-time type compatibility checks for `refetch()`, `data`, error states
+- Bidirectional type checks to verify inferred types match expected OpenAPI types
+
+### Changed
+
+- **QueryReturn** now extends `Omit<UseQueryReturnType, 'data' | 'isEnabled'>` plus custom fields
+  - Inherits `refetch`, `isPending`, `isLoading`, `isSuccess`, `isError`, `error` from TanStack
+  - Custom `data` field as `ComputedRef<TResponse | undefined>` instead of TanStack's `Ref<TData | undefined>`
+  - Custom `isEnabled` that gates on path param resolution + TanStack's `enabled` option
+- **Refetchable** interface updated: `refetch` return type changed to `Promise<unknown>` for compatibility
+
+### Fixed
+
+- Stale internal type cast in `openapi-mutation.ts`: removed `{ refetch: () => Promise<void> }[]` in favor of `Refetchable[]`
+- Resolved 4 Copilot review comments on typing and documentation
+
+### Removed
+
+- Unused type import `UseQueryReturnType` from test file
+- Redundant type casts and annotations that are now properly inferred
 
 ## [0.15.0] - 2026-02-24
 
@@ -88,9 +133,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **`useEndpoint` function removed** - Use `useQuery`/`useMutation` directly instead
-- **`queryClient` export removed** - No longer part of public API
-- **Internal exports removed** - `useEndpointQuery`, `useEndpointMutation` no longer exported from index
+- **`useEndpoint` function removed** — Use `useQuery`/`useMutation` directly instead
+- **`queryClient` export removed** — No longer part of public API
+- **Internal exports removed** — `useEndpointQuery`, `useEndpointMutation` no longer exported from index
 
 ## [0.13.1] - 2025-02-16
 
@@ -124,7 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- `types-documentation.ts` - redundant JSDoc-enhanced re-exports
+- `types-documentation.ts` — redundant JSDoc-enhanced re-exports
 - Unused `OperationId` type alias from `types.ts`
 - Direct `components` and `operations` type access from tests and examples
 
@@ -256,7 +301,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test coverage for TanStack Query and Axios options with 176 total tests
 - TypeScript compilation error validation tests to ensure type safety at compile time
 - Advanced Axios configuration tests covering request/response transformation, timeout, proxy, authentication
-- TanStack Query-specific tests for retry behavior, cache invalidation, data transformation, and meta configuration
+- TanStack Query-specific tests for retry behavior, cache invalidation, data transformation and meta configuration
 - Error handler tests for both queries and mutations with async support
 
 ### Changed

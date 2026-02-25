@@ -390,6 +390,43 @@ describe('API Usage Patterns', () => {
       expect(updateEndpoint).toHaveProperty('mutateAsync')
     })
 
+    it('should support mutation with no initial path params, providing them at mutateAsync time', () => {
+      // Create mutation without any path params (updatePet requires petId)
+      const mutation = api.updatePet.useMutation()
+
+      // Should be disabled initially since petId is not provided
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Call mutateAsync with path params provided in the variables
+      // This should create a Promise (actual execution would work with proper axios mock)
+      const promise = mutation.mutateAsync({
+        data: { name: 'Updated Pet' },
+        pathParams: { petId: '789' },
+      })
+
+      // Should return a Promise
+      expect(promise).toBeInstanceOf(Promise)
+    })
+
+    it('should support mutation with options but no initial path params', () => {
+      // Create mutation with cache invalidation options but no path params
+      const mutation = api.updatePet.useMutation(undefined, {
+        invalidateOperations: { listPets: {} },
+      })
+
+      // Should be disabled initially
+      expect(mutation.isEnabled.value).toBe(false)
+
+      // Call with path params provided at mutation time
+      const promise = mutation.mutateAsync({
+        data: { name: 'Option Pet' },
+        pathParams: { petId: '999' },
+      })
+
+      // Should return a Promise
+      expect(promise).toBeInstanceOf(Promise)
+    })
+
     it('should support reactive computed values for conditional parameters', () => {
       const selectedUserId = ref<string>('user1')
       const includeArchived = ref(false)

@@ -173,22 +173,72 @@ isAuthenticated.value = true // Starts fetching
 ### Mutation With Reactive Path Params
 
 ```typescript
+import { ref, computed } from 'vue'
+import { api } from './api/init'
+
+const selectedPetId = ref('123')
+
+// Mutations support reactive path params (computed, getter function, or ref of the whole params object)
+const updatePet = api.updatePet.useMutation(
+  computed(() => ({ petId: selectedPetId.value })), // Reactive - recomputed when selectedPetId changes
+)
+
+// Note: Unlike queries, mutations won't auto-execute when path params change.
+// You still need to call mutate() or mutateAsync() yourself when ready.
+const handleUpdate = async () => {
+  await updatePet.mutateAsync({ data: { name: 'Updated' } })
+}
+```
+
+**Alternative: Getter Function**
+
+You can also use a getter function for reactivity:
+
+```typescript
+const updatePet = api.updatePet.useMutation(() => ({ petId: selectedPetId.value }))
+```
+
+**Note:** Don't pass a ref as a primitive value inside the params object (e.g., `{ petId: selectedPetId }`). This would pass the ref object itself, not its value. Use `computed()`, a getter function, or `ref({ petId: ... })` for the whole params object.
+
+### When to Recreate Mutation Instances
+
+If you need a separate mutation state (like `isLoading` or `error`) for each different ID, create a new mutation instance when the ID changes:
+
+```typescript
+watch(selectedPetId, () => {
+  // New mutation instance = new state tracking for this petId
+  const petMutation = api.updatePet.useMutation({ petId: selectedPetId.value })
+})
+```
+
+**Alternative: Deferred Path Parameters**
+
+Instead of creating a new mutation instance, you can omit path parameters at hook time and provide them when calling `mutateAsync`:
+
+```typescript
 import { ref } from 'vue'
 import { api } from './api/init'
 
 const selectedPetId = ref('123')
 
-const updatePet = api.updatePet.useMutation(
-  { petId: selectedPetId.value }, // Not reactive - static value
-)
+// Create mutation once without path params
+const updatePet = api.updatePet.useMutation()
 
-// To use reactive path params, create a new mutation when ID changes
-watch(selectedPetId, () => {
-  // Re-create mutation with new path params
-})
+// Provide path params at call time (works with any petId)
+const handleUpdate = async () => {
+  await updatePet.mutateAsync({
+    data: { name: 'Updated' },
+    pathParams: { petId: selectedPetId.value },
+  })
+}
 ```
 
-**Note:** Mutations don't support reactive path parameters like queries. Create a new mutation instance when path parameters change.
+This approach is simpler when:
+
+- You need to call the mutation with different IDs dynamically
+- You're working inside a component where the ID changes
+- You want to avoid recreating mutation instances
+- You don't need per-ID state tracking (single `isLoading`, `error`, etc.)
 
 ## Common Reactive Patterns
 

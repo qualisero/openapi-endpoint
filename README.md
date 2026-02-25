@@ -118,9 +118,18 @@ await createPet.mutateAsync({ data: { name: 'Fluffy' } })
 const updatePet = api.updatePet.useMutation({ petId: '123' })
 await updatePet.mutateAsync({ data: { name: 'Updated' } })
 
-// Override path params at call time
+// Deferred path params: omit at hook time, provide at call time
 const deletePet = api.deletePet.useMutation()
 await deletePet.mutateAsync({ pathParams: { petId: '123' } })
+
+// Deferred path params with options
+const updateWithCache = api.updatePet.useMutation(undefined, {
+  invalidateOperations: { listPets: {} },
+})
+await updateWithCache.mutateAsync({
+  data: { name: 'Updated' },
+  pathParams: { petId: '123' },
+})
 
 // With options
 const mutation = api.createPet.useMutation({
