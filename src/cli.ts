@@ -32,6 +32,7 @@ interface OpenAPISpec {
 interface OpenAPISchema {
   type?: string
   enum?: (string | number)[]
+  $ref?: string
   properties?: Record<string, OpenAPISchema>
   items?: OpenAPISchema
   [key: string]: unknown
@@ -476,7 +477,7 @@ function addEnumIfUnique(
 /**
  * Extracts all enums from an OpenAPI spec.
  * Walks through:
- * 1. components.schemas and their properties
+ * 1. components.schemas and their properties (inline enum or $ref to enum schema)
  * 2. Operation parameters (query, header, path, cookie)
  * Deduplicates by comparing enum value sets.
  */
@@ -484,22 +485,42 @@ function extractEnumsFromSpec(openApiSpec: OpenAPISpec): EnumInfo[] {
   const enums: EnumInfo[] = []
   const seenEnumValues = new Map<string, string>() // Maps JSON stringified values -> enum name (for deduplication)
 
+  // Build lookup of schemas that ARE enums (have enum property on the schema itself)
+  const schemaEnumLookup: Map<string, (string | number)[]> = new Map()
+  if (openApiSpec.components?.schemas) {
+    for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+      if (schema.enum && Array.isArray(schema.enum)) {
+        const enumValues = (schema.enum as (string | number | null)[]).filter((v) => v !== null) as (string | number)[]
+        if (enumValues.length > 0) {
+          schemaEnumLookup.set(schemaName, enumValues)
+        }
+      }
+    }
+  }
+
+  // Helper to resolve enum values from a schema (inline or $ref)
+  function resolveEnumValues(schema: OpenAPISchema): (string | number)[] | null {
+    // Inline enum
+    if (schema.enum && Array.isArray(schema.enum)) {
+      const enumValues = (schema.enum as (string | number | null)[]).filter((v) => v !== null) as (string | number)[]
+      return enumValues.length > 0 ? enumValues : null
+    }
+    // $ref to an enum schema
+    if (typeof schema.$ref === 'string') {
+      const refName = schema.$ref.split('/').pop()!
+      return schemaEnumLookup.get(refName) ?? null
+    }
+    return null
+  }
+
   // Extract from components.schemas
   if (openApiSpec.components?.schemas) {
     for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
       if (!schema.properties) continue
 
       for (const [propName, propSchema] of Object.entries(schema.properties)) {
-        if (!propSchema.enum || !Array.isArray(propSchema.enum)) continue
-
-        // Filter out null values from enum array
-        const enumValues = (propSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
-          | string
-          | number
-        )[]
-
-        // Skip if all values were null
-        if (enumValues.length === 0) continue
+        const enumValues = resolveEnumValues(propSchema)
+        if (!enumValues) continue
 
         // Use schema name as-is (already PascalCase), convert property name from snake_case
         const enumName = schemaName + toPascalCase(propName)
@@ -533,14 +554,10 @@ function extractEnumsFromSpec(openApiSpec: OpenAPISpec): EnumInfo[] {
             const paramIn = paramObj.in as string | undefined
             const paramSchema = paramObj.schema as OpenAPISchema | undefined
 
-            if (!paramName || !paramIn || !paramSchema?.enum) continue
+            if (!paramName || !paramIn || !paramSchema) continue
 
-            const enumValues = (paramSchema.enum as (string | number | null)[]).filter((v) => v !== null) as (
-              | string
-              | number
-            )[]
-
-            if (enumValues.length === 0) continue
+            const enumValues = resolveEnumValues(paramSchema)
+            if (!enumValues) continue
 
             // Create a descriptive name: OperationName + ParamName
             const operationName = op.operationId
