@@ -1367,7 +1367,6 @@ import {
   type QueryReturn,
   type MutationReturn,
   type LazyQueryReturn,
-  type LazyQueryFetchOptions,
   type ReactiveOr,
   type NoExcessReturn,
   type MaybeRefOrGetter,
