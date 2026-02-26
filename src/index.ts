@@ -1,14 +1,14 @@
 // ============================================================================
 // Core primitives (called by generated api-client.ts)
 // ============================================================================
-export { useEndpointQuery } from './openapi-query'
+export { useEndpointQuery, useEndpointLazyQuery } from './openapi-query'
 export { useEndpointMutation } from './openapi-mutation'
 export { defaultQueryClient } from './openapi-helpers'
 
 // ============================================================================
 // Return types (used in component / composable signatures)
 // ============================================================================
-export type { QueryReturn } from './openapi-query'
+export type { QueryReturn, LazyQueryReturn } from './openapi-query'
 export type { MutationReturn } from './openapi-mutation'
 
 // ============================================================================
@@ -20,6 +20,7 @@ export type {
 
   // Options
   QueryOptions,
+  LazyQueryFetchOptions,
   MutationOptions,
   MutationVars,
 

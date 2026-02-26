@@ -135,6 +135,31 @@ interface QueryResult {
 }
 ```
 
+## Lazy Queries
+
+Use `useLazyQuery` when you want to control execution imperatively rather than reactively — for example, when query params are not known at component mount time:
+
+```typescript
+const availabilityQuery = api.getAvailabilityQuery.useLazyQuery()
+
+const fetchAvailability = (params: ApiQueryParams<'getAvailabilityQuery'>) =>
+  availabilityQuery.fetch({ queryParams: params })
+```
+
+- No request fires on mount
+- `fetch()` accepts query params at call time and returns `Promise<TResponse>`
+- Result is cached — subsequent calls with the same params use `staleTime: Infinity` by default
+- `data`, `isPending`, `isError` are all reactive and update after each `fetch()`
+
+**When to use lazy queries:**
+
+- Search on button click (not on each keystroke)
+- Prefetch data on hover
+- Pagination with explicit next/prev buttons
+- Any time you need full control over when a request is made
+
+See [Lazy Queries guide](./07-lazy-queries.md) for full details.
+
 ## Common Query Patterns
 
 ### Loading Skeleton

@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { effectScope } from 'vue'
 import { mockAxios } from '../setup'
 import { createApiClient } from '../fixtures/api-client'
+import { createTestScope } from '../helpers'
 
 /**
  * Consolidated Axios Configuration Tests
@@ -15,10 +17,16 @@ import { createApiClient } from '../fixtures/api-client'
  */
 describe('Axios Configuration Integration', () => {
   let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
 
   beforeEach(() => {
     vi.clearAllMocks()
-    api = createApiClient(mockAxios)
+    ;({ api, scope, run } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
   })
 
   describe('Basic Axios Options', () => {
@@ -29,58 +37,72 @@ describe('Axios Configuration Integration', () => {
         'Content-Type': 'application/json',
       }
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { headers: customHeaders },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { headers: customHeaders },
+        }),
+      )
 
-      const mutation = api.createPet.useMutation({
-        axiosOptions: { headers: customHeaders },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: { headers: customHeaders },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
       expect(mutation).toHaveProperty('mutate')
     })
 
     it('should handle timeout configurations', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: { timeout: 5000 },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { timeout: 5000 },
+        }),
+      )
 
-      const mutation = api.createPet.useMutation({
-        axiosOptions: { timeout: 10000 },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: { timeout: 10000 },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
       expect(mutation).toHaveProperty('mutate')
     })
 
     it('should handle baseURL override', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: { baseURL: 'https://custom-api.example.com' },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { baseURL: 'https://custom-api.example.com' },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should handle axios options with path parameters', () => {
-      const query = api.getPet.useQuery(
-        { petId: '123' },
-        {
-          axiosOptions: {
-            headers: { Accept: 'application/json' },
-            timeout: 3000,
+      const query = run(() =>
+        api.getPet.useQuery(
+          { petId: '123' },
+          {
+            axiosOptions: {
+              headers: { Accept: 'application/json' },
+              timeout: 3000,
+            },
           },
-        },
+        ),
       )
 
-      const mutation = api.updatePet.useMutation(
-        { petId: '123' },
-        {
-          axiosOptions: {
-            headers: { 'Content-Type': 'application/json' },
-            maxRedirects: 5,
+      const mutation = run(() =>
+        api.updatePet.useMutation(
+          { petId: '123' },
+          {
+            axiosOptions: {
+              headers: { 'Content-Type': 'application/json' },
+              maxRedirects: 5,
+            },
           },
-        },
+        ),
       )
 
       expect(query).toHaveProperty('data')
@@ -93,13 +115,17 @@ describe('Axios Configuration Integration', () => {
       const transformRequest = vi.fn((data) => JSON.stringify(data))
       const transformResponse = vi.fn((data) => JSON.parse(data))
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { transformResponse },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { transformResponse },
+        }),
+      )
 
-      const mutation = api.createPet.useMutation({
-        axiosOptions: { transformRequest },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: { transformRequest },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
       expect(mutation).toHaveProperty('mutate')
@@ -108,27 +134,33 @@ describe('Axios Configuration Integration', () => {
     it('should support custom validateStatus function', () => {
       const validateStatus = vi.fn((status: number) => status >= 200 && status < 300)
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { validateStatus },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { validateStatus },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should support response configuration options', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          responseType: 'json',
-          responseEncoding: 'utf8',
-          maxContentLength: 2000,
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            responseType: 'json',
+            responseEncoding: 'utf8',
+            maxContentLength: 2000,
+          },
+        }),
+      )
 
-      const mutation = api.createPet.useMutation({
-        axiosOptions: {
-          maxBodyLength: 1000,
-        },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: {
+            maxBodyLength: 1000,
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
       expect(mutation).toHaveProperty('mutate')
@@ -143,13 +175,17 @@ describe('Axios Configuration Integration', () => {
         console.log('Download progress:', progressEvent)
       })
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { onDownloadProgress },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { onDownloadProgress },
+        }),
+      )
 
-      const mutation = api.createPet.useMutation({
-        axiosOptions: { onUploadProgress },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: { onUploadProgress },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
       expect(mutation).toHaveProperty('mutate')
@@ -158,26 +194,30 @@ describe('Axios Configuration Integration', () => {
 
   describe('Authentication and Security', () => {
     it('should support CORS and credentials configuration', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          withCredentials: true,
-          xsrfCookieName: 'XSRF-TOKEN',
-          xsrfHeaderName: 'X-XSRF-TOKEN',
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            withCredentials: true,
+            xsrfCookieName: 'XSRF-TOKEN',
+            xsrfHeaderName: 'X-XSRF-TOKEN',
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should support custom auth configuration', () => {
-      const mutation = api.createPet.useMutation({
-        axiosOptions: {
-          auth: {
-            username: 'user',
-            password: 'pass',
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: {
+            auth: {
+              username: 'user',
+              password: 'pass',
+            },
           },
-        },
-      })
+        }),
+      )
 
       expect(mutation).toHaveProperty('mutate')
     })
@@ -188,9 +228,11 @@ describe('Axios Configuration Integration', () => {
         'X-API-Key': 'secret-api-key',
       }
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { headers: authHeaders },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { headers: authHeaders },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -198,26 +240,30 @@ describe('Axios Configuration Integration', () => {
 
   describe('Network and Proxy Configuration', () => {
     it('should support proxy configuration', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          proxy: {
-            protocol: 'http',
-            host: 'proxy.example.com',
-            port: 8080,
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            proxy: {
+              protocol: 'http',
+              host: 'proxy.example.com',
+              port: 8080,
+            },
           },
-        },
-      })
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should support redirect and compression settings', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          maxRedirects: 3,
-          decompress: true,
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            maxRedirects: 3,
+            decompress: true,
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -225,9 +271,11 @@ describe('Axios Configuration Integration', () => {
     it('should support custom parameters serialization', () => {
       const paramsSerializer = vi.fn((params) => new URLSearchParams(params).toString())
 
-      const query = api.listPets.useQuery({
-        axiosOptions: { paramsSerializer },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: { paramsSerializer },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -236,39 +284,43 @@ describe('Axios Configuration Integration', () => {
   describe('Custom Properties Support', () => {
     it('should accept custom axios properties like manualErrorHandling', () => {
       // This addresses the original issue with custom axios properties
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          // Standard axios properties
-          timeout: 5000,
-          headers: { 'X-Custom-Header': 'custom-value' },
-          // Custom properties that might be added via module augmentation
-          manualErrorHandling: true,
-          handledByAxios: false,
-          customRetryCount: 3,
-          debugMode: true,
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            // Standard axios properties
+            timeout: 5000,
+            headers: { 'X-Custom-Header': 'custom-value' },
+            // Custom properties that might be added via module augmentation
+            manualErrorHandling: true,
+            handledByAxios: false,
+            customRetryCount: 3,
+            debugMode: true,
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should accept custom properties with various data types', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          // Custom properties of various types
-          stringProperty: 'test',
-          numberProperty: 42,
-          booleanProperty: true,
-          objectProperty: { nested: { deep: 'value' } },
-          arrayProperty: [1, 2, 3],
-          functionProperty: (data: unknown) => data,
-          nullProperty: null,
-          undefinedProperty: undefined,
-          // Properties from the original issue
-          manualErrorHandling: true,
-          handledByAxios: false,
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            // Custom properties of various types
+            stringProperty: 'test',
+            numberProperty: 42,
+            booleanProperty: true,
+            objectProperty: { nested: { deep: 'value' } },
+            arrayProperty: [1, 2, 3],
+            functionProperty: (data: unknown) => data,
+            nullProperty: null,
+            undefinedProperty: undefined,
+            // Properties from the original issue
+            manualErrorHandling: true,
+            handledByAxios: false,
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -279,17 +331,19 @@ describe('Axios Configuration Integration', () => {
         return true
       }
 
-      const query = api.getPet.useQuery(
-        { petId: '123' },
-        {
-          axiosOptions: {
-            manualErrorHandling: customErrorHandler,
-            customMetadata: {
-              requestId: 'req-123',
-              source: 'unit-test',
+      const query = run(() =>
+        api.getPet.useQuery(
+          { petId: '123' },
+          {
+            axiosOptions: {
+              manualErrorHandling: customErrorHandler,
+              customMetadata: {
+                requestId: 'req-123',
+                source: 'unit-test',
+              },
             },
           },
-        },
+        ),
       )
 
       expect(query).toHaveProperty('data')
@@ -298,12 +352,14 @@ describe('Axios Configuration Integration', () => {
 
   describe('Axios Options in Mutation Calls', () => {
     it('should support axios options override in mutate calls', () => {
-      const mutation = api.createPet.useMutation({
-        axiosOptions: {
-          timeout: 5000,
-          headers: { 'X-Setup-Header': 'setup-value' },
-        },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: {
+            timeout: 5000,
+            headers: { 'X-Setup-Header': 'setup-value' },
+          },
+        }),
+      )
 
       expect(() => {
         mutation.mutate({
@@ -317,7 +373,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should support axios options in mutateAsync calls', async () => {
-      const mutation = api.createPet.useMutation()
+      const mutation = run(() => api.createPet.useMutation())
 
       await expect(
         mutation.mutateAsync({
@@ -337,16 +393,18 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should merge axios options from setup and runtime calls', () => {
-      const mutation = api.createPet.useMutation({
-        axiosOptions: {
-          timeout: 5000,
-          maxRedirects: 3,
-          headers: {
-            'X-Setup-Header': 'setup-value',
-            'Content-Type': 'application/json',
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          axiosOptions: {
+            timeout: 5000,
+            maxRedirects: 3,
+            headers: {
+              'X-Setup-Header': 'setup-value',
+              'Content-Type': 'application/json',
+            },
           },
-        },
-      })
+        }),
+      )
 
       expect(() => {
         mutation.mutate({
@@ -363,7 +421,7 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle complex custom properties in mutation calls', () => {
-      const mutation = api.createPet.useMutation()
+      const mutation = run(() => api.createPet.useMutation())
       expect(() => {
         mutation.mutate({
           data: { name: 'Fluffy' },
@@ -392,26 +450,30 @@ describe('Axios Configuration Integration', () => {
 
   describe('Environment and Browser-Specific Configuration', () => {
     it('should support Node.js specific options', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          // Node.js specific options
-          maxRedirects: 5,
-          socketPath: '/var/run/socket',
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            // Node.js specific options
+            maxRedirects: 5,
+            socketPath: '/var/run/socket',
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
 
     it('should support browser specific options', () => {
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          // Browser specific options
-          withCredentials: true,
-          xsrfCookieName: 'XSRF-TOKEN',
-          xsrfHeaderName: 'X-XSRF-TOKEN',
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            // Browser specific options
+            withCredentials: true,
+            xsrfCookieName: 'XSRF-TOKEN',
+            xsrfHeaderName: 'X-XSRF-TOKEN',
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -423,11 +485,13 @@ describe('Axios Configuration Integration', () => {
       globalAxios.defaults.headers.common['Global-Header'] = 'global-value'
 
       const apiWithGlobal = createApiClient(globalAxios)
-      const query = apiWithGlobal.listPets.useQuery({
-        axiosOptions: {
-          headers: { 'Request-Specific': 'request-value' },
-        },
-      })
+      const query = run(() =>
+        apiWithGlobal.listPets.useQuery({
+          axiosOptions: {
+            headers: { 'Request-Specific': 'request-value' },
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
     })
@@ -449,11 +513,13 @@ describe('Axios Configuration Integration', () => {
         (error) => Promise.reject(error),
       )
 
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          headers: { 'Custom-Header': 'value' },
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            headers: { 'Custom-Header': 'value' },
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
 
@@ -463,14 +529,18 @@ describe('Axios Configuration Integration', () => {
     })
 
     it('should handle empty or undefined axios options gracefully', () => {
-      const queryWithEmpty = api.listPets.useQuery({
-        axiosOptions: {},
-      })
+      const queryWithEmpty = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {},
+        }),
+      )
 
-      const queryWithUndefined = api.listPets.useQuery({
-        enabled: true,
-        // axiosOptions is intentionally undefined
-      })
+      const queryWithUndefined = run(() =>
+        api.listPets.useQuery({
+          enabled: true,
+          // axiosOptions is intentionally undefined
+        }),
+      )
 
       expect(queryWithEmpty).toHaveProperty('data')
       expect(queryWithUndefined).toHaveProperty('data')
@@ -478,11 +548,13 @@ describe('Axios Configuration Integration', () => {
 
     it('should support request cancellation with AbortController', () => {
       const controller = new AbortController()
-      const query = api.listPets.useQuery({
-        axiosOptions: {
-          signal: controller.signal,
-        },
-      })
+      const query = run(() =>
+        api.listPets.useQuery({
+          axiosOptions: {
+            signal: controller.signal,
+          },
+        }),
+      )
 
       expect(query).toHaveProperty('data')
 
@@ -496,16 +568,18 @@ describe('Axios Configuration Integration', () => {
       const onSuccess = vi.fn()
       const customHeaders = { 'X-Custom': 'value' }
 
-      const mutation = api.createPet.useMutation({
-        // TanStack Query options
-        onSuccess,
-        retry: 3,
-        // Axios options
-        axiosOptions: {
-          headers: customHeaders,
-          timeout: 10000,
-        },
-      })
+      const mutation = run(() =>
+        api.createPet.useMutation({
+          // TanStack Query options
+          onSuccess,
+          retry: 3,
+          // Axios options
+          axiosOptions: {
+            headers: customHeaders,
+            timeout: 10000,
+          },
+        }),
+      )
 
       expect(mutation).toHaveProperty('mutate')
     })
@@ -514,25 +588,27 @@ describe('Axios Configuration Integration', () => {
       const errorHandler = vi.fn()
       const onLoad = vi.fn()
 
-      const query = api.getPet.useQuery(
-        { petId: '123' },
-        {
-          // Custom options
-          errorHandler,
-          onLoad,
-          enabled: true,
-          // TanStack Query options
-          staleTime: 60000,
-          refetchOnWindowFocus: false,
-          // Axios options
-          axiosOptions: {
-            timeout: 15000,
-            headers: {
-              'Accept-Language': 'en-US',
-              'Cache-Control': 'no-cache',
+      const query = run(() =>
+        api.getPet.useQuery(
+          { petId: '123' },
+          {
+            // Custom options
+            errorHandler,
+            onLoad,
+            enabled: true,
+            // TanStack Query options
+            staleTime: 60000,
+            refetchOnWindowFocus: false,
+            // Axios options
+            axiosOptions: {
+              timeout: 15000,
+              headers: {
+                'Accept-Language': 'en-US',
+                'Cache-Control': 'no-cache',
+              },
             },
           },
-        },
+        ),
       )
 
       expect(query).toHaveProperty('data')

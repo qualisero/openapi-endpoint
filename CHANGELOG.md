@@ -5,14 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.1] - 2025-02-26
+## [0.18.0] - 2026-02-26
 
-### Fixed
+### Added
 
-- `queryParams` now accepts `undefined` in reactive types — fixes TypeScript error when using `ref<QueryParams>()` without initial value
-  - `queryParams?: ReactiveOr<TQueryParams | undefined>` allows patterns like `const params = ref<SearchParams>()` then populate later
-  - Enables conditional query params with `computed(() => isActive.value ? params : undefined)`
-  - No runtime changes; undefined params are handled gracefully
+- **Lazy queries** — New `useLazyQuery` hook for imperative query execution
+  - `fetch(options)` method executes queries on demand with params passed at call time
+  - `useLazyQuery()` on every generated query operation (no-path and with-path)
+  - No auto-fire on mount or param change — full control over request timing
+  - Cache sharing with `useQuery` — both composables share same cache entry
+  - Default `staleTime: Infinity` — execute only when explicitly called
+  - New types: `LazyQueryReturn<TResponse, TPathParams, TQueryParams>`, `LazyQueryFetchOptions<TQueryParams>`
+  - Export: `useEndpointLazyQuery` from package
+
+### Changed
+
+- **Type safety** — Reverted `queryParams?: ReactiveOr<TQueryParams | undefined>` to `ReactiveOr<TQueryParams>`
+  - The `| undefined` type relaxation from 0.17.1 is superseded by `useLazyQuery`
+  - Required query params must be provided; TypeScript enforces this at compile time
+  - This is a breaking change for code that adopted the 0.17.1 pattern (but that version was not released)
+
+### Documentation
+
+- Added [Lazy Queries guide](./docs/manual/07-lazy-queries.md) with comprehensive examples
+- Updated [Queries guide](./docs/manual/02-queries.md) with lazy query overview
+- Updated [Reactive Parameters guide](./docs/manual/04-reactive-parameters.md) with lazy query patterns
 
 ## [0.17.0] - 2025-02-25
 

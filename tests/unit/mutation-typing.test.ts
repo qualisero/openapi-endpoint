@@ -1,16 +1,24 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockAxios } from '../setup'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { effectScope } from 'vue'
 import { createApiClient } from '../fixtures/api-client'
+import { createTestScope } from '../helpers'
 
 describe('Mutation Return Type Typing', () => {
   let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
 
   beforeEach(() => {
-    api = createApiClient(mockAxios)
+    vi.clearAllMocks()
+    ;({ api, scope, run } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
   })
 
   it('mutate() should have proper return type when called with data', () => {
-    const createPetMutation = api.createPet.useMutation()
+    const createPetMutation = run(() => api.createPet.useMutation())
 
     // Call mutate with data
     const result = createPetMutation.mutate({ data: { name: 'Fluffy' } })
@@ -20,7 +28,7 @@ describe('Mutation Return Type Typing', () => {
   })
 
   it('mutateAsync() should return Promise with typed response', async () => {
-    const createPetMutation = api.createPet.useMutation()
+    const createPetMutation = run(() => api.createPet.useMutation())
 
     // This should be Promise<AxiosResponse<Pet>>
     const promise = createPetMutation.mutateAsync({
@@ -36,7 +44,7 @@ describe('Mutation Return Type Typing', () => {
   })
 
   it('mutation with path params should properly type response', async () => {
-    const updatePetMutation = api.updatePet.useMutation({ petId: '123' })
+    const updatePetMutation = run(() => api.updatePet.useMutation({ petId: '123' }))
 
     const promise = updatePetMutation.mutateAsync({
       data: { name: 'Updated' },
@@ -47,7 +55,7 @@ describe('Mutation Return Type Typing', () => {
   })
 
   it('should demonstrate typing issue: mutate() return value is not typed', () => {
-    const mutation = api.createPet.useMutation()
+    const mutation = run(() => api.createPet.useMutation())
 
     // This is the issue - we can't get the response from mutate()
     // mutate() returns void, so we can't access the data
@@ -59,20 +67,22 @@ describe('Mutation Return Type Typing', () => {
   })
 
   it('should work with onSuccess callback to access response data', () => {
-    const mutation = api.createPet.useMutation({
-      onSuccess: (response: any) => {
-        // response should be AxiosResponse<Pet>
-        // response.data should be Pet
-        expect(response).toBeDefined()
-        expect(response.data).toBeDefined()
-      },
-    })
+    const mutation = run(() =>
+      api.createPet.useMutation({
+        onSuccess: (response: any) => {
+          // response should be AxiosResponse<Pet>
+          // response.data should be Pet
+          expect(response).toBeDefined()
+          expect(response.data).toBeDefined()
+        },
+      }),
+    )
 
     mutation.mutate({ data: { name: 'Test' } })
   })
 
   it('mutateAsync should properly type the response', async () => {
-    const mutation = api.createPet.useMutation()
+    const mutation = run(() => api.createPet.useMutation())
 
     const response = await mutation.mutateAsync({
       data: { name: 'Fluffy' },
@@ -92,15 +102,21 @@ describe('Mutation Return Type Typing', () => {
  */
 describe('Multipart Form Data Support', () => {
   let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
 
   beforeEach(() => {
     vi.clearAllMocks()
-    api = createApiClient(mockAxios)
+    ;({ api, scope, run } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
   })
 
   it('should support multipart/form-data with specific upload endpoints', () => {
     // Test with upload-specific endpoint
-    const uploadMutation = api.uploadPetPic.useMutation({ petId: '123' })
+    const uploadMutation = run(() => api.uploadPetPic.useMutation({ petId: '123' }))
 
     const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
     const formData = new FormData()
@@ -117,16 +133,18 @@ describe('Multipart Form Data Support', () => {
   })
 
   it('should support custom headers with multipart uploads', () => {
-    const uploadMutation = api.uploadPetPic.useMutation(
-      { petId: '123' },
-      {
-        axiosOptions: {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'X-Custom-Header': 'custom-value',
+    const uploadMutation = run(() =>
+      api.uploadPetPic.useMutation(
+        { petId: '123' },
+        {
+          axiosOptions: {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'X-Custom-Header': 'custom-value',
+            },
           },
         },
-      },
+      ),
     )
 
     const mockFile = new File(['test content'], 'test.jpg', { type: 'image/jpeg' })
@@ -141,7 +159,7 @@ describe('Multipart Form Data Support', () => {
   })
 
   it('should support type safety for multipart/form-data schemas', () => {
-    const uploadMutation = api.uploadPetPic.useMutation({ petId: '123' })
+    const uploadMutation = run(() => api.uploadPetPic.useMutation({ petId: '123' }))
 
     // Should accept FormData for upload endpoints
     expect(() => {
@@ -161,12 +179,14 @@ describe('Multipart Form Data Support', () => {
   })
 
   it('should integrate with cache invalidation after upload', () => {
-    const listPetsQuery = api.listPets.useQuery()
-    const uploadMutation = api.uploadPetPic.useMutation(
-      { petId: '123' },
-      {
-        invalidateOperations: ['listPets'],
-      },
+    const listPetsQuery = run(() => api.listPets.useQuery())
+    const uploadMutation = run(() =>
+      api.uploadPetPic.useMutation(
+        { petId: '123' },
+        {
+          invalidateOperations: ['listPets'],
+        },
+      ),
     )
 
     const formData = new FormData()
@@ -185,27 +205,33 @@ describe('Multipart Form Data Support', () => {
  */
 describe('Mutation isEnabled Enforcement', () => {
   let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
 
   beforeEach(() => {
     vi.clearAllMocks()
-    api = createApiClient(mockAxios)
+    ;({ api, scope, run } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
   })
 
   it('should have isEnabled=false when path parameters are undefined', () => {
-    const mutation = api.updatePet.useMutation(() => ({ petId: undefined }))
+    const mutation = run(() => api.updatePet.useMutation(() => ({ petId: undefined })))
 
     expect(mutation.isEnabled.value).toBe(false)
   })
 
   it('should have isEnabled=true when path parameters are provided', () => {
-    const mutation = api.updatePet.useMutation(() => ({ petId: '123' }))
+    const mutation = run(() => api.updatePet.useMutation(() => ({ petId: '123' })))
 
     expect(mutation.isEnabled.value).toBe(true)
   })
 
   it('should prevent mutate() when isEnabled is false', async () => {
     const onError = vi.fn()
-    const mutation = api.updatePet.useMutation(() => ({ petId: undefined }), { onError })
+    const mutation = run(() => api.updatePet.useMutation(() => ({ petId: undefined }), { onError }))
     expect(mutation.isEnabled.value).toBe(false)
 
     // Calling mutate() when disabled should not throw, but should not execute either
@@ -223,7 +249,7 @@ describe('Mutation isEnabled Enforcement', () => {
   })
 
   it('should reject mutateAsync() when isEnabled is false', async () => {
-    const mutation = api.updatePet.useMutation(() => ({ petId: undefined }))
+    const mutation = run(() => api.updatePet.useMutation(() => ({ petId: undefined })))
 
     expect(mutation.isEnabled.value).toBe(false)
 
@@ -235,7 +261,7 @@ describe('Mutation isEnabled Enforcement', () => {
 
   it('should allow mutation when isEnabled becomes true', async () => {
     let petId: string | undefined = undefined
-    const mutation = api.updatePet.useMutation(() => ({ petId }))
+    const mutation = run(() => api.updatePet.useMutation(() => ({ petId })))
 
     // Initially disabled
     expect(mutation.isEnabled.value).toBe(false)
@@ -253,9 +279,11 @@ describe('Mutation isEnabled Enforcement', () => {
   it('should use isEnabled as a guard in practical usage', () => {
     const selectedRequestRef = { value: undefined as string | undefined }
 
-    const updateRequestTypeMutation = api.updatePet.useMutation(() => ({
-      petId: selectedRequestRef.value,
-    }))
+    const updateRequestTypeMutation = run(() =>
+      api.updatePet.useMutation(() => ({
+        petId: selectedRequestRef.value,
+      })),
+    )
 
     // This is a pattern from practical usage - isEnabled should guard execution
     expect(updateRequestTypeMutation.isEnabled.value).toBe(false)
