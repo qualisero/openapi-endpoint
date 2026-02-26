@@ -1045,6 +1045,15 @@ function _queryNoParams<Op extends AllOps>(
       options,
     )
 
+  const useLazyQuery = (
+    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, Record<string, never>, QueryParams> =>
+    useEndpointLazyQuery<Response, Record<string, never>, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
   return {
     /**
      * Query hook for this operation.
@@ -1061,6 +1070,21 @@ function _queryNoParams<Op extends AllOps>(
      * @returns Query result object
      */
     useQuery,
+    /**
+     * Lazy query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isPending\`: True while a fetch is in progress
+     * - \`isSuccess\`: True after at least one successful fetch
+     * - \`isError\`: True after a failed fetch
+     * - \`error\`: The error from the last failed fetch
+     * - \`fetch\`: Execute the query imperatively
+     *
+     * @param options - Lazy query options (staleTime, errorHandler, axiosOptions)
+     * @returns Lazy query result object
+     */
+    useLazyQuery,
     enums,
   } as const
 }
@@ -1092,11 +1116,32 @@ function _queryWithParams<Op extends AllOps>(
     ): QueryReturn<Response, PathParams>
   }
 
+  type _UseLazyQuery = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
+      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams>
+  }
+
   const _impl = (
     pathParams: ReactiveOr<PathParamsInput>,
     options?: QueryOptions<Response, QueryParams>,
   ): QueryReturn<Response, PathParams> =>
     useEndpointQuery<Response, PathParams, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  const _lazyImpl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, PathParams, QueryParams> =>
+    useEndpointLazyQuery<Response, PathParams, QueryParams>(
       { ...base, ...cfg },
       pathParams as _PathParamsCast,
       options,
@@ -1119,6 +1164,22 @@ function _queryWithParams<Op extends AllOps>(
      * @returns Query result object
      */
     useQuery: _impl as _UseQuery,
+    /**
+     * Lazy query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isPending\`: True while a fetch is in progress
+     * - \`isSuccess\`: True after at least one successful fetch
+     * - \`isError\`: True after a failed fetch
+     * - \`error\`: The error from the last failed fetch
+     * - \`fetch\`: Execute the query imperatively
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Lazy query options (staleTime, errorHandler, axiosOptions)
+     * @returns Lazy query result object
+     */
+    useLazyQuery: _lazyImpl as _UseLazyQuery,
     enums,
   } as const
 }
@@ -1298,12 +1359,15 @@ import type { Ref, ComputedRef } from 'vue'
 import {
   useEndpointQuery,
   useEndpointMutation,
+  useEndpointLazyQuery,
   defaultQueryClient,
   HttpMethod,
   type QueryOptions,
   type MutationOptions,
   type QueryReturn,
   type MutationReturn,
+  type LazyQueryReturn,
+  type LazyQueryFetchOptions,
   type ReactiveOr,
   type NoExcessReturn,
   type MaybeRefOrGetter,

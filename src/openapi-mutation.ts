@@ -152,6 +152,10 @@ export function useEndpointMutation<
             ...(resolvedQueryParams.value || {}),
             ...(queryParamsFromMutate || {}),
           },
+          headers: {
+            ...(axiosOptions?.headers || {}),
+            ...(axiosOptionsFromMutate?.headers || {}),
+          },
         })
       },
       onSuccess: async (response, vars) => {

@@ -785,6 +785,258 @@ export type OperationId = keyof OpenApiOperations
       expect(valid).toEqual({ openapiInput: 'input.json', outputDir: 'output/' })
     })
   })
+
+  // Helper function to generate API client content for testing
+  const generateApiClientContent = (
+    operationIds: string[],
+    operationInfoMap: Record<string, { path: string; method: string }>,
+  ): string => {
+    const QUERY_HTTP = new Set(['GET', 'HEAD', 'OPTIONS'])
+    const _isQuery = (id: string) => QUERY_HTTP.has(operationInfoMap[id].method)
+    const _hasPathParams = (id: string) => operationInfoMap[id].path.includes('{')
+
+    const imports = `import {
+  useEndpointQuery,
+  useEndpointMutation,
+  useEndpointLazyQuery,
+  defaultQueryClient,
+  HttpMethod,
+  type QueryOptions,
+  type MutationOptions,
+  type QueryReturn,
+  type MutationReturn,
+  type LazyQueryReturn,
+  type LazyQueryFetchOptions,
+  type ReactiveOr,
+  type NoExcessReturn,
+  type Ref,
+  type ComputedRef,
+  type MaybeRefOrGetter,
+} from '@qualisero/openapi-endpoint'
+`
+
+    const helpers = `/**
+ * Generic query helper for operations without path parameters.
+ * @internal
+ */
+function _queryNoParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  const useQuery = (
+    options?: QueryOptions<Response, QueryParams>,
+  ): QueryReturn<Response, Record<string, never>> =>
+    useEndpointQuery<Response, Record<string, never>, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
+  const useLazyQuery = (
+    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, Record<string, never>, QueryParams> =>
+    useEndpointLazyQuery<Response, Record<string, never>, QueryParams>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
+
+  return {
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the query is loading
+     * - \`error\`: Error object if the query failed
+     * - \`refetch\`: Function to manually trigger a refetch
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'pending' | 'error' | 'success'
+     *
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery,
+    /**
+     * Lazy query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isPending\`: True while a fetch is in progress
+     * - \`isSuccess\`: True after at least one successful fetch
+     * - \`isError\`: True after a failed fetch
+     * - \`error\`: The error from the last failed fetch
+     * - \`fetch\`: Execute the query imperatively
+     *
+     * @param options - Lazy query options (staleTime, errorHandler, axiosOptions)
+     * @returns Lazy query result object
+     */
+    useLazyQuery,
+    enums,
+  } as const
+}
+
+/**
+ * Generic query helper for operations with path parameters.
+ * @internal
+ */
+function _queryWithParams<Op extends AllOps>(
+  base: _Config,
+  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  enums: Record<string, unknown>,
+) {
+  type PathParams = ApiPathParams<Op>
+  type PathParamsInput = ApiPathParamsInput<Op>
+  type Response = ApiResponse<Op>
+  type QueryParams = ApiQueryParams<Op>
+
+  // Two-overload interface: non-function (exact via object-literal checking) +
+  // getter function (exact via NoExcessReturn constraint).
+  type _UseQuery = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: QueryOptions<Response, QueryParams>,
+    ): QueryReturn<Response, PathParams>
+  }
+
+  type _UseLazyQuery = {
+    (
+      pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
+      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams>
+    <F extends () => PathParamsInput>(
+      pathParams: NoExcessReturn<PathParamsInput, F>,
+      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams>
+  }
+
+  const _impl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: QueryOptions<Response, QueryParams>,
+  ): QueryReturn<Response, PathParams> =>
+    useEndpointQuery<Response, PathParams, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  const _lazyImpl = (
+    pathParams: ReactiveOr<PathParamsInput>,
+    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, PathParams, QueryParams> =>
+    useEndpointLazyQuery<Response, PathParams, QueryParams>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
+
+  return {
+    /**
+     * Query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isLoading\`: Whether the query is loading
+     * - \`error\`: Error object if the query failed
+     * - \`refetch\`: Function to manually trigger a refetch
+     * - \`isPending\`: Alias for isLoading
+     * - \`status\`: 'pending' | 'error' | 'success'
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Query options (enabled, refetchInterval, etc.)
+     * @returns Query result object
+     */
+    useQuery: _impl as _UseQuery,
+    /**
+     * Lazy query hook for this operation.
+     *
+     * Returns an object with:
+     * - \`data\`: The response data
+     * - \`isPending\`: True while a fetch is in progress
+     * - \`isSuccess\`: True after at least one successful fetch
+     * - \`isError\`: True after a failed fetch
+     * - \`error\`: The error from the last failed fetch
+     * - \`fetch\`: Execute the query imperatively
+     *
+     * @param pathParams - Path parameters (object, ref, computed, or getter function)
+     * @param options - Lazy query options (staleTime, errorHandler, axiosOptions)
+     * @returns Lazy query result object
+     */
+    useLazyQuery: _lazyImpl as _UseLazyQuery,
+    enums,
+  } as const
+}
+`
+    return imports + helpers
+  }
+
+  describe('generateApiClientContent', () => {
+    it('should include useEndpointLazyQuery in imports', () => {
+      const operationIds = ['listPets', 'createPet', 'getPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('useEndpointLazyQuery')
+    })
+
+    it('should include LazyQueryReturn in imports', () => {
+      const operationIds = ['listPets', 'createPet', 'getPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('type LazyQueryReturn')
+    })
+
+    it('should include useLazyQuery in _queryNoParams helper', () => {
+      const operationIds = ['listPets', 'createPet', 'getPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('_queryNoParams<Op extends AllOps>(')
+      expect(content).toContain('const useLazyQuery = (')
+      expect(content).toContain('): LazyQueryReturn<Response, Record<string, never>, QueryParams>')
+    })
+
+    it('should include useLazyQuery in _queryWithParams helper', () => {
+      const operationIds = ['listPets', 'createPet', 'getPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('_queryWithParams<Op extends AllOps>(')
+      expect(content).toContain('type _UseLazyQuery = {')
+      expect(content).toContain('const _lazyImpl = (')
+      expect(content).toContain('useLazyQuery: _lazyImpl as _UseLazyQuery')
+      expect(content).toContain('): LazyQueryReturn<Response, PathParams, QueryParams>')
+    })
+  })
 })
 
 describe('toCase and case conversion utilities', () => {

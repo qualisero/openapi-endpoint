@@ -175,6 +175,18 @@ export type QueryOptions<TResponse, TQueryParams extends Record<string, unknown>
   queryParams?: ReactiveOr<TQueryParams>
 }
 
+/**
+ * Per-call options for `useLazyQuery`'s `fetch()` method.
+ *
+ * @template TQueryParams The query parameters type for this operation
+ */
+export type LazyQueryFetchOptions<TQueryParams extends Record<string, unknown> = Record<string, never>> = {
+  /** Query string parameters for this fetch call. */
+  queryParams?: TQueryParams
+  /** Additional axios config for this fetch call (merged with hook-level axiosOptions). */
+  axiosOptions?: AxiosRequestConfigExtended
+}
+
 // ============================================================================
 // Mutation Vars & Options
 // ============================================================================

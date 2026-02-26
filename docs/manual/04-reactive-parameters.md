@@ -329,28 +329,23 @@ const toggleDetails = () => {
 
 ### Lazy Loading on Click
 
+Use `useLazyQuery` for imperative execution with params provided at call time:
+
 ```typescript
-import { ref, computed } from 'vue'
-import { api } from './api/init'
+const petQuery = api.getPet.useLazyQuery({ petId: '123' })
 
-const shouldLoad = ref(false)
-const petId = ref('123')
-
-const { data: pet, refetch } = api.getPet.useQuery(
-  computed(() => {
-    if (!shouldLoad.value) return null
-    return { petId: petId.value }
-  }),
-)
-
-const loadDetails = () => {
-  shouldLoad.value = true // Triggers fetch
-}
-
-const refreshDetails = () => {
-  refetch() // Manually refetch
-}
+const loadDetails = () => petQuery.fetch()
 ```
+
+For operations with query parameters, pass them to `fetch()`:
+
+```typescript
+const searchQuery = api.searchPets.useLazyQuery()
+
+const search = (term: string) => searchQuery.fetch({ queryParams: { q: term } })
+```
+
+This is much simpler than the reactive pattern using `shouldLoad` refs — no reactive juggling, no double-fire risk, and full control over when the request is made.
 
 ## Best Practices
 

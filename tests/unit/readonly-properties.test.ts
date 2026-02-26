@@ -8,8 +8,9 @@
  * 3. ApiRequest EXCLUDES readonly properties (can't send server-generated fields)
  */
 
-import { describe, it, expect } from 'vitest'
-import { mockAxios } from '../setup'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { effectScope } from 'vue'
+import { createTestScope } from '../helpers'
 import {
   type ApiResponse,
   type ApiResponseSafe,
@@ -315,10 +316,21 @@ describe('OpType Namespace', () => {
 })
 
 describe('Integration with createApiClient', () => {
-  const api = createApiClient(mockAxios)
+  let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;({ api, scope, run } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
+  })
 
   it('should enforce type safety with useMutation', () => {
-    const createPet = api.createPet.useMutation()
+    const createPet = run(() => api.createPet.useMutation())
 
     expect(createPet).toHaveProperty('mutate')
     expect(createPet).toHaveProperty('mutateAsync')
@@ -328,7 +340,7 @@ describe('Integration with createApiClient', () => {
   })
 
   it('should enforce type safety with useMutation for updatePet', () => {
-    const updatePet = api.updatePet.useMutation({ petId: '123' })
+    const updatePet = run(() => api.updatePet.useMutation({ petId: '123' }))
 
     expect(updatePet).toBeTruthy()
 
@@ -337,19 +349,19 @@ describe('Integration with createApiClient', () => {
   })
 
   it('should work with useQuery for listPets', () => {
-    const listPets = api.listPets.useQuery()
+    const listPets = run(() => api.listPets.useQuery())
 
     expect(listPets).toHaveProperty('data')
   })
 
   it('should work with useQuery for getPet', () => {
-    const getPet = api.getPet.useQuery({ petId: '123' })
+    const getPet = run(() => api.getPet.useQuery({ petId: '123' }))
 
     expect(getPet).toBeTruthy()
   })
 
   it('should return data with all fields required from useQuery', () => {
-    const result = api.getPet.useQuery({ petId: '123' })
+    const result = run(() => api.getPet.useQuery({ petId: '123' }))
 
     // ApiResponse makes ALL fields required
     if (result.data.value) {
