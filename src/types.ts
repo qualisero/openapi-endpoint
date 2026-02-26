@@ -172,7 +172,7 @@ export type QueryOptions<TResponse, TQueryParams extends Record<string, unknown>
   onLoad?: (data: TResponse) => void
   axiosOptions?: AxiosRequestConfigExtended
   errorHandler?: (error: AxiosError) => TResponse | void | Promise<TResponse | void>
-  queryParams?: ReactiveOr<TQueryParams>
+  queryParams?: ReactiveOr<TQueryParams | undefined>
 }
 
 // ============================================================================

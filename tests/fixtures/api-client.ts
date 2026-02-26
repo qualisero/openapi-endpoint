@@ -34,6 +34,7 @@ import {
   deletePet_enums,
   getConfigJson_enums,
   getDataV1Json_enums,
+  searchPets_enums,
   getOwners_enums,
   getPet_enums,
   getPetPetId_enums,
@@ -56,6 +57,7 @@ const _registry = {
   deletePet: { path: '/pets/{petId}' },
   getConfigJson: { path: '/api/config.json' },
   getDataV1Json: { path: '/api/data.v1.json' },
+  searchPets: { path: '/pets/search' },
   getOwners: { path: '/owners' },
   getPet: { path: '/pets/{petId}' },
   getPetPetId: { path: '/api/pet/{pet_id}' },
@@ -355,6 +357,11 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
       base,
       { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null },
       getDataV1Json_enums,
+    ),
+    searchPets: _queryNoParams<'searchPets'>(
+      base,
+      { path: '/pets/search', method: HttpMethod.GET, listPath: null },
+      searchPets_enums,
     ),
     /**
      * List all owners (no operationId)

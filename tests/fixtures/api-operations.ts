@@ -28,6 +28,8 @@ export const getConfigJson_enums = {} as const
 
 export const getDataV1Json_enums = {} as const
 
+export const searchPets_enums = {} as const
+
 export const getOwners_enums = {} as const
 
 export const getPet_enums = {} as const
@@ -59,6 +61,7 @@ const operationsBase = {
   deletePet: { path: '/pets/{petId}', method: HttpMethod.DELETE },
   getConfigJson: { path: '/api/config.json', method: HttpMethod.GET },
   getDataV1Json: { path: '/api/data.v1.json', method: HttpMethod.GET },
+  searchPets: { path: '/pets/search', method: HttpMethod.GET },
   getOwners: { path: '/owners', method: HttpMethod.GET },
   getPet: { path: '/pets/{petId}', method: HttpMethod.GET },
   getPetPetId: { path: '/api/pet/{pet_id}', method: HttpMethod.GET },

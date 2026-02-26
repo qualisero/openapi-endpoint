@@ -595,4 +595,29 @@ export interface operations {
       }
     }
   }
+  /** Search pets with required query params */
+  searchPets: {
+    parameters: {
+      query: {
+        /** Required search term */
+        q: string
+        /** Required species filter */
+        species: string
+        /** Optional result limit */
+        limit?: number
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      200: {
+        headers: { [name: string]: unknown }
+        content: {
+          'application/json': components['schemas']['Pet'][]
+        }
+      }
+    }
+  }
 }

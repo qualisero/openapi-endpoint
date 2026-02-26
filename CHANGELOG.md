@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - 2025-02-26
+
+### Fixed
+
+- `queryParams` now accepts `undefined` in reactive types — fixes TypeScript error when using `ref<QueryParams>()` without initial value
+  - `queryParams?: ReactiveOr<TQueryParams | undefined>` allows patterns like `const params = ref<SearchParams>()` then populate later
+  - Enables conditional query params with `computed(() => isActive.value ? params : undefined)`
+  - No runtime changes; undefined params are handled gracefully
+
 ## [0.17.0] - 2025-02-25
 
 ### Added
