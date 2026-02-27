@@ -637,38 +637,138 @@ export type OperationId = keyof OpenApiOperations
       const enums: { name: string; values: (string | number)[]; sourcePath: string }[] = []
       const seenEnumValues = new Map<string, string>()
 
-      if (!openApiSpec.components?.schemas) {
-        return enums
-      }
+      const toCase = (str: string, capitalize: boolean): string => {
+        // If already camelCase or PascalCase, just adjust first letter
+        if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
+          return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
+        }
 
-      const toPascalCase = (str: string) =>
-        str
+        // Handle snake_case, kebab-case, spaces, etc.
+        const parts = str
           .split(/[-_\s]+/)
           .filter((part) => part.length > 0)
-          .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-          .join('')
-
-      for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
-        if (!(schema as any).properties) continue
-
-        for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
-          if (!(propSchema as any).enum) continue
-
-          const enumValues = (propSchema as any).enum as (string | number)[]
-          const enumName = toPascalCase(schemaName) + toPascalCase(propName)
-          const valuesKey = JSON.stringify([...enumValues].sort())
-
-          const existingName = seenEnumValues.get(valuesKey)
-          if (existingName) {
-            continue
-          }
-
-          seenEnumValues.set(valuesKey, enumName)
-          enums.push({
-            name: enumName,
-            values: enumValues,
-            sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
+          .map((part) => {
+            // If this part is already in camelCase, just capitalize the first letter
+            if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
+              return part.charAt(0).toUpperCase() + part.slice(1)
+            }
+            // Otherwise, capitalize and lowercase to normalize
+            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
           })
+
+        if (parts.length === 0) return str
+
+        // Apply capitalization rule to first part
+        if (!capitalize) {
+          parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
+        }
+
+        return parts.join('')
+      }
+
+      const toPascalCase = (str: string): string => toCase(str, true)
+
+      // Build lookup of schemas that ARE enums (have enum property on the schema itself)
+      const schemaEnumLookup: Map<string, (string | number)[]> = new Map()
+      if (openApiSpec.components?.schemas) {
+        for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+          if ((schema as any).enum && Array.isArray((schema as any).enum)) {
+            const enumValues = (schema as any).enum as (string | number)[]
+            if (enumValues.length > 0) {
+              schemaEnumLookup.set(schemaName, enumValues)
+            }
+          }
+        }
+      }
+
+      // Helper to resolve enum values from a schema (inline or $ref)
+      function resolveEnumValues(schema: any): (string | number)[] | null {
+        // Inline enum
+        if (schema.enum && Array.isArray(schema.enum)) {
+          const enumValues = schema.enum as (string | number)[]
+          return enumValues.length > 0 ? enumValues : null
+        }
+        // $ref to an enum schema
+        if (typeof schema.$ref === 'string') {
+          const refName = schema.$ref.split('/').pop()!
+          return schemaEnumLookup.get(refName) ?? null
+        }
+        return null
+      }
+
+      // Extract enums from schema properties
+      if (openApiSpec.components?.schemas) {
+        for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+          if (!(schema as any).properties) continue
+
+          for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
+            const enumValues = resolveEnumValues(propSchema as any)
+            if (!enumValues) continue
+
+            const enumName = toPascalCase(schemaName) + toPascalCase(propName)
+            const valuesKey = JSON.stringify([...enumValues].sort())
+
+            const existingName = seenEnumValues.get(valuesKey)
+            if (existingName) {
+              continue
+            }
+
+            seenEnumValues.set(valuesKey, enumName)
+            enums.push({
+              name: enumName,
+              values: enumValues,
+              sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
+            })
+          }
+        }
+      }
+
+      // Extract from operation parameters
+      if (openApiSpec.paths) {
+        for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+          for (const [method, operation] of Object.entries(pathItem)) {
+            const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+            if (!httpMethods.includes(method.toLowerCase())) continue
+
+            const op = operation as any
+            if (op.parameters && Array.isArray(op.parameters)) {
+              for (const param of op.parameters) {
+                const paramName = param.name as string | undefined
+                const paramIn = param.in as string | undefined
+                const paramSchema = param.schema as any | undefined
+
+                if (!paramName || !paramIn || !paramSchema) continue
+
+                const paramEnumValues = resolveEnumValues(paramSchema)
+                if (!paramEnumValues) continue
+
+                const operationName = op.operationId
+                  ? toPascalCase(op.operationId)
+                  : toPascalCase(pathUrl.split('/').pop() || 'param')
+                const paramNamePascal = toPascalCase(paramName)
+
+                let enumName: string
+                if (operationName.endsWith(paramNamePascal)) {
+                  enumName = operationName
+                } else {
+                  enumName = operationName + paramNamePascal
+                }
+
+                const valuesKey = JSON.stringify([...paramEnumValues].sort())
+                const existingName = seenEnumValues.get(valuesKey)
+                if (existingName) {
+                  continue
+                }
+
+                seenEnumValues.set(valuesKey, enumName)
+                enums.push({
+                  name: enumName,
+                  values: paramEnumValues,
+                  sourcePath: `paths.${pathUrl}.${method}.parameters[${paramName}]`,
+                })
+              }
+            }
+          }
         }
       }
 
@@ -755,6 +855,51 @@ export type OperationId = keyof OpenApiOperations
       expect(enums).toHaveLength(1)
       expect(enums[0].name).toBe('OrderStatus')
       expect(enums[0].values).toEqual(['in-progress', 'completed', 'pending_review'])
+    })
+
+    it('should extract enums from $ref-referenced schemas', () => {
+      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+
+      const petStatusEnum = enums.find((e) => e.name === 'PetStatus')
+      expect(petStatusEnum).toBeDefined()
+      expect(petStatusEnum?.values).toEqual(['available', 'pending', 'adopted'])
+    })
+
+    it('should extract enums from $ref in operation parameters', () => {
+      const specWithParamRefOnly = {
+        openapi: '3.0.0',
+        paths: {
+          '/pets': {
+            get: {
+              operationId: 'listPets',
+              parameters: [
+                {
+                  name: 'status',
+                  in: 'query',
+                  schema: { $ref: '#/components/schemas/PetStatus' },
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            PetStatus: {
+              type: 'string',
+              enum: ['available', 'pending', 'adopted'],
+            },
+          },
+        },
+      }
+
+      const enums = extractEnumsFromSpec(specWithParamRefOnly)
+
+      // Should extract enum from parameter, with sourcePath pointing to the parameter
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('ListPetsStatus')
+      expect(enums[0].values).toEqual(['available', 'pending', 'adopted'])
+      expect(enums[0].sourcePath).toBe('paths./pets.get.parameters[status]')
     })
   })
 

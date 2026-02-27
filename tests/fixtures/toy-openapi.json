@@ -24,6 +24,13 @@
               "type": "integer",
               "maximum": 100
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PetStatus"
+            }
           }
         ],
         "responses": {
@@ -510,6 +517,10 @@
   },
   "components": {
     "schemas": {
+      "PetStatus": {
+        "type": "string",
+        "enum": ["available", "pending", "adopted"]
+      },
       "Pet": {
         "type": "object",
         "required": ["name"],
@@ -526,8 +537,7 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
-            "enum": ["available", "pending", "adopted"]
+            "$ref": "#/components/schemas/PetStatus"
           }
         }
       },
@@ -542,8 +552,7 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
-            "enum": ["available", "pending", "adopted"]
+            "$ref": "#/components/schemas/PetStatus"
           }
         }
       },
