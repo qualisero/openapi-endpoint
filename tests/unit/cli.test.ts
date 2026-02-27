@@ -637,9 +637,6 @@ export type OperationId = keyof OpenApiOperations
       const enums: { name: string; values: (string | number)[]; sourcePath: string }[] = []
       const seenEnumValues = new Map<string, string>()
 
-      if (!openApiSpec.components?.schemas) {
-        return enums
-      }
       const toCase = (str: string, capitalize: boolean): string => {
         // If already camelCase or PascalCase, just adjust first letter
         if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
@@ -673,11 +670,13 @@ export type OperationId = keyof OpenApiOperations
 
       // Build lookup of schemas that ARE enums (have enum property on the schema itself)
       const schemaEnumLookup: Map<string, (string | number)[]> = new Map()
-      for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
-        if ((schema as any).enum && Array.isArray((schema as any).enum)) {
-          const enumValues = (schema as any).enum as (string | number)[]
-          if (enumValues.length > 0) {
-            schemaEnumLookup.set(schemaName, enumValues)
+      if (openApiSpec.components?.schemas) {
+        for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+          if ((schema as any).enum && Array.isArray((schema as any).enum)) {
+            const enumValues = (schema as any).enum as (string | number)[]
+            if (enumValues.length > 0) {
+              schemaEnumLookup.set(schemaName, enumValues)
+            }
           }
         }
       }
@@ -697,27 +696,30 @@ export type OperationId = keyof OpenApiOperations
         return null
       }
 
-      for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
-        if (!(schema as any).properties) continue
+      // Extract enums from schema properties
+      if (openApiSpec.components?.schemas) {
+        for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+          if (!(schema as any).properties) continue
 
-        for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
-          const enumValues = resolveEnumValues(propSchema as any)
-          if (!enumValues) continue
+          for (const [propName, propSchema] of Object.entries((schema as any).properties)) {
+            const enumValues = resolveEnumValues(propSchema as any)
+            if (!enumValues) continue
 
-          const enumName = toPascalCase(schemaName) + toPascalCase(propName)
-          const valuesKey = JSON.stringify([...enumValues].sort())
+            const enumName = toPascalCase(schemaName) + toPascalCase(propName)
+            const valuesKey = JSON.stringify([...enumValues].sort())
 
-          const existingName = seenEnumValues.get(valuesKey)
-          if (existingName) {
-            continue
+            const existingName = seenEnumValues.get(valuesKey)
+            if (existingName) {
+              continue
+            }
+
+            seenEnumValues.set(valuesKey, enumName)
+            enums.push({
+              name: enumName,
+              values: enumValues,
+              sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
+            })
           }
-
-          seenEnumValues.set(valuesKey, enumName)
-          enums.push({
-            name: enumName,
-            values: enumValues,
-            sourcePath: `components.schemas.${schemaName}.properties.${propName}`,
-          })
         }
       }
 
@@ -864,13 +866,40 @@ export type OperationId = keyof OpenApiOperations
     })
 
     it('should extract enums from $ref in operation parameters', () => {
-      const enums = extractEnumsFromSpec(toyOpenApiSpec)
+      const specWithParamRefOnly = {
+        openapi: '3.0.0',
+        paths: {
+          '/pets': {
+            get: {
+              operationId: 'listPets',
+              parameters: [
+                {
+                  name: 'status',
+                  in: 'query',
+                  schema: { $ref: '#/components/schemas/PetStatus' },
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            PetStatus: {
+              type: 'string',
+              enum: ['available', 'pending', 'adopted'],
+            },
+          },
+        },
+      }
 
-      // The parameter enum has the same values as the schema enum, so it's deduplicated
-      // The primary enum name comes from schema properties (PetStatus)
-      const petStatusEnum = enums.find((e) => e.name === 'PetStatus')
-      expect(petStatusEnum).toBeDefined()
-      expect(petStatusEnum?.values).toEqual(['available', 'pending', 'adopted'])
+      const enums = extractEnumsFromSpec(specWithParamRefOnly)
+
+      // Should extract enum from parameter, with sourcePath pointing to the parameter
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('ListPetsStatus')
+      expect(enums[0].values).toEqual(['available', 'pending', 'adopted'])
+      expect(enums[0].sourcePath).toBe('paths./pets.get.parameters[status]')
     })
   })
 
