@@ -726,7 +726,7 @@ export type OperationId = keyof OpenApiOperations
       // Extract from operation parameters
       if (openApiSpec.paths) {
         for (const [pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
-          for (const [method, operation] of Object.entries(pathItem)) {
+          for (const [method, operation] of Object.entries(pathItem as any)) {
             const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
             if (!httpMethods.includes(method.toLowerCase())) continue
 
