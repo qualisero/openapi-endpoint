@@ -3,9 +3,10 @@
  *
  * Verifies that readonly properties (marked with "readOnly": true in OpenAPI spec)
  * are handled correctly:
- * 1. ApiResponse makes ALL fields REQUIRED (no null checks needed)
- * 2. ApiResponseSafe makes only readonly fields required (opt-out for unreliable backends)
+ * 1. ApiResponse (default) makes ALL fields REQUIRED for all endpoint responses
+ * 2. ApiResponseStrict (opt-in) makes only readonly OR required fields required
  * 3. ApiRequest EXCLUDES readonly properties (can't send server-generated fields)
+ * 4. readonly ONLY affects request bodies, NOT response types
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -13,7 +14,7 @@ import { effectScope } from 'vue'
 import { createTestScope } from '../helpers'
 import {
   type ApiResponse,
-  type ApiResponseSafe,
+  type ApiResponseStrict,
   type ApiRequest,
   type ApiPathParams,
   type ApiQueryParams,
@@ -104,9 +105,9 @@ describe('ApiResponse - Response Types (All Fields Required)', () => {
   })
 })
 
-describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
-  it('should make only readonly id REQUIRED, others optional', () => {
-    type PetResponse = ApiResponseSafe<'getPet'>
+describe('ApiResponseStrict - Response Types (Only Readonly/Required Fields Required)', () => {
+  it('should make readonly id and required name REQUIRED, optional fields optional', () => {
+    type PetResponse = ApiResponseStrict<'getPet'>
 
     // Valid: only readonly id and required name
     const minimal: PetResponse = {
@@ -130,8 +131,8 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
     expect(full.status).toBe(PetStatus.Available)
   })
 
-  it('should still require readonly id', () => {
-    type PetResponse = ApiResponseSafe<'getPet'>
+  it('should require readonly id', () => {
+    type PetResponse = ApiResponseStrict<'getPet'>
 
     // @ts-expect-error - Property 'id' is missing (readonly is required)
     const _noId: PetResponse = {
@@ -140,17 +141,20 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should require null checks for optional fields', () => {
-    type PetResponse = ApiResponseSafe<'getPet'>
+    type PetResponse = ApiResponseStrict<'getPet'>
 
     const pet: PetResponse = {
       id: 'uuid',
       name: 'Fluffy',
     }
 
-    // id is always present
+    // id is always present (readonly)
     const id: string = pet.id
 
-    // tag and status may be undefined
+    // name is always present (required)
+    const name: string = pet.name
+
+    // tag and status may be undefined (optional)
     // @ts-expect-error - 'tag' is possibly 'undefined'
     const _tag: string = pet.tag
 
@@ -162,12 +166,13 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
     const statusValue = pet.status
 
     expect(id).toBe('uuid')
+    expect(name).toBe('Fluffy')
     expect(tagLength).toBeUndefined()
     expect(statusValue).toBeUndefined()
   })
 
   it('should accept enum values for status when provided', () => {
-    type PetResponse = ApiResponseSafe<'getPet'>
+    type PetResponse = ApiResponseStrict<'getPet'>
 
     const available: PetResponse = { id: '1', name: 'Pet', status: PetStatus.Available }
     const pending: PetResponse = { id: '2', name: 'Pet', status: PetStatus.Pending }
@@ -182,7 +187,7 @@ describe('ApiResponseSafe - Response Types (Only Readonly Required)', () => {
   })
 
   it('should still accept string literals (backward compatibility)', () => {
-    type PetResponse = ApiResponseSafe<'getPet'>
+    type PetResponse = ApiResponseStrict<'getPet'>
 
     // String literals still work for backward compatibility
     const withStringLiteral: PetResponse = { id: '1', name: 'Pet', status: 'available' }
