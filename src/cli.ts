@@ -1507,8 +1507,6 @@ Options:
                                 (default: '_deprecated', use 'false' to disable)
   --use-query-safe-response     Use ApiResponseSafe as return type for useQuery
                                 (default: true; readonly fields automatically required)
-  --no-use-query-safe-response  Use regular ApiResponse for useQuery
-                                (readonly fields remain optional)
   --help, -h                    Show this help message
 
 Examples:
@@ -1516,7 +1514,7 @@ Examples:
   npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix _internal
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix false
-  npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-use-query-safe-response
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --use-query-safe-response false
 
 This command will generate:
   - openapi-types.ts   (TypeScript types from OpenAPI spec)
@@ -1533,8 +1531,8 @@ Query Response Typing (--use-query-safe-response):
   - POST/PATCH request bodies: optional fields (you don't have to provide everything)
   - GET response bodies: readonly fields are always present (server always returns them)
 
-  When disabled, useQuery returns ApiResponse, where readonly fields remain optional.
-  Use this if your API schema doesn't properly distinguish readonly fields.
+  Disable with --use-query-safe-response false if your API schema doesn't properly
+  distinguish readonly fields.
 `)
 }
 
@@ -1975,9 +1973,12 @@ async function main(): Promise<void> {
         process.exit(1)
       }
     } else if (optionArgs[i] === '--use-query-safe-response') {
-      useQuerySafeResponse = true
-    } else if (optionArgs[i] === '--no-use-query-safe-response') {
-      useQuerySafeResponse = false
+      if (i + 1 < optionArgs.length) {
+        const value = optionArgs[i + 1]
+        // Support 'true' or 'false' values
+        useQuerySafeResponse = value !== 'false'
+        i++ // Skip next arg since we consumed it
+      }
     }
   }
 
