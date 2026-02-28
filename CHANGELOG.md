@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING**: Complete semantic overhaul of response types based on correct understanding
+  - ALL responses (GET, POST, PUT, PATCH, DELETE) now use the SAME type - no distinction between query and mutation responses
+  - `ApiResponse` (default): Makes ALL fields required for all endpoint responses - assumes server always returns all fields
+  - New `ApiResponseStrict` (opt-in via `--use-strict-response`): Only marks fields as required if they are readonly OR marked as required in OpenAPI spec
+  - `readonly` modifier ONLY affects request bodies (mutations), NOT response types
+  - Request bodies always exclude readonly fields (client cannot set them) regardless of mode
+
+### Removed
+
+- **BREAKING**: `ApiResponseSafe` type removed (was based on incorrect understanding of requirements)
+- **BREAKING**: `--use-query-safe-response` CLI flag removed
+
+### Added
+
+- `--use-strict-response` CLI flag to use `ApiResponseStrict` for all responses (defaults to `false`)
+- `ApiResponseStrict` type for strict OpenAPI spec adherence (only readonly/required fields are required)
+- `RequireReadonlyOrRequired<T>` type helper for strict mode
+- Comprehensive documentation of new response type semantics
+
+### Migration
+
+1. Replace `ApiResponseSafe` with `ApiResponse` (default behavior) or `ApiResponseStrict` (strict mode)
+2. Remove `--use-query-safe-response` flag usage - use `--use-strict-response` if you need strict mode
+3. Understand that ALL responses now use the same type - no query vs mutation distinction
+4. Note that `readonly` only affects what you POST (request bodies), not what API returns (responses)
+
 ## [0.18.3] - 2026-02-27
 
 ### Fixed
@@ -198,9 +228,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetPathParameters<Ops, Op>` → `ApiPathParams<Op>`
   - `GetQueryParameters<Ops, Op>` → `ApiQueryParams<Op>`
   - Old names removed entirely (no backward compatibility aliases)
-- **BREAKING**: `ApiResponse` now requires ALL fields regardless of `required` status in OpenAPI schema
-  - All response fields are now required - no null checks needed
+- **BREAKING**: `ApiResponse` made ALL fields required regardless of `required` status in OpenAPI schema
+  - All response fields required - no null checks needed
   - Added `ApiResponseSafe` for opt-out: only readonly fields required, others preserve optional status
+  - **NOTE**: This implementation was based on incorrect understanding - see v0.19.0 for corrected semantics
 - **BREAKING**: Made `isQueryMethod` and `isMutationMethod` internal (not exported from public API)
 - Removed `types-documentation.ts` - type documentation now inline in `types.ts`
 - Simplified `index.ts` exports - all public types exported directly from `types.ts`
@@ -210,6 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ApiResponseSafe<Op>` type for unreliable backends - only readonly fields required, others optional
+  - **NOTE**: Removed in v0.19.0 due to incorrect semantics
 
 ### Removed
 

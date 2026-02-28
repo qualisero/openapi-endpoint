@@ -294,10 +294,10 @@ type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
 
 type IsReadonly<T, K extends keyof T> = IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true>
 
-type RequireReadonly<T> = {
-  [K in keyof T as IsReadonly<T, K> extends true ? K : never]-?: T[K]
+type RequireReadonlyOrRequired<T> = {
+  [K in keyof T as IsReadonly<T, K> extends true ? K : undefined extends T[K] ? never : K]-?: T[K]
 } & {
-  [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
+  [K in keyof T as IsReadonly<T, K> extends false ? (undefined extends T[K] ? K : never) : never]: T[K]
 }
 
 type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends {
@@ -317,15 +317,29 @@ type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] ext
             : unknown
 
 /**
- * Extract the response data type (all fields required).
- * @example `ApiResponse<operations, 'getPet'>` → `{ readonly id: string, name: string, ... }`
+ * Extract response data type (ALL fields required - default behavior).
+ *
+ * Used for ALL endpoint responses (GET, POST, PUT, PATCH, DELETE) by default.
+ * Assumes the API always returns all fields regardless of how they're marked in the spec.
+ *
+ * @example `ApiResponse<operations, 'getPet'>` → `{ readonly id: string, name: string, tag: string, status: 'available' | ... }`
  */
 export type ApiResponse<Ops extends AnyOps, Op extends keyof Ops> = RequireAll<ExtractResponseData<Ops, Op>>
 
 /**
- * Extract the response data type (only readonly fields required).
+ * Extract response data type (only readonly OR required fields are required - strict mode).
+ *
+ * Used for ALL endpoint responses when `--use-strict-response` flag is enabled.
+ * Only marks fields as required if they are:
+ * - readonly (server-generated), OR
+ * - marked as required in the OpenAPI spec
+ * All other fields remain optional.
+ *
+ * @example `ApiResponseStrict<operations, 'getPet'>` → `{ readonly id: string, name: string, tag?: string, status?: 'available' | ... }`
  */
-export type ApiResponseSafe<Ops extends AnyOps, Op extends keyof Ops> = RequireReadonly<ExtractResponseData<Ops, Op>>
+export type ApiResponseStrict<Ops extends AnyOps, Op extends keyof Ops> = RequireReadonlyOrRequired<
+  ExtractResponseData<Ops, Op>
+>
 
 type Writable<T> = {
   -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false

@@ -4,7 +4,7 @@ import type { operations } from './openapi-types.js'
 import { HttpMethod } from '@qualisero/openapi-endpoint'
 import type {
   ApiResponse as _ApiResponse,
-  ApiResponseSafe as _ApiResponseSafe,
+  ApiResponseStrict as _ApiResponseStrict,
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
   ApiPathParamsInput as _ApiPathParamsInput,
@@ -28,15 +28,19 @@ export const getConfigJson_enums = {} as const
 
 export const getDataV1Json_enums = {} as const
 
-export const searchPets_enums = {} as const
-
 export const getOwners_enums = {} as const
 
 export const getPet_enums = {} as const
 
 export const getPetPetId_enums = {} as const
 
-export const listPets_enums = {} as const
+export const listPets_enums = {
+  status: {
+    Available: 'available' as const,
+    Pending: 'pending' as const,
+    Adopted: 'adopted' as const,
+  } as const,
+} as const
 
 export const listUserPets_enums = {} as const
 
@@ -45,6 +49,8 @@ export const postOwners_enums = {} as const
 export const postPetAdopt_enums = {} as const
 
 export const postPetGiveTreats_enums = {} as const
+
+export const searchPets_enums = {} as const
 
 export const updatePet_enums = {} as const
 
@@ -61,7 +67,6 @@ const operationsBase = {
   deletePet: { path: '/pets/{petId}', method: HttpMethod.DELETE },
   getConfigJson: { path: '/api/config.json', method: HttpMethod.GET },
   getDataV1Json: { path: '/api/data.v1.json', method: HttpMethod.GET },
-  searchPets: { path: '/pets/search', method: HttpMethod.GET },
   getOwners: { path: '/owners', method: HttpMethod.GET },
   getPet: { path: '/pets/{petId}', method: HttpMethod.GET },
   getPetPetId: { path: '/api/pet/{pet_id}', method: HttpMethod.GET },
@@ -70,6 +75,7 @@ const operationsBase = {
   postOwners: { path: '/owners', method: HttpMethod.POST },
   postPetAdopt: { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST },
   postPetGiveTreats: { path: '/api/pet/give_treats', method: HttpMethod.POST },
+  searchPets: { path: '/pets/search', method: HttpMethod.GET },
   updatePet: { path: '/pets/{petId}', method: HttpMethod.PUT },
   updatePetPetId: { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH },
   uploadPetPic: { path: '/pets/{petId}/upload', method: HttpMethod.POST },
@@ -84,10 +90,10 @@ export type OpenApiOperations = typeof openApiOperations
 
 type AllOps = keyof operations
 
-/** Response data type for an operation (all fields required). */
+/** Response data type (ALL fields required - default). */
 export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
-/** Response data type - only `readonly` fields required. */
-export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
+/** Response data type (only readonly/required fields required - strict mode). */
+export type ApiResponseStrict<K extends AllOps> = _ApiResponseStrict<operations, K>
 /** Request body type. */
 export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>
 /** Path parameters type. */

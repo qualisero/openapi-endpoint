@@ -171,19 +171,19 @@ const mutation = api.createPet.useMutation({
 
 ```typescript
 import type {
-  ApiResponse, // Response type (all fields required)
-  ApiResponseSafe, // Response with optional fields
+  ApiResponse, // Response type (ALL fields required - default)
+  ApiResponseStrict, // Response type (only readonly/required fields required - strict mode)
   ApiRequest, // Request body type
   ApiPathParams, // Path parameters type
   ApiQueryParams, // Query parameters type
 } from './generated/api-operations'
 
-// ApiResponse - ALL fields required
+// ApiResponse - default, ALL fields required
 type PetResponse = ApiResponse<OpType.getPet>
 // { readonly id: string, name: string, tag: string, status: 'available' | ... }
 
-// ApiResponseSafe - only readonly required, others optional
-type PetResponseSafe = ApiResponseSafe<OpType.getPet>
+// ApiResponseStrict - strict mode, only readonly/required fields required
+type PetResponseStrict = ApiResponseStrict<OpType.getPet>
 // { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
 ```
 

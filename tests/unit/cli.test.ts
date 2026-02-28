@@ -50,6 +50,7 @@ describe('CLI codegen functionality', () => {
         'getPet',
         'listPets',
         'listUserPets',
+        'searchPets',
         'updatePet',
         'uploadPetPic',
       ])
@@ -66,6 +67,7 @@ describe('CLI codegen functionality', () => {
         updatePet: { path: '/pets/{petId}', method: 'PUT' },
         deletePet: { path: '/pets/{petId}', method: 'DELETE' },
         listUserPets: { path: '/users/{userId}/pets', method: 'GET' },
+        searchPets: { path: '/pets/search', method: 'GET' },
         uploadPetPic: { path: '/pets/{petId}/upload', method: 'POST' },
       })
     })
