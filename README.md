@@ -171,20 +171,20 @@ const mutation = api.createPet.useMutation({
 
 ```typescript
 import type {
-  ApiResponse, // Response type for mutations (excludes readonly, preserves optional)
-  ApiResponseSafe, // Response type for queries (ALL fields required including optional)
+  ApiResponse, // Response type (ALL fields required - default)
+  ApiResponseStrict, // Response type (only readonly/required fields required - strict mode)
   ApiRequest, // Request body type
   ApiPathParams, // Path parameters type
   ApiQueryParams, // Query parameters type
 } from './generated/api-operations'
 
-// ApiResponse - used for mutations (excludes readonly fields)
-type PetResponse = ApiResponse<OpType.createPet>
-// { name: string, tag?: string, status?: 'available' | ... }
-
-// ApiResponseSafe - used for queries (ALL fields required)
-type PetResponseSafe = ApiResponseSafe<OpType.getPet>
+// ApiResponse - default, ALL fields required
+type PetResponse = ApiResponse<OpType.getPet>
 // { readonly id: string, name: string, tag: string, status: 'available' | ... }
+
+// ApiResponseStrict - strict mode, only readonly/required fields required
+type PetResponseStrict = ApiResponseStrict<OpType.getPet>
+// { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
 ```
 
 ### Enums

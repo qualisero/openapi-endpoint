@@ -4,7 +4,7 @@ import type { operations } from './openapi-types.js'
 import { HttpMethod } from '@qualisero/openapi-endpoint'
 import type {
   ApiResponse as _ApiResponse,
-  ApiResponseSafe as _ApiResponseSafe,
+  ApiResponseStrict as _ApiResponseStrict,
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
   ApiPathParamsInput as _ApiPathParamsInput,
@@ -90,10 +90,10 @@ export type OpenApiOperations = typeof openApiOperations
 
 type AllOps = keyof operations
 
-/** Response data type for mutations (excludes readonly, preserves optional). */
+/** Response data type (ALL fields required - default). */
 export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
-/** Response data type for queries (ALL fields required including optional). */
-export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
+/** Response data type (only readonly/required fields required - strict mode). */
+export type ApiResponseStrict<K extends AllOps> = _ApiResponseStrict<operations, K>
 /** Request body type. */
 export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>
 /** Path parameters type. */

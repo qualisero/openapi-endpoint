@@ -23,7 +23,6 @@ import type { QueryClient } from '@tanstack/vue-query'
 
 import type {
   ApiResponse,
-  ApiResponseSafe,
   ApiRequest,
   ApiPathParams,
   ApiPathParamsInput,
@@ -108,7 +107,7 @@ function _queryNoParams<Op extends AllOps>(
   cfg: { path: string; method: HttpMethod; listPath: string | null },
   enums: Record<string, unknown>,
 ) {
-  type Response = ApiResponseSafe<Op>
+  type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
   const useQuery = (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
@@ -165,7 +164,7 @@ function _queryWithParams<Op extends AllOps>(
 ) {
   type PathParams = ApiPathParams<Op>
   type PathParamsInput = ApiPathParamsInput<Op>
-  type Response = ApiResponseSafe<Op>
+  type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
 
   // Two-overload interface: non-function (exact via object-literal checking) +

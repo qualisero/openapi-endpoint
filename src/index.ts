@@ -42,7 +42,7 @@ export type {
 
   // Type extraction utilities (used in generated api-operations.ts / api-client.ts)
   ApiResponse,
-  ApiResponseSafe,
+  ApiResponseStrict,
   ApiRequest,
   ApiPathParams,
   ApiPathParamsInput,

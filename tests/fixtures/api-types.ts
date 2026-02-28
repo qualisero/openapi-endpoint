@@ -3,7 +3,7 @@
 
 import type {
   ApiResponse as _ApiResponse,
-  ApiResponseSafe as _ApiResponseSafe,
+  ApiResponseStrict as _ApiResponseStrict,
   ApiRequest as _ApiRequest,
   ApiPathParams as _ApiPathParams,
   ApiQueryParams as _ApiQueryParams,
@@ -25,10 +25,10 @@ import type { operations as OpenApiOperations } from './openapi-types.js'
  */
 export namespace Types {
   export namespace createPet {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'createPet'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'createPet'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'createPet'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'createPet'>
     /** Path parameters. */
@@ -39,10 +39,10 @@ export namespace Types {
   }
 
   export namespace deletePet {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'deletePet'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'deletePet'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'deletePet'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'deletePet'>
     /** Path parameters. */
@@ -53,10 +53,10 @@ export namespace Types {
   }
 
   export namespace getConfigJson {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'getConfigJson'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'getConfigJson'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getConfigJson'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getConfigJson'>
     /** Query parameters. */
@@ -65,10 +65,10 @@ export namespace Types {
   }
 
   export namespace getDataV1Json {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'getDataV1Json'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'getDataV1Json'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getDataV1Json'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getDataV1Json'>
     /** Query parameters. */
@@ -77,10 +77,10 @@ export namespace Types {
   }
 
   export namespace getOwners {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'getOwners'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'getOwners'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getOwners'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getOwners'>
     /** Query parameters. */
@@ -89,10 +89,10 @@ export namespace Types {
   }
 
   export namespace getPet {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'getPet'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'getPet'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPet'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPet'>
     /** Query parameters. */
@@ -101,10 +101,10 @@ export namespace Types {
   }
 
   export namespace getPetPetId {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'getPetPetId'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'getPetPetId'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPetPetId'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPetPetId'>
     /** Query parameters. */
@@ -113,10 +113,10 @@ export namespace Types {
   }
 
   export namespace listPets {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'listPets'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'listPets'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'listPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'listPets'>
     /** Query parameters. */
@@ -128,10 +128,10 @@ export namespace Types {
   }
 
   export namespace listUserPets {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'listUserPets'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'listUserPets'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'listUserPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'listUserPets'>
     /** Query parameters. */
@@ -140,10 +140,10 @@ export namespace Types {
   }
 
   export namespace postOwners {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'postOwners'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'postOwners'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postOwners'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postOwners'>
     /** Path parameters. */
@@ -154,10 +154,10 @@ export namespace Types {
   }
 
   export namespace postPetAdopt {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'postPetAdopt'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'postPetAdopt'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postPetAdopt'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postPetAdopt'>
     /** Path parameters. */
@@ -168,10 +168,10 @@ export namespace Types {
   }
 
   export namespace postPetGiveTreats {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'postPetGiveTreats'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'postPetGiveTreats'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postPetGiveTreats'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postPetGiveTreats'>
     /** Path parameters. */
@@ -182,10 +182,10 @@ export namespace Types {
   }
 
   export namespace searchPets {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'searchPets'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'searchPets'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'searchPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'searchPets'>
     /** Query parameters. */
@@ -194,10 +194,10 @@ export namespace Types {
   }
 
   export namespace updatePet {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePet'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'updatePet'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePet'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePet'>
     /** Path parameters. */
@@ -208,10 +208,10 @@ export namespace Types {
   }
 
   export namespace updatePetPetId {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePetPetId'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'updatePetPetId'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePetPetId'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePetPetId'>
     /** Path parameters. */
@@ -222,10 +222,10 @@ export namespace Types {
   }
 
   export namespace uploadPetPic {
-    /** Full response type - all fields required. */
+    /** Response type - ALL fields required (default). */
     export type Response = _ApiResponse<OpenApiOperations, 'uploadPetPic'>
-    /** Response type - only `readonly` fields required. */
-    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'uploadPetPic'>
+    /** Response type - only readonly/required fields required (strict mode). */
+    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'uploadPetPic'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'uploadPetPic'>
     /** Path parameters. */
