@@ -1506,7 +1506,7 @@ Options:
   --exclude-prefix PREFIX       Exclude operations with operationId starting with PREFIX
                                 (default: '_deprecated', use 'false' to disable)
   --use-query-safe-response     Use ApiResponseSafe as return type for useQuery
-                                (default: true; readonly fields automatically required)
+                                (default: true; ALL fields required including optional)
   --help, -h                    Show this help message
 
 Examples:
@@ -1526,13 +1526,14 @@ This command will generate:
 
 Query Response Typing (--use-query-safe-response):
   When enabled (default), useQuery returns ApiResponseSafe for GET operations, which
-  requires only readonly fields (those the server always provides). This matches the
-  semantic distinction:
-  - POST/PATCH request bodies: optional fields (you don't have to provide everything)
-  - GET response bodies: readonly fields are always present (server always returns them)
+  makes ALL fields required (including those marked optional in the spec). This assumes
+  the API shares the same schema for POST/PATCH and GET, but always returns all
+  fields for GET operations:
+  - POST/PATCH mutations: readonly fields excluded, optional fields observed
+  - GET queries: ALL fields required (server always returns them)
 
   Disable with --use-query-safe-response false if your API schema doesn't properly
-  distinguish readonly fields.
+  separate request/response schemas.
 `)
 }
 
@@ -1753,9 +1754,9 @@ function generateApiOperationsContent(
   const typeHelpers = `
 type AllOps = keyof operations
 
-/** Response data type for an operation (all fields required). */
+/** Response data type for mutations (excludes readonly, preserves optional). */
 export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
-/** Response data type - only \`readonly\` fields required. */
+/** Response data type for queries (ALL fields required including optional). */
 export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
 /** Request body type. */
 export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>
@@ -1998,9 +1999,9 @@ async function main(): Promise<void> {
 
     // Log query safe response setting
     if (useQuerySafeResponse) {
-      console.log(`✅ useQuery returns ApiResponseSafe (readonly fields automatically required)`)
+      console.log(`✅ useQuery returns ApiResponseSafe (ALL fields required including optional)`)
     } else {
-      console.log(`ℹ️  useQuery returns ApiResponse (readonly fields remain optional)`)
+      console.log(`ℹ️  useQuery returns ApiResponse (excludes readonly, preserves optional)`)
     }
 
     // Fetch and parse OpenAPI spec once

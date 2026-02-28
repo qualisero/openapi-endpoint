@@ -90,9 +90,9 @@ export type OpenApiOperations = typeof openApiOperations
 
 type AllOps = keyof operations
 
-/** Response data type for an operation (all fields required). */
+/** Response data type for mutations (excludes readonly, preserves optional). */
 export type ApiResponse<K extends AllOps> = _ApiResponse<operations, K>
-/** Response data type - only `readonly` fields required. */
+/** Response data type for queries (ALL fields required including optional). */
 export type ApiResponseSafe<K extends AllOps> = _ApiResponseSafe<operations, K>
 /** Request body type. */
 export type ApiRequest<K extends AllOps> = _ApiRequest<operations, K>

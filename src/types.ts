@@ -294,9 +294,7 @@ type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
 
 type IsReadonly<T, K extends keyof T> = IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true>
 
-type RequireReadonly<T> = {
-  [K in keyof T as IsReadonly<T, K> extends true ? K : never]-?: T[K]
-} & {
+type ExcludeReadonly<T> = {
   [K in keyof T as IsReadonly<T, K> extends false ? K : never]: T[K]
 }
 
@@ -317,15 +315,27 @@ type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] ext
             : unknown
 
 /**
- * Extract the response data type (all fields required).
- * @example `ApiResponse<operations, 'getPet'>` → `{ readonly id: string, name: string, ... }`
+ * Extract response data type for mutations (excludes readonly fields, preserves optionality).
+ *
+ * Used for POST/PUT/PATCH/DELETE responses where:
+ * - Readonly fields are excluded (client cannot set them)
+ * - Optional fields remain optional (as per the OpenAPI spec)
+ *
+ * @example `ApiResponse<operations, 'createPet'>` → `{ name: string, tag?: string, ... }`
  */
-export type ApiResponse<Ops extends AnyOps, Op extends keyof Ops> = RequireAll<ExtractResponseData<Ops, Op>>
+export type ApiResponse<Ops extends AnyOps, Op extends keyof Ops> = ExcludeReadonly<ExtractResponseData<Ops, Op>>
 
 /**
- * Extract the response data type (only readonly fields required).
+ * Extract response data type for queries (ALL fields required, including optional ones).
+ *
+ * Used for GET/HEAD/OPTIONS responses where the assumption is that the API
+ * shares the same schema for POST/PATCH and GET, but always returns all fields
+ * for GET operations. This makes ALL fields required regardless of how they're
+ * marked in the spec.
+ *
+ * @example `ApiResponseSafe<operations, 'getPet'>` → `{ readonly id: string, name: string, tag: string, ... }`
  */
-export type ApiResponseSafe<Ops extends AnyOps, Op extends keyof Ops> = RequireReadonly<ExtractResponseData<Ops, Op>>
+export type ApiResponseSafe<Ops extends AnyOps, Op extends keyof Ops> = RequireAll<ExtractResponseData<Ops, Op>>
 
 type Writable<T> = {
   -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
