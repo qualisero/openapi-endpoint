@@ -1499,16 +1499,21 @@ Arguments:
   output-directory   Directory where generated files will be saved
 
 Options:
-  --exclude-prefix PREFIX   Exclude operations with operationId starting with PREFIX
-                            (default: '_deprecated')
-  --no-exclude              Disable operation exclusion (include all operations)
-  --help, -h                Show this help message
+  --exclude-prefix PREFIX        Exclude operations with operationId starting with PREFIX
+                                 (default: '_deprecated')
+  --no-exclude                   Disable operation exclusion (include all operations)
+  --use-query-safe-response      Use ApiResponseSafe for GET operations by default
+                                 (default: true; query responses have only readonly fields required)
+  --no-use-query-safe-response   Disable safe response typing for GET operations
+                                 (all fields required, matching ApiResponse behavior)
+  --help, -h                     Show this help message
 
 Examples:
   npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
   npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix _internal
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-exclude
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-use-query-safe-response
 
 This command will generate:
   - openapi-types.ts   (TypeScript types from OpenAPI spec)
@@ -1517,6 +1522,15 @@ This command will generate:
   - api-types.ts       (Types namespace for type-only access)
   - api-enums.ts       (Type-safe enum objects from OpenAPI spec)
   - api-schemas.ts     (Type aliases for schema objects from OpenAPI spec)
+
+Query Response Typing (--use-query-safe-response):
+  GET responses with this flag enabled use ApiResponseSafe, which requires only readonly
+  fields (typically those provided by the server). This matches the semantic distinction:
+  - POST/PATCH request bodies: optional fields (you don't have to provide everything)
+  - GET response bodies: readonly fields are always present (server always returns them)
+
+  Disable this flag to require all fields (ApiResponse) if your API schema doesn't
+  properly distinguish readonly fields.
 `)
 }
 
@@ -1829,6 +1843,7 @@ async function generateApiOperationsFile(
 function generateApiTypesContent(
   operationMap: Record<string, OperationInfo>,
   opEnums: Record<string, Record<string, Record<string, string>>>,
+  useQuerySafeResponse = true,
 ): string {
   const ids = Object.keys(operationMap).sort()
   const isQuery = (id: string) => ['GET', 'HEAD', 'OPTIONS'].includes(operationMap[id].method)
@@ -1851,9 +1866,21 @@ function generateApiTypesContent(
       const commonLines = [
         `    /** Full response type - all fields required. */`,
         `    export type Response     = _ApiResponse<OpenApiOperations, '${id}'>`,
-        `    /** Response type - only \`readonly\` fields required. */`,
-        `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
       ]
+      
+      // For GET operations with useQuerySafeResponse enabled, use SafeResponse as the primary type
+      if (query && useQuerySafeResponse) {
+        commonLines.push(
+          `    /** Response type - only \`readonly\` fields required. Recommended for GET operations. */`,
+          `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
+        )
+      } else {
+        commonLines.push(
+          `    /** Response type - only \`readonly\` fields required. */`,
+          `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
+        )
+      }
+      
       if (!query) {
         commonLines.push(
           `    /** Request body type. */`,
@@ -1911,11 +1938,12 @@ async function generateApiTypesFile(
   openApiSpec: OpenAPISpec,
   outputDir: string,
   excludePrefix: string | null,
+  useQuerySafeResponse = true,
 ): Promise<void> {
   console.log('🔨 Generating api-types.ts...')
   const operationMap = buildOperationMap(openApiSpec, excludePrefix)
   const opEnums = buildOperationEnums(openApiSpec, operationMap)
-  const content = generateApiTypesContent(operationMap, opEnums)
+  const content = generateApiTypesContent(operationMap, opEnums, useQuerySafeResponse)
   fs.writeFileSync(path.join(outputDir, 'api-types.ts'), content)
   console.log(`✅ Generated api-types.ts`)
 }
@@ -1938,6 +1966,7 @@ async function main(): Promise<void> {
 
   // Parse options
   let excludePrefix: string | null = '_deprecated' // default
+  let useQuerySafeResponse = true // default to true
 
   for (let i = 0; i < optionArgs.length; i++) {
     if (optionArgs[i] === '--no-exclude') {
@@ -1951,6 +1980,10 @@ async function main(): Promise<void> {
         printUsage()
         process.exit(1)
       }
+    } else if (optionArgs[i] === '--use-query-safe-response') {
+      useQuerySafeResponse = true
+    } else if (optionArgs[i] === '--no-use-query-safe-response') {
+      useQuerySafeResponse = false
     }
   }
 
@@ -1966,6 +1999,13 @@ async function main(): Promise<void> {
       console.log(`🚫 Excluding operations with operationId prefix: '${excludePrefix}'`)
     } else {
       console.log(`✅ Including all operations (no exclusion filter)`)
+    }
+
+    // Log query safe response setting
+    if (useQuerySafeResponse) {
+      console.log(`✅ Using ApiResponseSafe for GET operations (readonly fields only required)`)
+    } else {
+      console.log(`⚠️  Using ApiResponse for all operations (all fields required)`)
     }
 
     // Fetch and parse OpenAPI spec once
@@ -1985,7 +2025,7 @@ async function main(): Promise<void> {
       generateApiEnums(openapiContent, outputDir, excludePrefix),
       generateApiSchemas(openapiContent, outputDir, excludePrefix),
       generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames),
-      generateApiTypesFile(openApiSpec, outputDir, excludePrefix),
+      generateApiTypesFile(openApiSpec, outputDir, excludePrefix, useQuerySafeResponse),
       generateApiClientFile(openApiSpec, outputDir, excludePrefix),
     ])
 
