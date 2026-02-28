@@ -1031,7 +1031,7 @@ function _generateOperationJSDoc(operationId: string, method: string, apiPath: s
   return lines.join('\n')
 }
 
-function generateApiClientContent(operationMap: Record<string, OperationInfo>): string {
+function generateApiClientContent(operationMap: Record<string, OperationInfo>, useQuerySafeResponse = true): string {
   const ids = Object.keys(operationMap).sort()
   const QUERY_HTTP = new Set(['GET', 'HEAD', 'OPTIONS'])
   const isQuery = (id: string) => QUERY_HTTP.has(operationMap[id].method)
@@ -1039,6 +1039,9 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>): 
 
   // Registry for invalidateOperations support
   const registryEntries = ids.map((id) => `  ${id}: { path: '${operationMap[id].path}' },`).join('\n')
+
+  // Response type to use for queries
+  const queryResponseType = useQuerySafeResponse ? 'ApiResponseSafe' : 'ApiResponse'
 
   // Generic factory helpers (4 patterns)
   const helpers = `/**
@@ -1050,7 +1053,7 @@ function _queryNoParams<Op extends AllOps>(
   cfg: { path: string; method: HttpMethod; listPath: string | null },
   enums: Record<string, unknown>,
 ) {
-  type Response = ApiResponse<Op>
+  type Response = ${queryResponseType}<Op>
   type QueryParams = ApiQueryParams<Op>
 
   const useQuery = (
@@ -1117,7 +1120,7 @@ function _queryWithParams<Op extends AllOps>(
 ) {
   type PathParams = ApiPathParams<Op>
   type PathParamsInput = ApiPathParamsInput<Op>
-  type Response = ApiResponse<Op>
+  type Response = ${queryResponseType}<Op>
   type QueryParams = ApiQueryParams<Op>
 
   // Two-overload interface: non-function (exact via object-literal checking) +
@@ -1392,7 +1395,7 @@ import {
 import type { QueryClient } from '@tanstack/vue-query'
 
 import type {
-  ApiResponse,
+  ApiResponse${useQuerySafeResponse ? ',\n  ApiResponseSafe' : ''},
   ApiRequest,
   ApiPathParams,
   ApiPathParamsInput,
@@ -1481,9 +1484,10 @@ async function generateApiClientFile(
   openApiSpec: OpenAPISpec,
   outputDir: string,
   excludePrefix: string | null,
+  useQuerySafeResponse = true,
 ): Promise<void> {
   const operationMap = buildOperationMap(openApiSpec, excludePrefix)
-  const content = generateApiClientContent(operationMap)
+  const content = generateApiClientContent(operationMap, useQuerySafeResponse)
   fs.writeFileSync(path.join(outputDir, 'api-client.ts'), content)
   console.log(`✅ Generated api-client.ts (${Object.keys(operationMap).length} operations)`)
 }
@@ -1499,16 +1503,20 @@ Arguments:
   output-directory   Directory where generated files will be saved
 
 Options:
-  --exclude-prefix PREFIX   Exclude operations with operationId starting with PREFIX
-                            (default: '_deprecated')
-  --no-exclude              Disable operation exclusion (include all operations)
-  --help, -h                Show this help message
+  --exclude-prefix PREFIX       Exclude operations with operationId starting with PREFIX
+                                (default: '_deprecated', use 'false' to disable)
+  --use-query-safe-response     Use ApiResponseSafe as return type for useQuery
+                                (default: true; readonly fields automatically required)
+  --no-use-query-safe-response  Use regular ApiResponse for useQuery
+                                (readonly fields remain optional)
+  --help, -h                    Show this help message
 
 Examples:
   npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
   npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/api
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix _internal
-  npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-exclude
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix false
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --no-use-query-safe-response
 
 This command will generate:
   - openapi-types.ts   (TypeScript types from OpenAPI spec)
@@ -1517,6 +1525,16 @@ This command will generate:
   - api-types.ts       (Types namespace for type-only access)
   - api-enums.ts       (Type-safe enum objects from OpenAPI spec)
   - api-schemas.ts     (Type aliases for schema objects from OpenAPI spec)
+
+Query Response Typing (--use-query-safe-response):
+  When enabled (default), useQuery returns ApiResponseSafe for GET operations, which
+  requires only readonly fields (those the server always provides). This matches the
+  semantic distinction:
+  - POST/PATCH request bodies: optional fields (you don't have to provide everything)
+  - GET response bodies: readonly fields are always present (server always returns them)
+
+  When disabled, useQuery returns ApiResponse, where readonly fields remain optional.
+  Use this if your API schema doesn't properly distinguish readonly fields.
 `)
 }
 
@@ -1938,19 +1956,28 @@ async function main(): Promise<void> {
 
   // Parse options
   let excludePrefix: string | null = '_deprecated' // default
+  let useQuerySafeResponse = true // default to true
 
   for (let i = 0; i < optionArgs.length; i++) {
-    if (optionArgs[i] === '--no-exclude') {
-      excludePrefix = null
-    } else if (optionArgs[i] === '--exclude-prefix') {
+    if (optionArgs[i] === '--exclude-prefix') {
       if (i + 1 < optionArgs.length) {
-        excludePrefix = optionArgs[i + 1]
+        const value = optionArgs[i + 1]
+        // If value is 'false', treat as no exclusion
+        if (value === 'false') {
+          excludePrefix = null
+        } else {
+          excludePrefix = value
+        }
         i++ // Skip next arg since we consumed it
       } else {
         console.error('❌ Error: --exclude-prefix requires a value')
         printUsage()
         process.exit(1)
       }
+    } else if (optionArgs[i] === '--use-query-safe-response') {
+      useQuerySafeResponse = true
+    } else if (optionArgs[i] === '--no-use-query-safe-response') {
+      useQuerySafeResponse = false
     }
   }
 
@@ -1966,6 +1993,13 @@ async function main(): Promise<void> {
       console.log(`🚫 Excluding operations with operationId prefix: '${excludePrefix}'`)
     } else {
       console.log(`✅ Including all operations (no exclusion filter)`)
+    }
+
+    // Log query safe response setting
+    if (useQuerySafeResponse) {
+      console.log(`✅ useQuery returns ApiResponseSafe (readonly fields automatically required)`)
+    } else {
+      console.log(`ℹ️  useQuery returns ApiResponse (readonly fields remain optional)`)
     }
 
     // Fetch and parse OpenAPI spec once
@@ -1986,7 +2020,7 @@ async function main(): Promise<void> {
       generateApiSchemas(openapiContent, outputDir, excludePrefix),
       generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames),
       generateApiTypesFile(openApiSpec, outputDir, excludePrefix),
-      generateApiClientFile(openApiSpec, outputDir, excludePrefix),
+      generateApiClientFile(openApiSpec, outputDir, excludePrefix, useQuerySafeResponse),
     ])
 
     console.log('🎉 Code generation completed successfully!')

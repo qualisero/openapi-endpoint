@@ -2,6 +2,7 @@
 // Use `createApiClient` to instantiate a fully-typed API client.
 
 import type { AxiosInstance } from 'axios'
+import type { Ref, ComputedRef } from 'vue'
 import {
   useEndpointQuery,
   useEndpointMutation,
@@ -15,8 +16,6 @@ import {
   type LazyQueryReturn,
   type ReactiveOr,
   type NoExcessReturn,
-  type Ref,
-  type ComputedRef,
   type MaybeRefOrGetter,
 } from '@qualisero/openapi-endpoint'
 
@@ -24,6 +23,7 @@ import type { QueryClient } from '@tanstack/vue-query'
 
 import type {
   ApiResponse,
+  ApiResponseSafe,
   ApiRequest,
   ApiPathParams,
   ApiPathParamsInput,
@@ -36,7 +36,6 @@ import {
   deletePet_enums,
   getConfigJson_enums,
   getDataV1Json_enums,
-  searchPets_enums,
   getOwners_enums,
   getPet_enums,
   getPetPetId_enums,
@@ -45,6 +44,7 @@ import {
   postOwners_enums,
   postPetAdopt_enums,
   postPetGiveTreats_enums,
+  searchPets_enums,
   updatePet_enums,
   updatePetPetId_enums,
   uploadPetPic_enums,
@@ -59,7 +59,6 @@ const _registry = {
   deletePet: { path: '/pets/{petId}' },
   getConfigJson: { path: '/api/config.json' },
   getDataV1Json: { path: '/api/data.v1.json' },
-  searchPets: { path: '/pets/search' },
   getOwners: { path: '/owners' },
   getPet: { path: '/pets/{petId}' },
   getPetPetId: { path: '/api/pet/{pet_id}' },
@@ -68,6 +67,7 @@ const _registry = {
   postOwners: { path: '/owners' },
   postPetAdopt: { path: '/api/pet/{pet_id}/adopt' },
   postPetGiveTreats: { path: '/api/pet/give_treats' },
+  searchPets: { path: '/pets/search' },
   updatePet: { path: '/pets/{petId}' },
   updatePetPetId: { path: '/api/pet/{pet_id}' },
   uploadPetPic: { path: '/pets/{petId}/upload' },
@@ -108,7 +108,7 @@ function _queryNoParams<Op extends AllOps>(
   cfg: { path: string; method: HttpMethod; listPath: string | null },
   enums: Record<string, unknown>,
 ) {
-  type Response = ApiResponse<Op>
+  type Response = ApiResponseSafe<Op>
   type QueryParams = ApiQueryParams<Op>
 
   const useQuery = (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
@@ -165,7 +165,7 @@ function _queryWithParams<Op extends AllOps>(
 ) {
   type PathParams = ApiPathParams<Op>
   type PathParamsInput = ApiPathParamsInput<Op>
-  type Response = ApiResponse<Op>
+  type Response = ApiResponseSafe<Op>
   type QueryParams = ApiQueryParams<Op>
 
   // Two-overload interface: non-function (exact via object-literal checking) +
@@ -413,11 +413,6 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
       { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null },
       getDataV1Json_enums,
     ),
-    searchPets: _queryNoParams<'searchPets'>(
-      base,
-      { path: '/pets/search', method: HttpMethod.GET, listPath: null },
-      searchPets_enums,
-    ),
     /**
      * List all owners (no operationId)
      */
@@ -488,6 +483,14 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
       base,
       { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null },
       postPetGiveTreats_enums,
+    ),
+    /**
+     * Search pets with required query params
+     */
+    searchPets: _queryNoParams<'searchPets'>(
+      base,
+      { path: '/pets/search', method: HttpMethod.GET, listPath: null },
+      searchPets_enums,
     ),
     /**
      * Update a pet

@@ -17,4 +17,6 @@ export type NewPet = components['schemas']['NewPet']
 
 export type Pet = components['schemas']['Pet']
 
+export type PetStatus = components['schemas']['PetStatus']
+
 export type SingleFile = components['schemas']['SingleFile']

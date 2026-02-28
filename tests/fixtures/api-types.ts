@@ -121,7 +121,10 @@ export namespace Types {
     export type PathParams = _ApiPathParams<OpenApiOperations, 'listPets'>
     /** Query parameters. */
     export type QueryParams = _ApiQueryParams<OpenApiOperations, 'listPets'>
-    export namespace Enums {}
+    export namespace Enums {
+      /** `'available' | 'pending' | 'adopted'` */
+      export type Status = 'available' | 'pending' | 'adopted'
+    }
   }
 
   export namespace listUserPets {
@@ -175,6 +178,18 @@ export namespace Types {
     export type PathParams = _ApiPathParams<OpenApiOperations, 'postPetGiveTreats'>
     /** Query parameters. */
     export type QueryParams = _ApiQueryParams<OpenApiOperations, 'postPetGiveTreats'>
+    export namespace Enums {}
+  }
+
+  export namespace searchPets {
+    /** Full response type - all fields required. */
+    export type Response = _ApiResponse<OpenApiOperations, 'searchPets'>
+    /** Response type - only `readonly` fields required. */
+    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, 'searchPets'>
+    /** Path parameters. */
+    export type PathParams = _ApiPathParams<OpenApiOperations, 'searchPets'>
+    /** Query parameters. */
+    export type QueryParams = _ApiQueryParams<OpenApiOperations, 'searchPets'>
     export namespace Enums {}
   }
 

@@ -63,3 +63,5 @@ export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus]
 // Type aliases for duplicate enum values
 export const NewPetStatus = PetStatus
 export type NewPetStatus = PetStatus
+export const ListPetsStatus = PetStatus
+export type ListPetsStatus = PetStatus

@@ -55,6 +55,7 @@ describe('CLI Integration Tests', () => {
         'getPet',
         'listPets',
         'listUserPets',
+        'searchPets',
         'updatePet',
         'uploadPetPic',
       ])
