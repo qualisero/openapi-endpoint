@@ -1867,7 +1867,7 @@ function generateApiTypesContent(
         `    /** Full response type - all fields required. */`,
         `    export type Response     = _ApiResponse<OpenApiOperations, '${id}'>`,
       ]
-      
+
       // For GET operations with useQuerySafeResponse enabled, use SafeResponse as the primary type
       if (query && useQuerySafeResponse) {
         commonLines.push(
@@ -1880,7 +1880,7 @@ function generateApiTypesContent(
           `    export type SafeResponse = _ApiResponseSafe<OpenApiOperations, '${id}'>`,
         )
       }
-      
+
       if (!query) {
         commonLines.push(
           `    /** Request body type. */`,
