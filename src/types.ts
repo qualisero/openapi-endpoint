@@ -288,7 +288,11 @@ export type MutateAsyncFn<
  */
 type AnyOps = object
 
-type RequireAll<T> = { [K in keyof T]-?: T[K] }
+type RequireAll<T> = T extends (infer E)[]
+  ? RequireAll<E>[]
+  : T extends readonly (infer E)[]
+    ? readonly RequireAll<E>[]
+    : { [K in keyof T]-?: RequireAll<T[K]> }
 
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B
 
