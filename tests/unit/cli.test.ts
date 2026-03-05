@@ -782,7 +782,7 @@ export type OperationId = keyof OpenApiOperations
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
       expect(enums.length).toBeGreaterThanOrEqual(1)
-      const petStatus = enums.find(e => e.name === 'PetStatus')
+      const petStatus = enums.find((e) => e.name === 'PetStatus')
       expect(petStatus).toBeDefined()
       expect(petStatus!.values).toEqual(expect.arrayContaining(['available', 'pending', 'adopted']))
     })
@@ -792,14 +792,14 @@ export type OperationId = keyof OpenApiOperations
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
       // Should only have one PetStatus enum, not two
-      const petStatusEnums = enums.filter(e => e.name === 'PetStatus')
+      const petStatusEnums = enums.filter((e) => e.name === 'PetStatus')
       expect(petStatusEnums).toHaveLength(1)
     })
 
     it('should generate correct source path', () => {
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
-      const petStatus = enums.find(e => e.name === 'PetStatus')
+      const petStatus = enums.find((e) => e.name === 'PetStatus')
       expect(petStatus).toBeDefined()
       expect(petStatus!.sourcePath).toBe('components.schemas.Pet.properties.status')
     })
