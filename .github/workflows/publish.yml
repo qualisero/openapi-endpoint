@@ -6,6 +6,7 @@ name: Publish to npm
       - completed
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   publish:
