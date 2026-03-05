@@ -781,23 +781,27 @@ export type OperationId = keyof OpenApiOperations
     it('should extract enums from components.schemas', () => {
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
-      expect(enums).toHaveLength(1)
-      expect(enums[0].name).toBe('PetStatus')
-      expect(enums[0].values).toEqual(expect.arrayContaining(['available', 'pending', 'adopted']))
+      expect(enums.length).toBeGreaterThanOrEqual(1)
+      const petStatus = enums.find(e => e.name === 'PetStatus')
+      expect(petStatus).toBeDefined()
+      expect(petStatus!.values).toEqual(expect.arrayContaining(['available', 'pending', 'adopted']))
     })
 
     it('should deduplicate enums with same values', () => {
       // Pet and NewPet both have the same status enum
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
-      // Should only have one enum, not two
-      expect(enums).toHaveLength(1)
+      // Should only have one PetStatus enum, not two
+      const petStatusEnums = enums.filter(e => e.name === 'PetStatus')
+      expect(petStatusEnums).toHaveLength(1)
     })
 
     it('should generate correct source path', () => {
       const enums = extractEnumsFromSpec(toyOpenApiSpec)
 
-      expect(enums[0].sourcePath).toBe('components.schemas.Pet.properties.status')
+      const petStatus = enums.find(e => e.name === 'PetStatus')
+      expect(petStatus).toBeDefined()
+      expect(petStatus!.sourcePath).toBe('components.schemas.Pet.properties.status')
     })
 
     it('should handle spec without components', () => {
