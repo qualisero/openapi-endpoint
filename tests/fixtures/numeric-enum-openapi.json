@@ -1,0 +1,81 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Numeric Enum Test API",
+    "description": "Test API for numeric and string enum values starting with digits",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/estimate": {
+      "get": {
+        "operationId": "getEstimate",
+        "summary": "Get estimate with numeric enum values",
+        "parameters": [
+          {
+            "name": "minimum_level",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "1",
+              "enum": ["0", "0.1", "0.2", "0.5", "0.7", "1", "2", "3"]
+            }
+          },
+          {
+            "name": "building_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["house", "apartment"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config": {
+      "get": {
+        "operationId": "getConfig",
+        "summary": "Get config with various enum formats",
+        "parameters": [
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["1st", "2nd", "3rd"]
+            }
+          },
+          {
+            "name": "special",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["@all", "#none", "!important"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}

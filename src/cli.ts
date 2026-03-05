@@ -430,8 +430,10 @@ function toEnumMemberName(value: string | number | null): string {
   const cleaned = toPascalCase(value.replace(/[^a-zA-Z0-9_$]/g, '_'))
 
   // If the result is empty or still invalid, prefix with underscore to make it valid
+  // Sanitize the full value to ensure unique identifiers for enum members
   if (cleaned.length === 0 || !/^[a-zA-Z_$]/.test(cleaned)) {
-    return `_Char${value.charCodeAt(0)}`
+    const sanitized = String(value).replace(/[^a-zA-Z0-9_$]/g, '_')
+    return sanitized.length > 0 ? `_${sanitized}` : '_Empty'
   }
 
   return cleaned

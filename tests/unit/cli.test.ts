@@ -903,6 +903,68 @@ export type OperationId = keyof OpenApiOperations
       expect(enums[0].values).toEqual(['available', 'pending', 'adopted'])
       expect(enums[0].sourcePath).toBe('paths./pets.get.parameters[status]')
     })
+
+    it('should handle numeric enum values starting with digits', () => {
+      // Test for the bug fix where values like '0', '0.1', '0.2' would all
+      // generate duplicate keys like '_Char48' instead of unique '_0', '_0_1', '_0_2'
+      const specWithNumericEnums = {
+        openapi: '3.0.0',
+        paths: {
+          '/estimate': {
+            get: {
+              operationId: 'getEstimate',
+              parameters: [
+                {
+                  name: 'minimum_level',
+                  in: 'query',
+                  schema: {
+                    type: 'string',
+                    enum: ['0', '0.1', '0.2', '0.5', '0.7', '1', '2', '3'],
+                  },
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      }
+
+      const enums = extractEnumsFromSpec(specWithNumericEnums)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('GetEstimateMinimumLevel')
+      expect(enums[0].values).toEqual(['0', '0.1', '0.2', '0.5', '0.7', '1', '2', '3'])
+    })
+
+    it('should handle special characters in enum values', () => {
+      const specWithSpecialChars = {
+        openapi: '3.0.0',
+        paths: {
+          '/config': {
+            get: {
+              operationId: 'getConfig',
+              parameters: [
+                {
+                  name: 'special',
+                  in: 'query',
+                  schema: {
+                    type: 'string',
+                    enum: ['@all', '#none', '!important', 'test-value'],
+                  },
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      }
+
+      const enums = extractEnumsFromSpec(specWithSpecialChars)
+
+      expect(enums).toHaveLength(1)
+      expect(enums[0].name).toBe('GetConfigSpecial')
+      expect(enums[0].values).toEqual(['@all', '#none', '!important', 'test-value'])
+    })
   })
 
   describe('URL validation patterns', () => {
