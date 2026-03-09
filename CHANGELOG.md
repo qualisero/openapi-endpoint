@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-03-09
+
+### Fixed
+
+- `api-schemas.ts` no longer emits `import type { components }` when there are no schemas, eliminating a spurious unused-import lint warning
+
 ## [0.20.0] - 2026-03-05
 
 ### Fixed
