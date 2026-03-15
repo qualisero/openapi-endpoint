@@ -1,4 +1,4 @@
-import { computed, watch, toValue, type ComputedRef } from 'vue'
+import { computed, shallowRef, watch, toValue, type ComputedRef, type ShallowRef } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
 import { useQuery, type UseQueryReturnType, type QueryClient } from '@tanstack/vue-query'
 import { isAxiosError, type AxiosError } from 'axios'
@@ -24,6 +24,7 @@ function buildQueryFn<TResponse>(
   hookAxiosOptions?: AxiosRequestConfigExtended,
   callAxiosOptions?: AxiosRequestConfigExtended,
   errorHandler?: (error: AxiosError) => TResponse | void | Promise<TResponse | void>,
+  headersSink?: ShallowRef<Record<string, string>>,
 ): () => Promise<TResponse> {
   return async () => {
     try {
@@ -42,6 +43,18 @@ function buildQueryFn<TResponse>(
           ...(callAxiosOptions?.headers || {}),
         },
       })
+      if (headersSink) {
+        const raw = response.headers
+        if (raw && typeof raw === 'object') {
+          const plain: Record<string, string> = {}
+          for (const [k, v] of Object.entries(raw)) {
+            if (v != null) plain[k] = String(v)
+          }
+          headersSink.value = plain
+        } else {
+          headersSink.value = {}
+        }
+      }
       return response.data
     } catch (error: unknown) {
       if (errorHandler && isAxiosError(error)) {
@@ -84,6 +97,8 @@ export type QueryReturn<TResponse, TPathParams extends Record<string, unknown> =
   pathParams: ComputedRef<TPathParams>
   /** Register a callback for when data loads successfully for the first time. */
   onLoad: (callback: (data: TResponse) => void) => void
+  /** Response headers from the last successful query. */
+  responseHeaders: ShallowRef<Record<string, string>>
 }
 
 /**
@@ -105,7 +120,7 @@ export type LazyQueryReturn<
   TQueryParams extends Record<string, unknown> = Record<string, never>,
 > = Pick<
   QueryReturn<TResponse, TPathParams>,
-  'data' | 'isPending' | 'isSuccess' | 'isError' | 'error' | 'isEnabled' | 'pathParams' | 'queryKey'
+  'data' | 'isPending' | 'isSuccess' | 'isError' | 'error' | 'isEnabled' | 'pathParams' | 'queryKey' | 'responseHeaders'
 > & {
   /**
    * Execute a query imperatively.
@@ -178,6 +193,8 @@ export function useEndpointQuery<
     return baseEnabled && isResolved.value
   })
 
+  const responseHeaders = shallowRef<Record<string, string>>({})
+
   const queryOptions = {
     queryKey: queryKey as ComputedRef<readonly unknown[]>,
     queryFn: buildQueryFn<TResponse>(
@@ -187,6 +204,7 @@ export function useEndpointQuery<
       axiosOptions,
       undefined,
       errorHandler,
+      responseHeaders,
     ),
     enabled: isEnabled,
     staleTime: 1000 * 60,
@@ -232,6 +250,7 @@ export function useEndpointQuery<
     queryKey,
     onLoad,
     pathParams: resolvedPathParams as ComputedRef<TPathParams>,
+    responseHeaders,
   } as unknown as QueryReturn<TResponse, TPathParams>
 }
 
@@ -298,6 +317,8 @@ export function useEndpointLazyQuery<
     staleTime: useQueryOptions?.staleTime ?? Infinity,
   })
 
+  const responseHeaders = shallowRef<Record<string, string>>({})
+
   const fetch = async (fetchOptions?: LazyQueryFetchOptions<TQueryParams>): Promise<TResponse> => {
     if (!isResolved.value) {
       throw new Error(
@@ -320,6 +341,7 @@ export function useEndpointLazyQuery<
         axiosOptions,
         fetchOptions?.axiosOptions,
         errorHandler,
+        responseHeaders,
       ),
       staleTime: useQueryOptions?.staleTime ?? Infinity,
     })
@@ -334,6 +356,7 @@ export function useEndpointLazyQuery<
     isEnabled: query.isEnabled,
     pathParams: resolvedPathParams as ComputedRef<TPathParams>,
     queryKey: queryKey as ComputedRef<string[]>,
+    responseHeaders,
     fetch,
   }
 }
