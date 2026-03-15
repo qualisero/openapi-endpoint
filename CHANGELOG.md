@@ -12,12 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `responseHeaders` shallowRef on `QueryReturn` and `LazyQueryReturn` — exposes response headers (e.g. `X-Pagination`) from the last successful query
-
-## [0.21.0] - 2026-03-15
-
-### Added
-
-- `responseHeaders` field on `QueryReturn` and `LazyQueryReturn` — a `ShallowRef<Record<string, string>>` populated with the response headers from the last successful request
 - `ShallowRef` is now re-exported from the package entry point
 
 ## [0.20.1] - 2026-03-09

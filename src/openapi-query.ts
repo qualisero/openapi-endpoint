@@ -43,7 +43,18 @@ function buildQueryFn<TResponse>(
           ...(callAxiosOptions?.headers || {}),
         },
       })
-      if (headersSink) headersSink.value = response.headers as Record<string, string>
+      if (headersSink) {
+        const raw = response.headers
+        if (raw && typeof raw === 'object') {
+          const plain: Record<string, string> = {}
+          for (const [k, v] of Object.entries(raw)) {
+            if (v != null) plain[k] = String(v)
+          }
+          headersSink.value = plain
+        } else {
+          headersSink.value = {}
+        }
+      }
       return response.data
     } catch (error: unknown) {
       if (errorHandler && isAxiosError(error)) {

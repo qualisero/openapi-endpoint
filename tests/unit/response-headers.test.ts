@@ -73,6 +73,15 @@ describe('Response Headers', () => {
       expect(query.responseHeaders).toHaveProperty('value')
       expect(typeof query.responseHeaders.value).toBe('object')
     })
+
+    it('should default to empty object when response has no headers', async () => {
+      mockAxios.mockResolvedValueOnce({ data: [{ id: '1', name: 'Fluffy' }] })
+
+      const query = scope.run(() => api.listPets.useQuery())!
+      await flushPromises()
+
+      expect(query.responseHeaders.value).toEqual({})
+    })
   })
 
   describe('useLazyQuery - responseHeaders', () => {
