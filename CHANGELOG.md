@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2026-03-26
+
+### Fixed
+
+- Enum schemas defined in `components.schemas` are now exported directly with their original names as primary, while operation-specific generated names become aliases
+
 ## [0.21.1] - 2026-03-15
 
 ### Added
