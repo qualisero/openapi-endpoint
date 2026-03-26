@@ -914,8 +914,17 @@ import type { components } from './openapi-types'
  */
 `
 
+  // Build set of enum schema names to skip (they're exported in api-enums.ts as runtime objects)
+  const enumSchemaNames = new Set<string>()
+  for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+    if (schema.enum && Array.isArray(schema.enum)) {
+      enumSchemaNames.add(schemaName)
+    }
+  }
+
   const schemaExports = Object.keys(openApiSpec.components.schemas)
     .sort()
+    .filter((schemaName) => !enumSchemaNames.has(schemaName)) // Skip enum schemas
     .map((schemaName) => {
       // Remove schema suffix and convert to PascalCase
       const cleanedName = removeSchemaSuffix(schemaName)

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.3] - 2026-03-26
+
+### Fixed
+
+- Skip enum schemas in `api-schemas.ts` type exports (they're already exported as runtime objects in `api-enums.ts`)
+
 ## [0.21.2] - 2026-03-26
 
 ### Fixed
