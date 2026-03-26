@@ -500,6 +500,13 @@ function extractEnumsFromSpec(openApiSpec: OpenAPISpec): EnumInfo[] {
     }
   }
 
+  // Export enum schemas directly from components.schemas
+  // This MUST come before property/parameter extraction so the schema name becomes primary
+  // and operation-specific generated names become aliases
+  for (const [schemaName, enumValues] of schemaEnumLookup) {
+    addEnumIfUnique(schemaName, enumValues, `components.schemas.${schemaName}`, enums, seenEnumValues)
+  }
+
   // Helper to resolve enum values from a schema (inline or $ref)
   function resolveEnumValues(schema: OpenAPISchema): (string | number)[] | null {
     // Inline enum
