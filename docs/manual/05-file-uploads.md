@@ -388,4 +388,5 @@ const uploadFile = async () => {
 
 ## What's Next?
 
+- [Axios Configuration](./08-axios-configuration.md) - Learn about advanced Axios configuration for uploads and more
 - [Cache Management](./06-cache-management.md) - Learn about advanced cache control strategies

@@ -310,6 +310,7 @@ const query = api.listPets.useLazyQuery({
 
 ## What's Next?
 
+- [Axios Configuration](./08-axios-configuration.md) - Learn about advanced Axios configuration options
 - [Queries](./02-queries.md) - Learn about `useQuery` for reactive queries
 - [Reactive Parameters](./04-reactive-parameters.md) - Learn about reactive path and query parameters
 - [Cache Management](./06-cache-management.md) - Learn about advanced cache strategies

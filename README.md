@@ -138,6 +138,76 @@ const mutation = api.createPet.useMutation({
 })
 ```
 
+### Axios Configuration
+
+Pass custom Axios options through the `axiosOptions` parameter for advanced HTTP configuration:
+
+```typescript
+// Custom headers
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    headers: {
+      'X-Custom-Header': 'custom-value',
+      Authorization: 'Bearer token123',
+    },
+  },
+})
+
+// Timeout configuration
+const { data } = api.getPet.useQuery(
+  { petId: '123' },
+  {
+    axiosOptions: {
+      timeout: 5000, // 5 second timeout
+    },
+  },
+)
+
+// Request/response transforms
+const { data } = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      transformRequest: [(data) => JSON.stringify(data)],
+      transformResponse: [(data) => JSON.parse(data)],
+    },
+  },
+)
+
+// Override baseURL for specific requests
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    baseURL: 'https://custom-api.example.com',
+  },
+})
+
+// Custom properties (via AxiosRequestConfigExtended)
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    timeout: 5000,
+    manualErrorHandling: true, // Custom property
+    handledByAxios: false, // Custom property
+    customRetryCount: 3, // Custom property
+  },
+})
+```
+
+**Common Axios options supported:**
+
+- `headers` - Custom request headers
+- `timeout` - Request timeout in milliseconds
+- `baseURL` - Override base URL for this request
+- `auth` - Basic authentication
+- `withCredentials` - Include cookies in cross-origin requests
+- `params` - URL parameters (merged with queryParams)
+- `paramsSerializer` - Custom parameter serializer
+- `transformRequest` / `transformResponse` - Request/response transformers
+- `onUploadProgress` / `onDownloadProgress` - Progress callbacks
+- `signal` - Request cancellation with AbortController
+- `validateStatus` - Custom status code validation
+
+**Note:** The `AxiosRequestConfigExtended` type also supports arbitrary custom properties beyond standard Axios options.
+
 ### Return Types
 
 **Query Return:**
@@ -212,9 +282,11 @@ For detailed guides, see [docs/manual/](docs/manual/):
 - [Getting Started](docs/manual/01-getting-started.md)
 - [Queries](docs/manual/02-queries.md)
 - [Mutations](docs/manual/03-mutations.md)
+- [Axios Configuration](docs/manual/08-axios-configuration.md)
 - [Reactive Parameters](docs/manual/04-reactive-parameters.md)
 - [File Uploads](docs/manual/05-file-uploads.md)
 - [Cache Management](docs/manual/06-cache-management.md)
+- [Lazy Queries](docs/manual/07-lazy-queries.md)
 
 ## License
 

@@ -119,6 +119,114 @@ const { data: pets } = api.listPets.useQuery(
 )
 ```
 
+## Axios Configuration
+
+The `axiosOptions` parameter lets you pass custom Axios configuration options to queries. This is useful for authentication headers, timeout settings, request/response transformations, and more.
+
+### Custom Headers
+
+```typescript
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    headers: {
+      'X-Custom-Header': 'custom-value',
+      Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    },
+  },
+})
+```
+
+### Timeout Configuration
+
+```typescript
+const { data } = api.getPet.useQuery(
+  { petId: '123' },
+  {
+    axiosOptions: {
+      timeout: 5000, // 5 second timeout
+    },
+  },
+)
+```
+
+### Request/Response Transformation
+
+```typescript
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    transformResponse: [
+      (data) => {
+        const parsed = JSON.parse(data)
+        // Apply custom transformation
+        return parsed
+      },
+    ],
+  },
+})
+```
+
+### Request Cancellation
+
+```typescript
+import { ref, onUnmounted } from 'vue'
+
+const controller = new AbortController()
+
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    signal: controller.signal,
+  },
+})
+
+// Cancel request on unmount
+onUnmounted(() => {
+  controller.abort()
+})
+```
+
+### Custom Properties
+
+The `AxiosRequestConfigExtended` type supports arbitrary custom properties beyond standard Axios options:
+
+```typescript
+const { data } = api.listPets.useQuery({
+  axiosOptions: {
+    // Standard Axios options
+    timeout: 5000,
+    headers: { 'X-Custom-Header': 'value' },
+    // Custom properties for interceptors or middleware
+    manualErrorHandling: true,
+    handledByAxios: false,
+    customRetryCount: 3,
+    debugMode: true,
+    requestMetadata: {
+      requestId: 'req-123',
+      source: 'list-pets',
+    },
+  },
+})
+```
+
+### Common Axios Options
+
+| Option               | Type          | Description                                   |
+| -------------------- | ------------- | --------------------------------------------- |
+| `headers`            | `object`      | Custom request headers                        |
+| `timeout`            | `number`      | Request timeout in milliseconds               |
+| `baseURL`            | `string`      | Override base URL for this request            |
+| `auth`               | `object`      | Basic authentication `{ username, password }` |
+| `withCredentials`    | `boolean`     | Include cookies in cross-origin requests      |
+| `params`             | `object`      | URL parameters (merged with queryParams)      |
+| `paramsSerializer`   | `function`    | Custom parameter serializer                   |
+| `transformRequest`   | `array`       | Request data transformers                     |
+| `transformResponse`  | `array`       | Response data transformers                    |
+| `onUploadProgress`   | `function`    | Upload progress callback                      |
+| `onDownloadProgress` | `function`    | Download progress callback                    |
+| `signal`             | `AbortSignal` | Request cancellation                          |
+| `validateStatus`     | `function`    | Custom status code validation                 |
+
+For more advanced Axios configuration patterns, see [Axios Configuration guide](./08-axios-configuration.md).
+
 ## Query Return Values
 
 The `useQuery` hook returns a reactive object with the following properties:

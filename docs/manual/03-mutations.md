@@ -133,6 +133,152 @@ try {
 }
 ```
 
+## Axios Configuration
+
+The `axiosOptions` parameter lets you pass custom Axios configuration options to mutations. This is useful for authentication headers, timeout settings, request/response transformations, upload progress tracking, and more.
+
+### Custom Headers
+
+```typescript
+const createPet = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      headers: {
+        'X-Custom-Header': 'custom-value',
+        Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  },
+)
+```
+
+### Timeout Configuration
+
+```typescript
+const createPet = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      timeout: 10000, // 10 second timeout for mutations
+    },
+  },
+)
+```
+
+### Upload Progress Tracking
+
+```typescript
+const uploadProgress = ref(0)
+
+const uploadMutation = api.uploadFile.useMutation(
+  {},
+  {
+    axiosOptions: {
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        }
+      },
+    },
+  },
+)
+
+// In template
+<template>
+  <div v-if="uploadMutation.isPending">Uploading: {{ uploadProgress }}%</div>
+</template>
+```
+
+### Request/Response Transformation
+
+```typescript
+const createPet = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      transformRequest: [
+        (data) => {
+          // Apply custom transformation before sending
+          return JSON.stringify({ ...data, timestamp: Date.now() })
+        },
+      ],
+    },
+  },
+)
+```
+
+### Overriding Options at Call Time
+
+You can override axios options when calling `mutate()` or `mutateAsync()`:
+
+```typescript
+const createPet = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      timeout: 5000,
+      headers: { 'X-Setup-Header': 'setup-value' },
+    },
+  },
+)
+
+// Override options at call time
+await createPet.mutateAsync({
+  data: { name: 'Fluffy' },
+  axiosOptions: {
+    timeout: 10000, // Overrides the 5000 timeout
+    headers: {
+      'X-Call-Header': 'call-value', // Additional headers
+      Authorization: 'Bearer new-token', // Override specific header
+    },
+  },
+})
+```
+
+### Custom Properties
+
+The `AxiosRequestConfigExtended` type supports arbitrary custom properties beyond standard Axios options:
+
+```typescript
+const createPet = api.createPet.useMutation(
+  {},
+  {
+    axiosOptions: {
+      // Standard Axios options
+      timeout: 5000,
+      headers: { 'X-Custom-Header': 'value' },
+      // Custom properties for interceptors or middleware
+      manualErrorHandling: true,
+      handledByAxios: false,
+      customRetryCount: 3,
+      requestMetadata: {
+        requestId: 'req-123',
+        source: 'create-pet',
+      },
+    },
+  },
+)
+```
+
+### Common Axios Options for Mutations
+
+| Option               | Type          | Description                                        |
+| -------------------- | ------------- | -------------------------------------------------- |
+| `headers`            | `object`      | Custom request headers (useful for auth tokens)    |
+| `timeout`            | `number`      | Request timeout in milliseconds                    |
+| `baseURL`            | `string`      | Override base URL for this request                 |
+| `auth`               | `object`      | Basic authentication `{ username, password }`      |
+| `withCredentials`    | `boolean`     | Include cookies in cross-origin requests           |
+| `params`             | `object`      | URL parameters (merged with queryParams)           |
+| `onUploadProgress`   | `function`    | Upload progress callback (useful for file uploads) |
+| `onDownloadProgress` | `function`    | Download progress callback                         |
+| `signal`             | `AbortSignal` | Request cancellation                               |
+| `transformRequest`   | `array`       | Request data transformers                          |
+| `transformResponse`  | `array`       | Response data transformers                         |
+
+For more advanced Axios configuration patterns and examples, see [Axios Configuration guide](./08-axios-configuration.md).
+
 ## Mutation Options
 
 ### Success Handler
