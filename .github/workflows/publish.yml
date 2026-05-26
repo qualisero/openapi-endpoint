@@ -31,7 +31,10 @@ jobs:
             node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || echo "")
           echo "Previous version: $PREVIOUS_VERSION"
 
-          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual publish requested for $CURRENT_VERSION"
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+          elif [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
             echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
             echo "should-publish=true" >> $GITHUB_OUTPUT
           else
