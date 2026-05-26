@@ -178,10 +178,14 @@ export function useEndpointMutation<
 
         // Invalidate queries for this path
         if (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) {
-          await config.queryClient.invalidateQueries({
-            queryKey: queryKey.value,
-            exact: config.method !== HttpMethod.POST,
-          })
+          // Skip item-level invalidation for DELETE — the resource no longer exists,
+          // so a refetch would 404. List-path invalidation below still runs.
+          if (config.method !== HttpMethod.DELETE) {
+            await config.queryClient.invalidateQueries({
+              queryKey: queryKey.value,
+              exact: config.method !== HttpMethod.POST,
+            })
+          }
 
           // Invalidate associated list path
           if (config.listPath) {

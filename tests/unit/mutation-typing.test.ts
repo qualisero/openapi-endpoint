@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { effectScope } from 'vue'
+import type { QueryClient } from '@tanstack/vue-query'
 import { createApiClient } from '../fixtures/api-client'
 import { createTestScope } from '../helpers'
+import { mockAxios } from '../setup'
 
 describe('Mutation Return Type Typing', () => {
   let api: ReturnType<typeof createApiClient>
@@ -294,5 +296,115 @@ describe('Mutation isEnabled Enforcement', () => {
     // Verify mutation structure
     expect(updateRequestTypeMutation).toHaveProperty('mutate')
     expect(updateRequestTypeMutation).toHaveProperty('isEnabled')
+  })
+})
+
+/**
+ * DELETE mutation invalidation behavior
+ *
+ * After a DELETE, the item-level query key must NOT be invalidated (that would
+ * trigger a GET on a resource that no longer exists, causing a 404). The listPath
+ * invalidation should still run so lists refresh.
+ */
+describe('DELETE mutation invalidation behavior', () => {
+  let api: ReturnType<typeof createApiClient>
+  let scope: ReturnType<typeof effectScope>
+  let run: <T>(fn: () => T) => T
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;({ api, scope, run, queryClient } = createTestScope())
+  })
+
+  afterEach(() => {
+    scope.stop()
+  })
+
+  it('should NOT invalidate item-level query key on DELETE', async () => {
+    // Seed the item cache with a pet
+    queryClient.setQueryData(['pets', '123'], { id: '123', name: 'Fluffy' })
+
+    // Spy on invalidateQueries to track calls
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+    // Create delete mutation for pet 123
+    const deleteMutation = run(() => api.deletePet.useMutation({ petId: '123' }))
+
+    // Mock successful DELETE response
+    mockAxios.mockResolvedValueOnce({ data: {} })
+
+    await deleteMutation.mutateAsync()
+
+    // The item key ['pets', '123'] should NOT have been invalidated
+    const itemInvalidationCalls = invalidateSpy.mock.calls.filter((call) => {
+      const arg = call[0] as { queryKey?: readonly unknown[]; predicate?: unknown }
+      if (arg.queryKey) {
+        const qk = arg.queryKey as string[]
+        return qk[0] === 'pets' && qk[1] === '123'
+      }
+      return false
+    })
+    expect(itemInvalidationCalls).toHaveLength(0)
+
+    // Cached data should still be present (not refetched)
+    const cached = queryClient.getQueryData(['pets', '123'])
+    expect(cached).toEqual({ id: '123', name: 'Fluffy' })
+  })
+
+  it('should STILL invalidate listPath on DELETE', async () => {
+    // Set up a list query observer so listPath invalidation has something to target
+    const listQuery = run(() => api.listPets.useQuery())
+
+    // Seed list cache
+    queryClient.setQueryData(['pets'], [{ id: '1', name: 'Rex' }])
+
+    // Mock the initial list query fetch and the DELETE
+    mockAxios.mockResolvedValueOnce({ data: [{ id: '1', name: 'Rex' }] })
+    mockAxios.mockResolvedValueOnce({ data: {} })
+
+    // Wait for list query to settle
+    await listQuery.suspense()
+
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+    // Create delete mutation
+    const deleteMutation = run(() => api.deletePet.useMutation({ petId: '1' }))
+
+    await deleteMutation.mutateAsync()
+
+    // The list path should have been invalidated (predicate-based call)
+    const listInvalidationCalls = invalidateSpy.mock.calls.filter((call) => {
+      const arg = call[0] as { queryKey?: unknown; predicate?: (...args: unknown[]) => boolean }
+      // List invalidation uses predicate, not queryKey
+      return typeof arg.predicate === 'function'
+    })
+    expect(listInvalidationCalls.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('should invalidate item-level query key on PUT as before', async () => {
+    // Seed the item cache
+    queryClient.setQueryData(['pets', '123'], { id: '123', name: 'Fluffy' })
+
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+    // Create PUT mutation for pet 123
+    const updateMutation = run(() => api.updatePet.useMutation({ petId: '123' }))
+
+    // Mock successful PUT response
+    mockAxios.mockResolvedValueOnce({ data: { id: '123', name: 'Updated' } })
+
+    await updateMutation.mutateAsync({ data: { name: 'Updated' } })
+
+    // The item key ['pets', '123'] SHOULD have been invalidated for PUT
+    const itemInvalidationCalls = invalidateSpy.mock.calls.filter((call) => {
+      const arg = call[0] as { queryKey?: readonly unknown[]; exact?: boolean }
+      if (arg.queryKey && arg.exact === true) {
+        const qk = arg.queryKey as string[]
+        return qk[0] === 'pets' && qk[1] === '123'
+      }
+      return false
+    })
+    expect(itemInvalidationCalls.length).toBeGreaterThanOrEqual(1)
   })
 })
