@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.5] - 2026-05-26
+
+### Fixed
+
+- DELETE mutation no longer triggers spurious GET refetch by skipping item-level cache invalidation
+- List path invalidation still runs as expected after DELETE
+
 ## [0.21.4] - 2026-05-26
 
 ### Fixed
