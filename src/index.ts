@@ -55,6 +55,11 @@ export type {
 export { HttpMethod, QUERY_METHODS, MUTATION_METHODS, isQueryMethod, isMutationMethod } from './types'
 
 // ============================================================================
+// URL building utilities
+// ============================================================================
+export { buildUrl } from './openapi-utils'
+
+// ============================================================================
 // Re-export Vue types (ensures consumer's version is used)
 // ============================================================================
 export type { Ref, ComputedRef, ShallowRef } from 'vue'

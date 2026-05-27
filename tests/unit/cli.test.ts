@@ -1014,6 +1014,7 @@ export type OperationId = keyof OpenApiOperations
   useEndpointLazyQuery,
   defaultQueryClient,
   HttpMethod,
+  buildUrl,
   type QueryOptions,
   type MutationOptions,
   type QueryReturn,
@@ -1089,6 +1090,8 @@ function _queryNoParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery,
+    urlFor: (queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, undefined, queryParams),
     enums,
   } as const
 }
@@ -1184,6 +1187,8 @@ function _queryWithParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery: _lazyImpl as _UseLazyQuery,
+    urlFor: (pathParams: PathParamsInput, queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, pathParams, queryParams),
     enums,
   } as const
 }
@@ -1248,6 +1253,44 @@ function _queryWithParams<Op extends AllOps>(
       expect(content).toContain('const _lazyImpl = (')
       expect(content).toContain('useLazyQuery: _lazyImpl as _UseLazyQuery')
       expect(content).toContain('): LazyQueryReturn<Response, PathParams, QueryParams>')
+    })
+
+    it('should include buildUrl in generated imports', () => {
+      const operationIds = ['listPets', 'createPet', 'getPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('buildUrl')
+    })
+
+    it('should include urlFor in _queryNoParams helper', () => {
+      const operationIds = ['listPets', 'createPet']
+      const operationInfoMap = {
+        listPets: { path: '/pets', method: 'GET' },
+        createPet: { path: '/pets', method: 'POST' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('urlFor: (queryParams?: QueryParams): string =>')
+      expect(content).toContain('buildUrl(base.axios.defaults.baseURL, cfg.path, undefined, queryParams)')
+    })
+
+    it('should include urlFor in _queryWithParams helper', () => {
+      const operationIds = ['getPet']
+      const operationInfoMap = {
+        getPet: { path: '/pets/{petId}', method: 'GET' },
+      }
+
+      const content = generateApiClientContent(operationIds, operationInfoMap)
+
+      expect(content).toContain('urlFor: (pathParams: PathParamsInput, queryParams?: QueryParams): string =>')
+      expect(content).toContain('buildUrl(base.axios.defaults.baseURL, cfg.path, pathParams, queryParams)')
     })
   })
 })

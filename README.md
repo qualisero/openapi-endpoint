@@ -1,7 +1,7 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.18.1)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
-[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260226)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.22.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260527)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
 
@@ -105,6 +105,22 @@ const { data, onLoad } = api.listPets.useQuery({
 const query = api.getPet.useQuery({ petId: '123' })
 query.onLoad((pet) => console.log('Pet:', pet.name))
 ```
+
+### Getting a URL without fetching
+
+Every query operation also exposes `urlFor()`, which returns a plain URL string without performing a request. This is the right tool for `<img :src>`, anchor `href`, `window.open`, or native `fetch`:
+
+```ts
+const url = api.getAssetDocumentFile.urlFor({ asset_id, document_ref }, { view: true })
+// → "https://api.example.com/api/v3/document/asset/.../file?view=true"
+```
+
+Notes:
+
+- Synchronous; takes plain values only (not refs or getters). Wrap in `computed(...)` for reactivity.
+- Only flat scalar query params (`string | number | boolean`) are supported.
+- `baseURL` is read from the axios instance at call time.
+- Available on query operations only (GET / HEAD / OPTIONS), not mutations.
 
 ### Mutations (POST/PUT/PATCH/DELETE)
 

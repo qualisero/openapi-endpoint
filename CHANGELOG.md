@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-05-27
+
+### Added
+
+- `buildUrl(baseURL, path, pathParams?, queryParams?)` utility for building request URLs without executing a fetch. Exported from the package index.
+- `urlFor()` method on every generated query operation (`api.opName.urlFor(pathParams?, queryParams?)`) that returns a plain URL string. Useful for `<img :src>`, anchor `href`, `window.open`, etc. Only flat scalar query params are supported; mutation operations do not get `urlFor`.
+
 ## [0.21.5] - 2026-05-26
 
 ### Fixed
