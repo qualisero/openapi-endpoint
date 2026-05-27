@@ -116,3 +116,35 @@ export function normalizeParamsOptions<PathParams extends Record<string, unknown
     options: options ?? ({} as Options),
   }
 }
+
+/**
+ * Build a full URL string from a baseURL, an OpenAPI path template,
+ * optional path parameters, and optional query parameters.
+ *
+ * Intended for use-cases where a URL string is needed directly —
+ * e.g. <img :src="api.getFile.urlFor({ id })" /> — without executing a fetch.
+ *
+ * NOTE: Only flat scalar query params (string | number | boolean) are supported.
+ *
+ * @param baseURL    - The axios instance baseURL. Read at call time.
+ * @param path       - OpenAPI path template (e.g. "/v3/document/asset/{id}/file")
+ * @param pathParams - Values to substitute into the path template
+ * @param queryParams - Key/value pairs to append as query string (undefined/null values are omitted)
+ */
+export function buildUrl(
+  baseURL: string | undefined,
+  path: string,
+  pathParams?: Record<string, string | number | undefined> | null,
+  queryParams?: Record<string, unknown> | null,
+): string {
+  const base = (baseURL ?? '').replace(/\/$/, '')
+  const resolvedPath = resolvePath(path, pathParams)
+  let url = base + resolvedPath
+  if (queryParams) {
+    const pairs = Object.entries(queryParams)
+      .filter(([, v]) => v !== undefined && v !== null)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    if (pairs.length > 0) url += '?' + pairs.join('&')
+  }
+  return url
+}

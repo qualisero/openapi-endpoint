@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolvePath, isPathResolved, generateQueryKey, normalizeParamsOptions } from '@/openapi-utils'
+import { resolvePath, isPathResolved, generateQueryKey, normalizeParamsOptions, buildUrl } from '@/openapi-utils'
 import type { QueryOptions } from '@/types'
 
 describe('openapi-utils', () => {
@@ -112,6 +112,51 @@ describe('openapi-utils', () => {
 
       expect(result.pathParams).toEqual({})
       expect(result.options).toBe(options)
+    })
+  })
+
+  describe('buildUrl', () => {
+    it('substitutes path params', () => {
+      expect(buildUrl('https://api.example.com', '/v3/asset/{id}/file', { id: 'abc' })).toBe(
+        'https://api.example.com/v3/asset/abc/file',
+      )
+    })
+
+    it('appends query params', () => {
+      expect(buildUrl('https://api.example.com', '/v3/file', undefined, { view: true, variant: 'thumbnail' })).toBe(
+        'https://api.example.com/v3/file?view=true&variant=thumbnail',
+      )
+    })
+
+    it('encodes booleans as "true"/"false"', () => {
+      expect(buildUrl('https://api.example.com', '/v3/file', undefined, { view: true, draft: false })).toBe(
+        'https://api.example.com/v3/file?view=true&draft=false',
+      )
+    })
+
+    it('omits undefined/null query values', () => {
+      expect(buildUrl('https://api.example.com', '/v3/file', undefined, { view: undefined, variant: null })).toBe(
+        'https://api.example.com/v3/file',
+      )
+    })
+
+    it('strips trailing slash from baseURL', () => {
+      expect(buildUrl('https://api.example.com/', '/v3/file', undefined)).toBe('https://api.example.com/v3/file')
+    })
+
+    it('handles undefined baseURL', () => {
+      expect(buildUrl(undefined, '/v3/file', undefined)).toBe('/v3/file')
+    })
+
+    it('combines path params and query params', () => {
+      expect(
+        buildUrl(
+          'https://api.example.com',
+          '/v3/asset/{asset_id}/doc/{doc_ref}/file',
+          { asset_id: 'uuid-1', doc_ref: 'ref-2' },
+          { view: true },
+        ),
+      ).toBe('https://api.example.com/v3/asset/uuid-1/doc/ref-2/file?view=true')
     })
   })
 })

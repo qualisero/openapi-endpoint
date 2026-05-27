@@ -1121,6 +1121,17 @@ function _queryNoParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery,
+    /**
+     * Build a URL string for this operation without executing a fetch.
+     *
+     * Synchronous; only accepts plain values. Only flat scalar query params
+     * are supported (see \`buildUrl\`). The axios \`baseURL\` is read at call time.
+     *
+     * @param queryParams - Optional flat query parameters to append.
+     * @returns Full URL string.
+     */
+    urlFor: (queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, undefined, queryParams),
     enums,
   } as const
 }
@@ -1216,6 +1227,30 @@ function _queryWithParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery: _lazyImpl as _UseLazyQuery,
+    /**
+     * Build a URL string for this operation without executing a fetch.
+     *
+     * Useful when a URL is needed directly — e.g. for <img :src>, anchor hrefs,
+     * or any context where the browser/native element handles the request.
+     *
+     * Unlike \`useQuery\`, \`urlFor\` is synchronous and only accepts plain values —
+     * not refs, computed, or getter functions. Wrap in \`computed(...)\` for reactivity.
+     *
+     * Only flat scalar query params are supported (see \`buildUrl\`).
+     * The axios \`baseURL\` is read at call time.
+     *
+     * @param pathParams  - Path parameters to substitute into the URL template (plain object).
+     * @param queryParams - Optional flat query parameters to append.
+     * @returns Full URL string.
+     *
+     * @example
+     * const url = api.getAssetDocumentFile.urlFor(
+     *   { asset_id: assetId, document_ref: doc.document_ref },
+     *   { view: true }
+     * )
+     */
+    urlFor: (pathParams: PathParamsInput, queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, pathParams, queryParams),
     enums,
   } as const
 }
@@ -1398,6 +1433,7 @@ import {
   useEndpointLazyQuery,
   defaultQueryClient,
   HttpMethod,
+  buildUrl,
   type QueryOptions,
   type MutationOptions,
   type QueryReturn,
