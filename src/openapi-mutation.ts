@@ -104,6 +104,7 @@ export function useEndpointMutation<
     invalidateOperations,
     refetchEndpoints,
     queryParams,
+    serialize,
     ...useMutationOptions
   } = resolvedOptions
 
@@ -115,6 +116,22 @@ export function useEndpointMutation<
     queryParams: resolvedQueryParams,
     pathParams: allPathParams,
   } = useResolvedOperation(config.path, resolvedPathParamsInput, queryParams, extraPathParams)
+
+  // Compute the serialization scope. Explicit caller `scope` (passed through
+  // useMutationOptions) always takes priority. When `serialize` is set and no
+  // explicit scope is present, derive the scope id from the resolved path (or
+  // fall back to the path template when path params are still unresolved).
+  const explicitScope = (useMutationOptions as { scope?: { id: string } }).scope
+  if (serialize && explicitScope) {
+    console.warn(
+      `[openapi-endpoint] Both 'serialize' and 'scope' are set on mutation '${config.path}'. ` +
+        `Explicit 'scope' takes precedence; 'serialize' will be ignored.`,
+    )
+  }
+  const serializeScope =
+    !explicitScope && serialize
+      ? { id: typeof serialize === 'string' ? serialize : `serialize:${config.method}:${resolvedPath.value}` }
+      : undefined
 
   const mutation = useMutation(
     {
@@ -259,6 +276,7 @@ export function useEndpointMutation<
       onSettled: () => {
         extraPathParams.value = {}
       },
+      ...(serializeScope && { scope: serializeScope }),
       ...useMutationOptions,
     },
     config.queryClient,

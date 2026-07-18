@@ -243,6 +243,21 @@ export type MutationOptions<
   CacheInvalidationOptions & {
     axiosOptions?: AxiosRequestConfigExtended
     queryParams?: ReactiveOr<TQueryParams>
+    /**
+     * Serialise this mutation with others sharing the same scope: queued
+     * mutations run one at a time in submission order (TanStack `scope`).
+     * `true` derives the scope id from the operation's resolved path;
+     * a string is used as the scope id verbatim.
+     *
+     * When path parameters are deferred to mutate-time, `true` falls back to
+     * the path template (e.g. `serialize:PATCH:/pets/{petId}`), serialising
+     * all mutations of that operation. For per-resource granularity with
+     * deferred params, supply path parameters at hook-time or use a string scope.
+     *
+     * An explicit `scope` option from the caller always takes precedence over
+     * `serialize`. A warning is emitted when both are set.
+     */
+    serialize?: boolean | string
   }
 
 // ============================================================================

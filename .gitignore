@@ -20,3 +20,6 @@ AGENT_DOCS
 .ralph
 AGENTS.md
 
+# Subagent chain artifacts
+.pi-subagents/
+
