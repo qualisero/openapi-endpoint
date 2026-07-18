@@ -1,4 +1,4 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, toValue, type ComputedRef, type Ref } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
 import { useMutation } from '@tanstack/vue-query'
 import { type AxiosResponse } from 'axios'
@@ -119,8 +119,12 @@ export function useEndpointMutation<
 
   // Compute the serialization scope. Explicit caller `scope` (passed through
   // useMutationOptions) always takes priority. When `serialize` is set and no
-  // explicit scope is present, derive the scope id from the resolved path (or
-  // fall back to the path template when path params are still unresolved).
+  // explicit scope is present, derive the scope id from the path resolved with
+  // hook-time params (or fall back to the path template when path params are
+  // deferred to mutate time). The scope is a computed so reactive hook-time
+  // params keep the scope id in sync; it deliberately excludes mutate-time
+  // `extraPathParams` so one call's deferred params never leak into the scope
+  // of the next.
   const explicitScope = (useMutationOptions as { scope?: { id: string } }).scope
   // A string scope id is used verbatim, so any string (including '') enables
   // serialization; only `undefined`/`false` mean "not set".
@@ -133,7 +137,12 @@ export function useEndpointMutation<
   }
   const serializeScope =
     !explicitScope && serializeEnabled
-      ? { id: typeof serialize === 'string' ? serialize : `serialize:${config.method}:${resolvedPath.value}` }
+      ? computed(() => ({
+          id:
+            typeof serialize === 'string'
+              ? serialize
+              : `serialize:${config.method}:${resolvePath(config.path, toValue(resolvedPathParamsInput) || {})}`,
+        }))
       : undefined
 
   const mutation = useMutation(

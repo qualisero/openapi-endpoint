@@ -10,7 +10,7 @@
  * explicit `scope` wins over `serialize` (dev warning emitted when both set)
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, nextTick, ref } from 'vue'
 import { createApiClient } from '../fixtures/api-client'
 import { createTestScope } from '../helpers'
 import { mockAxios } from '../setup'
@@ -198,6 +198,51 @@ describe('serialize mutation option', () => {
     await new Promise((r) => setTimeout(r, 10))
 
     // First started, second queued behind the shared empty-string scope
+    expect(firstStarted).toHaveBeenCalledTimes(1)
+    expect(secondStarted).toHaveBeenCalledTimes(0)
+
+    resolveFirst()
+    await Promise.all([p1, p2])
+    expect(secondStarted).toHaveBeenCalledTimes(1)
+  })
+
+  // ---------------------------------------------------------------------------
+  // (c3) Reactive hook-time path params keep the derived scope id in sync
+  // ---------------------------------------------------------------------------
+  it('reactive path params update the derived scope id — hooks converging on the same resource serialize', async () => {
+    // Hook A starts on pet '1', then its reactive param moves to pet '42'.
+    const petIdA = ref('1')
+    const mutationA = run(() => api.updatePet.useMutation(() => ({ petId: petIdA.value }), { serialize: true }))
+    // Hook B statically targets pet '42'.
+    const mutationB = run(() => api.updatePet.useMutation({ petId: '42' }, { serialize: true }))
+
+    // Move hook A onto the same resource as hook B, let vue-query pick up options
+    petIdA.value = '42'
+    await nextTick()
+
+    let resolveFirst!: () => void
+    const firstStarted = vi.fn()
+    const secondStarted = vi.fn()
+
+    mockAxios.mockImplementationOnce(() => {
+      firstStarted()
+      return new Promise((r) => {
+        resolveFirst = () => r({ data: { id: '42', name: 'A' } })
+      })
+    })
+    mockAxios.mockImplementationOnce(() => {
+      secondStarted()
+      return Promise.resolve({ data: { id: '42', name: 'B' } })
+    })
+
+    const p1 = mutationA.mutateAsync({ data: { name: 'A' } })
+    const p2 = mutationB.mutateAsync({ data: { name: 'B' } })
+
+    await new Promise((r) => setTimeout(r, 10))
+
+    // Both hooks now share scope `serialize:PUT:/pets/42`: B must queue behind A.
+    // Before the reactivity fix, A kept the stale `/pets/1` scope id and both
+    // ran concurrently (last-write-wins race).
     expect(firstStarted).toHaveBeenCalledTimes(1)
     expect(secondStarted).toHaveBeenCalledTimes(0)
 
