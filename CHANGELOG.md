@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-07-18
+
+### Fixed
+
+- `serialize: true` scope id now tracks reactive hook-time path params. Previously the id was frozen at hook setup, so two hooks converging on the same resource after a reactive param change could run concurrently instead of queueing.
+
 ## [0.23.0] - 2026-07-18
 
 ### Added

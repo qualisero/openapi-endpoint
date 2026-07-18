@@ -173,7 +173,7 @@ const updateStatus = api.updatePetStatus.useMutation({ petId: '1' }, { serialize
 const mutation = api.updatePet.useMutation({ petId: '1' }, { scope: { id: 'my-scope' } })
 ```
 
-**`serialize: true` scope derivation:** the scope id is `serialize:<METHOD>:<resolvedPath>`, e.g. `serialize:PATCH:/api/contract/123`. Two components mutating the same resource (same path params at hook time) share a queue automatically; different resources do not block each other.
+**`serialize: true` scope derivation:** the scope id is `serialize:<METHOD>:<resolvedPath>`, e.g. `serialize:PATCH:/api/contract/123`. Two components mutating the same resource (same path params at hook time) share a queue automatically; different resources do not block each other. The scope id is reactive: if hook-time path params are refs/getters and change, subsequent mutations use the updated scope.
 
 **Deferred path params caveat:** when path parameters are supplied at `mutateAsync` time rather than hook time, the scope id falls back to the path template (e.g. `serialize:PATCH:/api/contract/{contract_id}`), serialising all mutations of that operation regardless of target resource. For per-resource granularity, supply path parameters at hook-creation time or use a string scope.
 
