@@ -171,6 +171,42 @@ describe('serialize mutation option', () => {
   })
 
   // ---------------------------------------------------------------------------
+  // (c2) serialize:'' (empty string) is used verbatim and still serializes
+  // ---------------------------------------------------------------------------
+  it("serialize:'' (empty string) is a valid verbatim scope id and serializes", async () => {
+    const first = run(() => api.createPet.useMutation({ serialize: '' }))
+    const second = run(() => api.createPet.useMutation({ serialize: '' }))
+
+    let resolveFirst!: () => void
+    const firstStarted = vi.fn()
+    const secondStarted = vi.fn()
+
+    mockAxios.mockImplementationOnce(() => {
+      firstStarted()
+      return new Promise((r) => {
+        resolveFirst = () => r({ data: { id: '1', name: 'A' } })
+      })
+    })
+    mockAxios.mockImplementationOnce(() => {
+      secondStarted()
+      return Promise.resolve({ data: { id: '2', name: 'B' } })
+    })
+
+    const p1 = first.mutateAsync({ data: { name: 'A' } })
+    const p2 = second.mutateAsync({ data: { name: 'B' } })
+
+    await new Promise((r) => setTimeout(r, 10))
+
+    // First started, second queued behind the shared empty-string scope
+    expect(firstStarted).toHaveBeenCalledTimes(1)
+    expect(secondStarted).toHaveBeenCalledTimes(0)
+
+    resolveFirst()
+    await Promise.all([p1, p2])
+    expect(secondStarted).toHaveBeenCalledTimes(1)
+  })
+
+  // ---------------------------------------------------------------------------
   // (d) Explicit scope + serialize → explicit scope wins, dev warning emitted once
   // ---------------------------------------------------------------------------
   it('explicit scope takes precedence over serialize and emits a dev warning', async () => {

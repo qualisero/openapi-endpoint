@@ -122,14 +122,17 @@ export function useEndpointMutation<
   // explicit scope is present, derive the scope id from the resolved path (or
   // fall back to the path template when path params are still unresolved).
   const explicitScope = (useMutationOptions as { scope?: { id: string } }).scope
-  if (serialize && explicitScope) {
+  // A string scope id is used verbatim, so any string (including '') enables
+  // serialization; only `undefined`/`false` mean "not set".
+  const serializeEnabled = serialize !== undefined && serialize !== false
+  if (serializeEnabled && explicitScope) {
     console.warn(
       `[openapi-endpoint] Both 'serialize' and 'scope' are set on mutation '${config.path}'. ` +
         `Explicit 'scope' takes precedence; 'serialize' will be ignored.`,
     )
   }
   const serializeScope =
-    !explicitScope && serialize
+    !explicitScope && serializeEnabled
       ? { id: typeof serialize === 'string' ? serialize : `serialize:${config.method}:${resolvedPath.value}` }
       : undefined
 
