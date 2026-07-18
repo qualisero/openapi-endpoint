@@ -154,6 +154,31 @@ const mutation = api.createPet.useMutation({
 })
 ```
 
+### Serialised mutations
+
+The `serialize` option queues mutations so they run one at a time in submission order, preventing last-write-wins races in auto-save flows. It maps directly to TanStack Query v5's `scope` mechanism.
+
+```typescript
+// Auto-scope: derived from the resolved path — same resource, same queue
+const patch = api.updateContract.useMutation({ contract_id: '123' }, { serialize: true })
+await patch.mutateAsync({ data: changes1 })
+await patch.mutateAsync({ data: changes2 }) // waits for changes1 to complete first
+
+// String scope: share a queue across different operations
+const updatePet = api.updatePet.useMutation({ petId: '1' }, { serialize: 'pet-editor' })
+const updateStatus = api.updatePetStatus.useMutation({ petId: '1' }, { serialize: 'pet-editor' })
+// Both mutations queue behind each other in submission order
+
+// Raw TanStack scope passthrough also works without serialize:
+const mutation = api.updatePet.useMutation({ petId: '1' }, { scope: { id: 'my-scope' } })
+```
+
+**`serialize: true` scope derivation:** the scope id is `serialize:<METHOD>:<resolvedPath>`, e.g. `serialize:PATCH:/api/contract/123`. Two components mutating the same resource (same path params at hook time) share a queue automatically; different resources do not block each other.
+
+**Deferred path params caveat:** when path parameters are supplied at `mutateAsync` time rather than hook time, the scope id falls back to the path template (e.g. `serialize:PATCH:/api/contract/{contract_id}`), serialising all mutations of that operation regardless of target resource. For per-resource granularity, supply path parameters at hook-creation time or use a string scope.
+
+**Explicit `scope` always wins:** if both `scope` and `serialize` are set, `scope` takes precedence and a warning is logged.
+
 ### Axios Configuration
 
 Pass custom Axios options through the `axiosOptions` parameter for advanced HTTP configuration:

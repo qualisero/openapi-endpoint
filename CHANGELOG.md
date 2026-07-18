@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-07-18
+
+### Added
+
+- `serialize` option on `useMutation` for first-class serialised (queued) mutations. `serialize: true` derives an automatic scope id from the operation's resolved path so mutations targeting the same resource queue in submission order; a string uses a literal scope id (used verbatim, including `''`) for cross-operation queueing. Maps to TanStack Query v5 `scope`; an explicit `scope` always takes precedence.
+
 ## [0.22.0] - 2026-05-27
 
 ### Added
