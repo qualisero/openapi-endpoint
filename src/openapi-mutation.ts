@@ -126,9 +126,13 @@ export function useEndpointMutation<
   // `extraPathParams` so one call's deferred params never leak into the scope
   // of the next.
   const explicitScope = (useMutationOptions as { scope?: { id: string } }).scope
+  // `serialize` is typed as a plain `boolean | string`, but unwrap defensively
+  // with toValue() so untyped (JS) callers passing a ref/getter do not get
+  // silently wrong behaviour (e.g. Ref(false) treated as enabled).
+  const serializeValue = toValue(serialize as MaybeRefOrGetter<boolean | string | undefined>)
   // A string scope id is used verbatim, so any string (including '') enables
   // serialization; only `undefined`/`false` mean "not set".
-  const serializeEnabled = serialize !== undefined && serialize !== false
+  const serializeEnabled = serializeValue !== undefined && serializeValue !== false
   if (serializeEnabled && explicitScope) {
     console.warn(
       `[openapi-endpoint] Both 'serialize' and 'scope' are set on mutation '${config.path}'. ` +
@@ -139,8 +143,8 @@ export function useEndpointMutation<
     !explicitScope && serializeEnabled
       ? computed(() => ({
           id:
-            typeof serialize === 'string'
-              ? serialize
+            typeof serializeValue === 'string'
+              ? serializeValue
               : `serialize:${config.method}:${resolvePath(config.path, toValue(resolvedPathParamsInput) || {})}`,
         }))
       : undefined
