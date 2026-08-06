@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { toPascalCase, toCamelCase } from '@/enum-naming'
 
 // Import the OpenAPI specification for testing
 import toyOpenApiSpec from '../fixtures/toy-openapi.json'
@@ -639,37 +640,6 @@ export type OperationId = keyof OpenApiOperations
       const enums: { name: string; values: (string | number)[]; sourcePath: string }[] = []
       const seenEnumValues = new Map<string, string>()
 
-      const toCase = (str: string, capitalize: boolean): string => {
-        // If already camelCase or PascalCase, just adjust first letter
-        if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
-          return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
-        }
-
-        // Handle snake_case, kebab-case, spaces, etc.
-        const parts = str
-          .split(/[-_\s]+/)
-          .filter((part) => part.length > 0)
-          .map((part) => {
-            // If this part is already in camelCase, just capitalize the first letter
-            if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
-              return part.charAt(0).toUpperCase() + part.slice(1)
-            }
-            // Otherwise, capitalize and lowercase to normalize
-            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-          })
-
-        if (parts.length === 0) return str
-
-        // Apply capitalization rule to first part
-        if (!capitalize) {
-          parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
-        }
-
-        return parts.join('')
-      }
-
-      const toPascalCase = (str: string): string => toCase(str, true)
-
       // Build lookup of schemas that ARE enums (have enum property on the schema itself)
       const schemaEnumLookup: Map<string, (string | number)[]> = new Map()
       if (openApiSpec.components?.schemas) {
@@ -1299,38 +1269,6 @@ describe('toCase and case conversion utilities', () => {
   // Since we can't easily import the internal toCase function, we'll test through the behavior
   // by simulating the transformation logic
 
-  const toCase = (str: string, capitalize: boolean): string => {
-    // If already camelCase or PascalCase, just adjust first letter
-    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
-      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
-    }
-
-    // Handle snake_case, kebab-case, spaces, etc.
-    const parts = str
-      .split(/[-_\s]+/)
-      .filter((part) => part.length > 0)
-      .map((part) => {
-        // If this part is already in camelCase, just capitalize the first letter
-        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
-          return part.charAt(0).toUpperCase() + part.slice(1)
-        }
-        // Otherwise, capitalize and lowercase to normalize
-        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-      })
-
-    if (parts.length === 0) return str
-
-    // Apply capitalization rule to first part
-    if (!capitalize) {
-      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
-    }
-
-    return parts.join('')
-  }
-
-  const toPascalCase = (str: string): string => toCase(str, true)
-  const toCamelCase = (str: string): string => toCase(str, false)
-
   describe('toPascalCase', () => {
     it('should convert snake_case to PascalCase', () => {
       expect(toPascalCase('nuts_schema')).toBe('NutsSchema')
@@ -1439,29 +1377,6 @@ describe('removeSchemaSuffix', () => {
 
 describe('schema name transformations', () => {
   const removeSchemaSuffix = (name: string): string => name.replace(/(_schema|Schema)$/i, '')
-  const toPascalCase = (str: string, capitalize: boolean = true): string => {
-    if (/[a-z]/.test(str) && /[A-Z]/.test(str)) {
-      return capitalize ? str.charAt(0).toUpperCase() + str.slice(1) : str.charAt(0).toLowerCase() + str.slice(1)
-    }
-
-    const parts = str
-      .split(/[-_\s]+/)
-      .filter((part) => part.length > 0)
-      .map((part) => {
-        if (/[a-z]/.test(part) && /[A-Z]/.test(part)) {
-          return part.charAt(0).toUpperCase() + part.slice(1)
-        }
-        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-      })
-
-    if (parts.length === 0) return str
-
-    if (!capitalize) {
-      parts[0] = parts[0].charAt(0).toLowerCase() + parts[0].slice(1)
-    }
-
-    return parts.join('')
-  }
 
   const transformSchemaName = (schemaName: string): string => {
     const cleaned = removeSchemaSuffix(schemaName)

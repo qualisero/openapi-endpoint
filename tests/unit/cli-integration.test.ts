@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+// @vitest-environment node
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
+import { spawnSync } from 'child_process'
+import { buildSync } from 'esbuild'
 
 describe('CLI Integration Tests', () => {
   const testOutputDir = '/tmp/openapi-test-output'
@@ -258,5 +262,146 @@ describe('CLI Integration Tests', () => {
         expect(['GET', 'POST', 'PUT', 'DELETE'].includes(info.method)).toBe(true)
       })
     })
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Real CLI invocation tests (spawn node <bundled cli>)
+// The bundle is built once in beforeAll using esbuild so these tests do not
+// depend on a pre-existing dist/ directory (which is gitignored and absent in CI).
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('CLI --enum-case flag (real subprocess)', () => {
+  const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
+  const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
+  const COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/collision-openapi.json')
+  const COLLISION_PASCAL_SPEC = path.join(process.cwd(), 'tests/fixtures/collision-pascal-openapi.json')
+  const outDir = '/tmp/openapi-enum-case-test'
+
+  beforeAll(() => {
+    buildSync({
+      entryPoints: [path.join(process.cwd(), 'src/cli.ts')],
+      bundle: true,
+      platform: 'node',
+      outfile: CLI,
+    })
+  })
+
+  beforeEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  afterEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  it('--enum-case const generates ALL_CAPS keys with unchanged values in api-enums.ts', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+
+    // Keys must be ALL_CAPS
+    expect(enumsContent).toContain("ADOPTED: 'adopted' as const")
+    expect(enumsContent).toContain("AVAILABLE: 'available' as const")
+    expect(enumsContent).toContain("PENDING: 'pending' as const")
+
+    // No pascal-case member keys (object property assignment lines)
+    expect(enumsContent).not.toMatch(/^\s+Adopted:/m)
+    expect(enumsContent).not.toMatch(/^\s+Available:/m)
+    expect(enumsContent).not.toMatch(/^\s+Pending:/m)
+  })
+
+  it('--enum-case const generates ALL_CAPS keys in api-operations.ts enum consts', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const opsContent = fs.readFileSync(path.join(outDir, 'api-operations.ts'), 'utf8')
+
+    // Per-operation enum consts use CAPS keys
+    expect(opsContent).toContain('AVAILABLE:')
+    expect(opsContent).toContain('PENDING:')
+    expect(opsContent).toContain('ADOPTED:')
+
+    // Values are unchanged
+    expect(opsContent).toContain('"available"')
+    expect(opsContent).toContain('"pending"')
+    expect(opsContent).toContain('"adopted"')
+  })
+
+  it('collision spec exits non-zero under --enum-case const and writes no generated files', () => {
+    const result = spawnSync('node', [CLI, COLLISION_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    // Must fail
+    expect(result.status).not.toBe(0)
+
+    // Error output must name the collision
+    const combined = (result.stderr ?? '') + (result.stdout ?? '')
+    expect(combined).toMatch(/Enum label collision/)
+    expect(combined).toMatch(/IN_PROGRESS/)
+
+    // Output directory may be created but must contain no generated files
+    const generatedFiles = ['api-enums.ts', 'api-operations.ts', 'api-types.ts', 'api-schemas.ts', 'api-client.ts']
+    for (const file of generatedFiles) {
+      expect(fs.existsSync(path.join(outDir, file))).toBe(false)
+    }
+  })
+
+  it('explicit --enum-case pascal produces same pascal keys as omitting the flag', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir, '--enum-case', 'pascal'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+
+    // Pascal keys present
+    expect(enumsContent).toContain("Adopted: 'adopted' as const")
+    expect(enumsContent).toContain("Available: 'available' as const")
+    expect(enumsContent).toContain("Pending: 'pending' as const")
+
+    // No screaming-snake keys for these values
+    expect(enumsContent).not.toMatch(/^\s+ADOPTED:/m)
+    expect(enumsContent).not.toMatch(/^\s+AVAILABLE:/m)
+    expect(enumsContent).not.toMatch(/^\s+PENDING:/m)
+  })
+
+  it('pascal collision spec exits non-zero without the flag and writes no generated files', () => {
+    // "available" and "Available" both map to the pascal label "Available" → collision in default mode
+    const result = spawnSync('node', [CLI, COLLISION_PASCAL_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    // Must fail
+    expect(result.status).not.toBe(0)
+
+    // Error output must name the collision and the colliding label
+    const combined = (result.stderr ?? '') + (result.stdout ?? '')
+    expect(combined).toMatch(/Enum label collision/)
+    expect(combined).toMatch(/Available/)
+
+    // Output directory may be created but must contain no generated files
+    const generatedFiles = ['api-enums.ts', 'api-operations.ts', 'api-types.ts', 'api-schemas.ts', 'api-client.ts']
+    for (const file of generatedFiles) {
+      expect(fs.existsSync(path.join(outDir, file))).toBe(false)
+    }
   })
 })
