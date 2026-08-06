@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-22
+
+### Added
+
+- `--enum-case <pascal|const>` CLI flag to select the casing style for generated enum member labels. Default is `pascal` (existing behaviour). `const` produces `ALL_CAPS` / `SCREAMING_SNAKE_CASE` labels (e.g. `PetStatus.AVAILABLE`, `PetStatus.IN_PROGRESS`). Only code-level labels change; the values sent over the wire are completely unaffected.
+
+### Changed
+
+- Enum label collisions now abort codegen with an explicit error instead of producing broken or lossy output. A collision occurs when two distinct spec values map to the same generated label (e.g. `available` and `Available` both yielding `Available`). This is a behaviour change for any spec that contains such ambiguous enum values on the default `pascal` path: previously one value was silently dropped or the generated TypeScript contained a duplicate property (TS error 1117 in strict mode); now codegen exits 1 with a message naming the colliding values and the context. Fix by de-duplicating the values in the spec.
+
 ## [0.23.1] - 2026-07-18
 
 ### Fixed

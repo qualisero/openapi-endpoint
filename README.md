@@ -1,7 +1,7 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.22.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
-[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260527)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.24.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260722)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
 
@@ -315,6 +315,25 @@ const { data } = api.listPets.useQuery({
   queryParams: { status: 'available' }, // also valid
 })
 ```
+
+#### ALL_CAPS enum labels
+
+Pass `--enum-case const` to generate `SCREAMING_SNAKE_CASE` member labels instead of the default PascalCase:
+
+```bash
+npx openapi-endpoint --input openapi.json --output src/generated --enum-case const
+```
+
+```typescript
+import { PetStatus } from './generated/api-enums'
+
+// Labels are ALL_CAPS; values sent over the wire are unchanged
+const { data } = api.listPets.useQuery({
+  queryParams: { status: PetStatus.AVAILABLE }, // value is still 'available'
+})
+```
+
+Only code-level labels change. The values sent over the wire, the emitted union types, and the runtime library behaviour are all unchanged.
 
 ## Documentation
 

@@ -1,0 +1,17 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Pascal Collision Test API",
+    "description": "Spec with enum values that collide in pascal (default) mode",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "PetStatus": {
+        "type": "string",
+        "enum": ["available", "Available"]
+      }
+    }
+  }
+}

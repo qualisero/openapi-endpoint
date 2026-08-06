@@ -1,0 +1,17 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Collision Test API",
+    "description": "Spec with enum values that collide under --enum-case const",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "WorkflowStatus": {
+        "type": "string",
+        "enum": ["in_progress", "InProgress"]
+      }
+    }
+  }
+}
