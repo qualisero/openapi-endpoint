@@ -505,8 +505,8 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
   })
 
   it('aborts with exit 1 and an explicit error when two schemas collide on the same exported alias', () => {
-    const COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/schema-alias-collision-openapi.json')
-    const result = spawnSync('node', [CLI, COLLISION_SPEC, outDir], {
+    const SCHEMA_COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/schema-alias-collision-openapi.json')
+    const result = spawnSync('node', [CLI, SCHEMA_COLLISION_SPEC, outDir], {
       encoding: 'utf8',
       timeout: 30_000,
     })
