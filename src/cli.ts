@@ -1923,6 +1923,44 @@ async function generateApiTypesFile(
 }
 
 /**
+ * Validates that no two distinct non-enum schema names map to the same exported alias
+ * after schema-suffix removal, PascalCase conversion, and reserved-name suffixing.
+ * Runs before any file is written so a collision aborts codegen with zero output.
+ * Throws with a descriptive message naming the colliding schema names and the resulting alias.
+ */
+function assertNoSchemaAliasCollisions(openApiSpec: OpenAPISpec): void {
+  if (!openApiSpec.components?.schemas) return
+
+  // Build set of enum schema names to skip (mirrors the filter in generateApiSchemasContent)
+  const enumSchemaNames = new Set<string>()
+  for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+    if (schema.enum && Array.isArray(schema.enum)) {
+      enumSchemaNames.add(schemaName)
+    }
+  }
+
+  const RESERVED_EXPORT_NAMES = new Set(['Error'])
+  const aliasToSource = new Map<string, string>()
+
+  for (const schemaName of Object.keys(openApiSpec.components.schemas)) {
+    if (enumSchemaNames.has(schemaName)) continue
+
+    const cleanedName = removeSchemaSuffix(schemaName)
+    const exportedName = toPascalCase(cleanedName)
+    const safeExportedName = RESERVED_EXPORT_NAMES.has(exportedName) ? `${exportedName}Schema` : exportedName
+
+    if (aliasToSource.has(safeExportedName)) {
+      const existing = aliasToSource.get(safeExportedName)!
+      throw new Error(
+        `Schema alias collision: schemas "${existing}" and "${schemaName}" both map to exported alias "${safeExportedName}". ` +
+          `Rename one of the schemas in the spec.`,
+      )
+    }
+    aliasToSource.set(safeExportedName, schemaName)
+  }
+}
+
+/**
  * Validates that no two distinct spec values map to the same label under the given style.
  * Runs before any file is written so a collision aborts codegen with zero output.
  * Throws with a descriptive message naming the colliding values, the collapsed label,
@@ -2051,7 +2089,8 @@ async function main(): Promise<void> {
     // Collect schema enum names for re-export
     const schemaEnumNames = extractEnumsFromSpec(openApiSpec).map((e) => e.name)
 
-    // Fail fast: detect label collisions before any file is written
+    // Fail fast: detect collisions before any file is written
+    assertNoSchemaAliasCollisions(openApiSpec)
     assertNoEnumLabelCollisions(openApiSpec, excludePrefix, enumCase)
 
     // Generate all files

@@ -8,7 +8,7 @@ import type {
   ApiPathParams as _ApiPathParams,
   ApiQueryParams as _ApiQueryParams,
 } from '@qualisero/openapi-endpoint'
-import type { operations as OpenApiOperations } from './openapi-types.js'
+import type { operations as OpenApiOperations } from './openapi-types'
 
 /**
  * Type-only namespace for all API operations.

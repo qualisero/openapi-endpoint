@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-08-27
+
+### Fixed
+
+- Schema alias collision detection: when two non-enum schemas in a spec resolve to the same exported alias after schema-suffix removal and reserved-name suffixing (e.g. both `Error` and `ErrorSchema` → `ErrorSchema`), codegen now aborts with exit 1 and an explicit error naming both schema names and the conflicting alias. Previously the generator emitted duplicate `export type ErrorSchema` statements, producing invalid TypeScript.
+
+## [0.25.1] - 2026-08-27
+
+### Fixed
+
+- Fixture files `api-operations.ts`, `api-schemas.ts`, and `api-types.ts` incorrectly imported `'./openapi-types.js'` (a `.js` suffix the CLI never emits). Fixtures are now byte-equal to real CLI output.
+- CI `build` job now runs `npm run types:test` after `npm run build` so `tests/typing/**` type assertions are enforced on every push.
+- Added integration test asserting all `tests/fixtures/` files are byte-equal to CLI output (after prettier), preventing hand-patched fixtures from masking generator regressions.
+
 ## [0.25.0] - 2026-08-27
 
 ### Added
