@@ -124,6 +124,8 @@ export namespace Types {
     export namespace Enums {
       /** `'available' | 'pending' | 'adopted'` */
       export type Status = 'available' | 'pending' | 'adopted'
+      /** `'0' | '0.1' | '0.2' | '0.5' | '0.7' | '1' | '2' | '3'` */
+      export type Priority = '0' | '0.1' | '0.2' | '0.5' | '0.7' | '1' | '2' | '3'
     }
   }
 

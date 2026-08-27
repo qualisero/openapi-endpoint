@@ -271,7 +271,7 @@ describe('CLI Integration Tests', () => {
 // depend on a pre-existing dist/ directory (which is gitignored and absent in CI).
 // ────────────────────────────────────────────────────────────────────────────
 
-describe('CLI --enum-case flag (real subprocess)', () => {
+describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
   const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
   const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
   const COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/collision-openapi.json')
@@ -403,5 +403,203 @@ describe('CLI --enum-case flag (real subprocess)', () => {
     for (const file of generatedFiles) {
       expect(fs.existsSync(path.join(outDir, file))).toBe(false)
     }
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Error-policy and typed-error generator tests (real CLI subprocess)
+// These tests verify the §3 generator changes that are unrelated to --enum-case.
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('CLI error-policy and typed-error output (real subprocess)', { timeout: 30_000 }, () => {
+  const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
+  const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
+  const outDir = '/tmp/openapi-error-policy-out'
+
+  beforeAll(() => {
+    buildSync({
+      entryPoints: [path.join(process.cwd(), 'src/cli.ts')],
+      bundle: true,
+      platform: 'node',
+      outfile: CLI,
+    })
+  })
+
+  beforeEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  afterEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  it('generated api-operations.ts includes ApiErrorData and ApiError type helpers', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const opsContent = fs.readFileSync(path.join(outDir, 'api-operations.ts'), 'utf8')
+
+    // Import aliases
+    expect(opsContent).toContain('ApiErrorData as _ApiErrorData')
+    expect(opsContent).toContain('ApiErrorOf as _ApiErrorOf')
+
+    // Type helpers
+    expect(opsContent).toContain('export type ApiErrorData<K extends AllOps> = _ApiErrorData<operations, K>')
+    expect(opsContent).toContain('export type ApiError<K extends AllOps> = _ApiErrorOf<operations, K>')
+  })
+
+  it('generated api-client.ts helpers include ApiErrorData import and ErrorData threading', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const clientContent = fs.readFileSync(path.join(outDir, 'api-client.ts'), 'utf8')
+
+    // ApiErrorData imported from api-operations
+    expect(clientContent).toContain('ApiErrorData')
+
+    // ErrorData type alias in each helper
+    // There are 4 helpers so ErrorData must appear multiple times
+    const errorDataCount = (clientContent.match(/type ErrorData = ApiErrorData<Op>/g) ?? []).length
+    expect(errorDataCount).toBe(4)
+
+    // Verify threading into return types (both query and mutation flavours)
+    expect(clientContent).toContain('QueryReturn<Response, Record<string, never>, ErrorData>')
+    expect(clientContent).toContain(
+      'MutationReturn<Response, Record<string, never>, RequestBody, QueryParams, ErrorData>',
+    )
+  })
+
+  it('reserved-name Error schema is emitted as ErrorSchema in api-schemas.ts', () => {
+    const ERROR_SPEC = path.join(process.cwd(), 'tests/fixtures/error-schema-openapi.json')
+    const result = spawnSync('node', [CLI, ERROR_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const schemasContent = fs.readFileSync(path.join(outDir, 'api-schemas.ts'), 'utf8')
+
+    // Must emit ErrorSchema alias, not plain Error (which would shadow the global)
+    expect(schemasContent).toContain("export type ErrorSchema = components['schemas']['Error']")
+    expect(schemasContent).not.toContain('export type Error = ')
+
+    // The comment pointing to the original schema name must be present
+    expect(schemasContent).toContain('// Schema: Error')
+
+    // Non-reserved names should be unaffected
+    expect(schemasContent).toContain("export type Item = components['schemas']['Item']")
+    expect(schemasContent).toContain("export type NewItem = components['schemas']['NewItem']")
+  })
+
+  it('generated api-client.ts cfg literals include operationId for every operation', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const clientContent = fs.readFileSync(path.join(outDir, 'api-client.ts'), 'utf8')
+
+    // Every operation in toy-openapi.json must appear as operationId: '<id>' in a cfg literal.
+    const expectedOps = [
+      'listPets',
+      'createPet',
+      'getPet',
+      'updatePet',
+      'deletePet',
+      'listUserPets',
+      'searchPets',
+      'uploadPetPic',
+    ]
+    for (const opId of expectedOps) {
+      expect(clientContent).toContain(`operationId: '${opId}'`)
+    }
+
+    // Sanity-check that the cfg field appears on the same line as path and method.
+    // Example: { path: '/pets', method: HttpMethod.GET, listPath: null, operationId: 'listPets' }
+    expect(clientContent).toMatch(/path: '\/pets', method: HttpMethod\.GET, listPath: null, operationId: 'listPets'/)
+    expect(clientContent).toMatch(
+      /path: '\/pets', method: HttpMethod\.POST, listPath: '\/pets', operationId: 'createPet'/,
+    )
+  })
+
+  it('generated output type-checks cleanly under tsc --strict (no TS errors in generated files)', () => {
+    // Generate from the toy spec.
+    const genResult = spawnSync('node', [CLI, TOY_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(genResult.status).toBe(0)
+
+    // Pin the enum self-alias fix independently of the type-check below:
+    // api-enums.ts must never emit `export const X = X` redeclarations.
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+    expect(enumsContent).not.toMatch(/export const (\w+) = \1$/m)
+
+    // Write a temporary tsconfig in the project root so baseUrl-relative paths
+    // and node_modules are accessible. External packages need explicit paths because
+    // tsc walks up from the source file location (/tmp/...) to find node_modules,
+    // not from the tsconfig directory (project root).
+    const projRoot = process.cwd()
+    const tmpConfig = path.join(projRoot, `tsconfig-gencheck-${Date.now()}.json`)
+    const tsconfig = {
+      compilerOptions: {
+        target: 'ES2022',
+        module: 'ESNext',
+        moduleResolution: 'bundler',
+        strict: true,
+        noEmit: true,
+        // skipLibCheck mirrors the project's own tsconfig so external lib
+        // declaration errors don't mask real generated-file errors.
+        skipLibCheck: true,
+        baseUrl: '.',
+        paths: {
+          // Resolve the package to the TypeScript sources so the check works
+          // on a clean checkout (CI runs tests without a prior build) and
+          // validates against current src/, not a possibly stale dist/.
+          '@qualisero/openapi-endpoint': ['src/index'],
+          // External deps: listed explicitly because TypeScript resolves
+          // node_modules by walking up from the source file directory
+          // (/tmp/...), not from the tsconfig directory (project root).
+          axios: ['node_modules/axios/index'],
+          vue: ['node_modules/vue/dist/vue'],
+          '@tanstack/vue-query': ['node_modules/@tanstack/vue-query/build/legacy/index'],
+        },
+      },
+      include: [`${outDir}/**/*.ts`],
+    }
+    fs.writeFileSync(tmpConfig, JSON.stringify(tsconfig, null, 2))
+
+    let tscResult
+    try {
+      tscResult = spawnSync('npx', ['tsc', '--project', tmpConfig], {
+        cwd: projRoot,
+        encoding: 'utf8',
+        timeout: 60_000,
+      })
+    } finally {
+      fs.unlinkSync(tmpConfig)
+    }
+
+    const output = (tscResult.stdout ?? '') + (tscResult.stderr ?? '')
+    if (tscResult.status !== 0) {
+      // Surface errors in the failure message for easier debugging.
+      throw new Error(`tsc type-check of generated files failed:\n${output}`)
+    }
+    expect(tscResult.status).toBe(0)
   })
 })

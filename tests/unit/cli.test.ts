@@ -1005,7 +1005,7 @@ export type OperationId = keyof OpenApiOperations
  */
 function _queryNoParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type Response = ApiResponse<Op>
@@ -1072,7 +1072,7 @@ function _queryNoParams<Op extends AllOps>(
  */
 function _queryWithParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type PathParams = ApiPathParams<Op>

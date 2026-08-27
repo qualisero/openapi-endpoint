@@ -4,6 +4,7 @@
 export { useEndpointQuery, useEndpointLazyQuery } from './openapi-query'
 export { useEndpointMutation } from './openapi-mutation'
 export { defaultQueryClient } from './openapi-helpers'
+export { createApiErrorCaches, ERROR_POLICY_META_KEY } from './error-policy'
 
 // ============================================================================
 // Return types (used in component / composable signatures)
@@ -47,7 +48,14 @@ export type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
+  ApiErrorOf,
+  ApiErrorData,
 } from './types'
+
+// ============================================================================
+// Error policy types
+// ============================================================================
+export type { ApiErrorContext, ApiErrorPolicy, ApiErrorPolicyOptions } from './types'
 
 // ============================================================================
 // HTTP method utilities

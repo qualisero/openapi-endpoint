@@ -1,7 +1,7 @@
 import { computed, ref, toValue, type ComputedRef, type Ref } from 'vue'
 import type { MaybeRefOrGetter } from '@vue/reactivity'
 import { useMutation } from '@tanstack/vue-query'
-import { type AxiosResponse } from 'axios'
+import { type AxiosError, type AxiosResponse } from 'axios'
 
 import {
   type EndpointConfig,
@@ -19,6 +19,7 @@ import {
   resolvePath,
   generateQueryKey,
 } from './openapi-utils'
+import { stampErrorPolicyMeta } from './error-policy'
 
 /**
  * Return type of `useEndpointMutation` (the `useMutation` composable on a generated namespace).
@@ -35,11 +36,12 @@ export interface MutationReturn<
   TPathParams extends Record<string, unknown> = Record<string, never>,
   TRequest = never,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
 > {
   /** The Axios response (undefined until mutation completes). */
   data: ComputedRef<AxiosResponse<TResponse> | undefined>
   /** The error if the mutation failed. */
-  error: Ref<Error | null>
+  error: Ref<AxiosError<TError> | null>
   /** True while the mutation is in progress. */
   isPending: Ref<boolean>
   /** True when the mutation succeeded. */
@@ -80,11 +82,12 @@ export function useEndpointMutation<
   TPathParams extends Record<string, unknown> = Record<string, never>,
   TRequest = never,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
 >(
   config: EndpointConfig,
   pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
-  options?: MutationOptions<TResponse, TPathParams, TRequest, TQueryParams>,
-): MutationReturn<TResponse, TPathParams, TRequest, TQueryParams> {
+  options?: MutationOptions<TResponse, TPathParams, TRequest, TQueryParams, TError>,
+): MutationReturn<TResponse, TPathParams, TRequest, TQueryParams, TError> {
   if (!isMutationMethod(config.method)) {
     throw new Error(
       `Operation at '${config.path}' uses method ${config.method} and cannot be used with useMutation(). ` +
@@ -94,8 +97,10 @@ export function useEndpointMutation<
 
   const { pathParams: resolvedPathParamsInput, options: resolvedOptions } = normalizeParamsOptions<
     Record<string, string | number | undefined>,
-    MutationOptions<TResponse, TPathParams, TRequest, TQueryParams>
+    MutationOptions<TResponse, TPathParams, TRequest, TQueryParams, TError>
   >(pathParams, options)
+
+  const { rest: resolvedOptionsWithoutSkip, meta } = stampErrorPolicyMeta(resolvedOptions, config, 'mutation')
 
   const {
     axiosOptions,
@@ -105,8 +110,9 @@ export function useEndpointMutation<
     refetchEndpoints,
     queryParams,
     serialize,
+    meta: _callerMeta,
     ...useMutationOptions
-  } = resolvedOptions
+  } = resolvedOptionsWithoutSkip
 
   const extraPathParams = ref({}) as Ref<Record<string, string | undefined>>
 
@@ -293,6 +299,7 @@ export function useEndpointMutation<
         extraPathParams.value = {}
       },
       ...(serializeScope && { scope: serializeScope }),
+      meta,
       ...useMutationOptions,
     },
     config.queryClient,
@@ -304,5 +311,5 @@ export function useEndpointMutation<
     isEnabled: computed(() => isPathResolved(resolvedPath.value)),
     extraPathParams: extraPathParams as Ref<TPathParams>,
     pathParams: allPathParams as ComputedRef<TPathParams>,
-  } as unknown as MutationReturn<TResponse, TPathParams, TRequest, TQueryParams>
+  } as unknown as MutationReturn<TResponse, TPathParams, TRequest, TQueryParams, TError>
 }

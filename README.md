@@ -1,7 +1,7 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.24.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
-[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260722)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.25.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260827)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
 
@@ -179,6 +179,70 @@ const mutation = api.updatePet.useMutation({ petId: '1' }, { scope: { id: 'my-sc
 
 **Explicit `scope` always wins:** if both `scope` and `serialize` are set, `scope` takes precedence and a warning is logged.
 
+### Global error policy
+
+`createApiErrorCaches` builds the `queryCache` and `mutationCache` for your `QueryClient` with a single `onError` callback that observes every failure from hooks created by this library. It fires **once per logical failure, after retries**, and **never swallows the rejection** — the right place for a global error banner:
+
+```typescript
+import { createApiClient, createApiErrorCaches } from '@qualisero/openapi-endpoint'
+import { QueryClient } from '@tanstack/vue-query'
+import axios from 'axios'
+
+const { queryCache, mutationCache } = createApiErrorCaches({
+  onError: (error, ctx) => {
+    // ctx: { operationId, path, method, kind: 'query' | 'mutation' }
+    showErrorBanner(`Request to ${ctx.operationId} failed`)
+  },
+})
+
+const queryClient = new QueryClient({ queryCache, mutationCache })
+const api = createApiClient(axios.create({ baseURL: 'https://api.example.com' }), queryClient)
+```
+
+Notes:
+
+- The callback is observe-only: the query or mutation still rejects.
+- It fires for any rejection, including non-axios throws — narrow with `isAxiosError` (from `axios`) inside the callback.
+- Queries and mutations you register yourself (outside the generated hooks) are untouched.
+
+Opt out per call with `skipGlobalError` — `true` always suppresses the global policy for that call, or a predicate typed to the operation's declared error body suppresses it selectively:
+
+```typescript
+// Never trigger the global banner for this query
+const { data } = api.getPet.useQuery({ petId: '123' }, { skipGlobalError: true })
+
+// Skip only specific errors (e.g. you handle 409 inline)
+const createPet = api.createPet.useMutation({
+  skipGlobalError: (e) => e.response?.status === 409,
+})
+```
+
+The promise rejects either way — `skipGlobalError` controls the global side-effect only.
+
+### Typed errors
+
+`error.value` is `AxiosError<TError> | null`, where `TError` is the operation's declared error body (the union of JSON bodies from its 4xx / 5xx / `default` responses). No more casting:
+
+```typescript
+const { error, mutateAsync } = api.createPet.useMutation()
+
+// after a rejection, the declared error body is fully typed:
+error.value?.response?.data?.errors // no cast, no hand-written interface
+```
+
+The generated `api-operations.ts` also exports helpers for use in plain functions:
+
+```typescript
+import type { ApiError, ApiErrorData } from './generated/api-operations'
+
+type PetErrorBody = ApiErrorData<'createPet'>
+function isConflict(e: ApiError<'createPet'>): boolean {
+  return e.response?.status === 409
+}
+```
+
+Operations that declare no JSON error body fall back to `unknown`.
+
 ### Axios Configuration
 
 Pass custom Axios options through the `axiosOptions` parameter for advanced HTTP configuration:
@@ -205,15 +269,12 @@ const { data } = api.getPet.useQuery(
 )
 
 // Request/response transforms
-const { data } = api.createPet.useMutation(
-  {},
-  {
-    axiosOptions: {
-      transformRequest: [(data) => JSON.stringify(data)],
-      transformResponse: [(data) => JSON.parse(data)],
-    },
+const { data } = api.createPet.useMutation({
+  axiosOptions: {
+    transformRequest: [(data) => JSON.stringify(data)],
+    transformResponse: [(data) => JSON.parse(data)],
   },
-)
+})
 
 // Override baseURL for specific requests
 const { data } = api.listPets.useQuery({
@@ -257,7 +318,7 @@ const { data } = api.listPets.useQuery({
 {
   data: ComputedRef<T | undefined>
   isLoading: ComputedRef<boolean>
-  error: ComputedRef<Error | null>
+  error: Ref<AxiosError<TError> | null>
   isEnabled: ComputedRef<boolean>
   queryKey: ComputedRef<unknown[]>
   onLoad: (cb: (data: T) => void) => void
@@ -271,7 +332,7 @@ const { data } = api.listPets.useQuery({
 {
   data: ComputedRef<AxiosResponse<T> | undefined>
   isPending: ComputedRef<boolean>
-  error: ComputedRef<Error | null>
+  error: Ref<AxiosError<TError> | null>
   mutate: (vars) => void
   mutateAsync: (vars) => Promise<AxiosResponse>
   extraPathParams: Ref<PathParams> // for dynamic path params
@@ -347,6 +408,7 @@ For detailed guides, see [docs/manual/](docs/manual/):
 - [File Uploads](docs/manual/05-file-uploads.md)
 - [Cache Management](docs/manual/06-cache-management.md)
 - [Lazy Queries](docs/manual/07-lazy-queries.md)
+- [Global Error Policy](docs/manual/09-error-policy.md)
 
 ## License
 

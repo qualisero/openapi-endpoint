@@ -298,6 +298,7 @@ You can pass query options (excluding `queryParams`, `onLoad`, and `enabled`):
 const query = api.listPets.useLazyQuery({
   staleTime: 5 * 60 * 1000, // 5 minutes
   errorHandler: async (error) => {
+    // ⚠️ Deprecated — see note below
     console.error('Custom error handler:', error)
     // Return fallback data
     return [{ id: 'fallback', name: 'Fallback' }]
@@ -307,6 +308,11 @@ const query = api.listPets.useLazyQuery({
   },
 })
 ```
+
+> **`errorHandler` is deprecated.** It fires once per retry attempt (not once per logical
+> failure), is gated on `isAxiosError` (non-axios throws bypass it), and silently swallows
+> the rejection unless you rethrow. Use the client-level `onError` policy instead:
+> see [Global error policy](./09-error-policy.md).
 
 ## What's Next?
 

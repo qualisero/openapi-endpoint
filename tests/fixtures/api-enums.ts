@@ -50,7 +50,27 @@ export const EnumHelper = {
 } as const
 
 /**
- * Enum values from components.schemas.Pet.properties.status
+ * Enum values from components.schemas.PetPriority
+ */
+export const PetPriority = {
+  _0: '0' as const,
+  _0_1: '0.1' as const,
+  _0_2: '0.2' as const,
+  _0_5: '0.5' as const,
+  _0_7: '0.7' as const,
+  _1: '1' as const,
+  _2: '2' as const,
+  _3: '3' as const,
+} as const
+
+export type PetPriority = (typeof PetPriority)[keyof typeof PetPriority]
+
+// Type aliases for duplicate enum values
+export const ListPetsPriority = PetPriority
+export type ListPetsPriority = PetPriority
+
+/**
+ * Enum values from components.schemas.PetStatus
  */
 export const PetStatus = {
   Adopted: 'adopted' as const,

@@ -9,6 +9,7 @@ import {
   useEndpointLazyQuery,
   defaultQueryClient,
   HttpMethod,
+  buildUrl,
   type QueryOptions,
   type MutationOptions,
   type QueryReturn,
@@ -27,6 +28,7 @@ import type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
+  ApiErrorData,
   operations,
 } from './api-operations.js'
 
@@ -104,19 +106,26 @@ type AllOps = keyof operations
  */
 function _queryNoParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
-  const useQuery = (options?: QueryOptions<Response, QueryParams>): QueryReturn<Response, Record<string, never>> =>
-    useEndpointQuery<Response, Record<string, never>, QueryParams>({ ...base, ...cfg }, undefined, options)
+  const useQuery = (
+    options?: QueryOptions<Response, QueryParams, ErrorData>,
+  ): QueryReturn<Response, Record<string, never>, ErrorData> =>
+    useEndpointQuery<Response, Record<string, never>, QueryParams, ErrorData>({ ...base, ...cfg }, undefined, options)
 
   const useLazyQuery = (
-    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-  ): LazyQueryReturn<Response, Record<string, never>, QueryParams> =>
-    useEndpointLazyQuery<Response, Record<string, never>, QueryParams>({ ...base, ...cfg }, undefined, options)
+    options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, Record<string, never>, QueryParams, ErrorData> =>
+    useEndpointLazyQuery<Response, Record<string, never>, QueryParams, ErrorData>(
+      { ...base, ...cfg },
+      undefined,
+      options,
+    )
 
   return {
     /**
@@ -149,6 +158,17 @@ function _queryNoParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery,
+    /**
+     * Build a URL string for this operation without executing a fetch.
+     *
+     * Synchronous; only accepts plain values. Only flat scalar query params
+     * are supported (see `buildUrl`). The axios `baseURL` is read at call time.
+     *
+     * @param queryParams - Optional flat query parameters to append.
+     * @returns Full URL string.
+     */
+    urlFor: (queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, undefined, queryParams),
     enums,
   } as const
 }
@@ -159,49 +179,58 @@ function _queryNoParams<Op extends AllOps>(
  */
 function _queryWithParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type PathParams = ApiPathParams<Op>
   type PathParamsInput = ApiPathParamsInput<Op>
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   // Two-overload interface: non-function (exact via object-literal checking) +
   // getter function (exact via NoExcessReturn constraint).
   type _UseQuery = {
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams>
+      options?: QueryOptions<Response, QueryParams, ErrorData>,
+    ): QueryReturn<Response, PathParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams>
+      options?: QueryOptions<Response, QueryParams, ErrorData>,
+    ): QueryReturn<Response, PathParams, ErrorData>
   }
 
   type _UseLazyQuery = {
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-    ): LazyQueryReturn<Response, PathParams, QueryParams>
+      options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-    ): LazyQueryReturn<Response, PathParams, QueryParams>
+      options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData>
   }
 
   const _impl = (
     pathParams: ReactiveOr<PathParamsInput>,
-    options?: QueryOptions<Response, QueryParams>,
-  ): QueryReturn<Response, PathParams> =>
-    useEndpointQuery<Response, PathParams, QueryParams>({ ...base, ...cfg }, pathParams as _PathParamsCast, options)
+    options?: QueryOptions<Response, QueryParams, ErrorData>,
+  ): QueryReturn<Response, PathParams, ErrorData> =>
+    useEndpointQuery<Response, PathParams, QueryParams, ErrorData>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
 
   const _lazyImpl = (
     pathParams: ReactiveOr<PathParamsInput>,
-    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-  ): LazyQueryReturn<Response, PathParams, QueryParams> =>
-    useEndpointLazyQuery<Response, PathParams, QueryParams>({ ...base, ...cfg }, pathParams as _PathParamsCast, options)
+    options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData> =>
+    useEndpointLazyQuery<Response, PathParams, QueryParams, ErrorData>(
+      { ...base, ...cfg },
+      pathParams as _PathParamsCast,
+      options,
+    )
 
   return {
     /**
@@ -236,6 +265,30 @@ function _queryWithParams<Op extends AllOps>(
      * @returns Lazy query result object
      */
     useLazyQuery: _lazyImpl as _UseLazyQuery,
+    /**
+     * Build a URL string for this operation without executing a fetch.
+     *
+     * Useful when a URL is needed directly — e.g. for <img :src>, anchor hrefs,
+     * or any context where the browser/native element handles the request.
+     *
+     * Unlike `useQuery`, `urlFor` is synchronous and only accepts plain values —
+     * not refs, computed, or getter functions. Wrap in `computed(...)` for reactivity.
+     *
+     * Only flat scalar query params are supported (see `buildUrl`).
+     * The axios `baseURL` is read at call time.
+     *
+     * @param pathParams  - Path parameters to substitute into the URL template (plain object).
+     * @param queryParams - Optional flat query parameters to append.
+     * @returns Full URL string.
+     *
+     * @example
+     * const url = api.getAssetDocumentFile.urlFor(
+     *   { asset_id: assetId, document_ref: doc.document_ref },
+     *   { view: true }
+     * )
+     */
+    urlFor: (pathParams: PathParamsInput, queryParams?: QueryParams): string =>
+      buildUrl(base.axios.defaults.baseURL, cfg.path, pathParams, queryParams),
     enums,
   } as const
 }
@@ -246,17 +299,18 @@ function _queryWithParams<Op extends AllOps>(
  */
 function _mutationNoParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type RequestBody = ApiRequest<Op>
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   const useMutation = (
-    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
-  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams, ErrorData>,
+  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams, ErrorData> =>
+    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams, ErrorData>(
       { ...base, ...cfg },
       undefined,
       options,
@@ -289,7 +343,7 @@ function _mutationNoParams<Op extends AllOps>(
  */
 function _mutationWithParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type PathParams = ApiPathParams<Op>
@@ -297,6 +351,7 @@ function _mutationWithParams<Op extends AllOps>(
   type RequestBody = ApiRequest<Op>
   type Response = ApiResponse<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   // Three-overload interface:
   // 1. Deferred path params — omit or pass undefined/null; supply at mutateAsync() time via pathParams variable
@@ -305,23 +360,23 @@ function _mutationWithParams<Op extends AllOps>(
   type _UseMutation = {
     (
       pathParams?: undefined | null,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
   }
 
   const _impl = (
     pathParams: ReactiveOr<PathParamsInput> | undefined | null,
-    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-  ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
-    useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+  ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData> =>
+    useEndpointMutation<Response, PathParams, RequestBody, QueryParams, ErrorData>(
       { ...base, ...cfg },
       pathParams as _PathParamsCast,
       options,
@@ -384,7 +439,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     createPet: _mutationNoParams<'createPet'>(
       base,
-      { path: '/pets', method: HttpMethod.POST, listPath: '/pets' },
+      { path: '/pets', method: HttpMethod.POST, listPath: '/pets', operationId: 'createPet' },
       createPet_enums,
     ),
     /**
@@ -393,7 +448,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     deletePet: _mutationWithParams<'deletePet'>(
       base,
-      { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets' },
+      { path: '/pets/{petId}', method: HttpMethod.DELETE, listPath: '/pets', operationId: 'deletePet' },
       deletePet_enums,
     ),
     /**
@@ -401,7 +456,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     getConfigJson: _queryNoParams<'getConfigJson'>(
       base,
-      { path: '/api/config.json', method: HttpMethod.GET, listPath: null },
+      { path: '/api/config.json', method: HttpMethod.GET, listPath: null, operationId: 'getConfigJson' },
       getConfigJson_enums,
     ),
     /**
@@ -409,7 +464,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     getDataV1Json: _queryNoParams<'getDataV1Json'>(
       base,
-      { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null },
+      { path: '/api/data.v1.json', method: HttpMethod.GET, listPath: null, operationId: 'getDataV1Json' },
       getDataV1Json_enums,
     ),
     /**
@@ -417,7 +472,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     getOwners: _queryNoParams<'getOwners'>(
       base,
-      { path: '/owners', method: HttpMethod.GET, listPath: null },
+      { path: '/owners', method: HttpMethod.GET, listPath: null, operationId: 'getOwners' },
       getOwners_enums,
     ),
     /**
@@ -427,7 +482,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     getPet: _queryWithParams<'getPet'>(
       base,
-      { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null },
+      { path: '/pets/{petId}', method: HttpMethod.GET, listPath: null, operationId: 'getPet' },
       getPet_enums,
     ),
     /**
@@ -437,7 +492,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     getPetPetId: _queryWithParams<'getPetPetId'>(
       base,
-      { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null },
+      { path: '/api/pet/{pet_id}', method: HttpMethod.GET, listPath: null, operationId: 'getPetPetId' },
       getPetPetId_enums,
     ),
     /**
@@ -445,7 +500,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     listPets: _queryNoParams<'listPets'>(
       base,
-      { path: '/pets', method: HttpMethod.GET, listPath: null },
+      { path: '/pets', method: HttpMethod.GET, listPath: null, operationId: 'listPets' },
       listPets_enums,
     ),
     /**
@@ -454,7 +509,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     listUserPets: _queryWithParams<'listUserPets'>(
       base,
-      { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null },
+      { path: '/users/{userId}/pets', method: HttpMethod.GET, listPath: null, operationId: 'listUserPets' },
       listUserPets_enums,
     ),
     /**
@@ -462,7 +517,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     postOwners: _mutationNoParams<'postOwners'>(
       base,
-      { path: '/owners', method: HttpMethod.POST, listPath: null },
+      { path: '/owners', method: HttpMethod.POST, listPath: null, operationId: 'postOwners' },
       postOwners_enums,
     ),
     /**
@@ -472,7 +527,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     postPetAdopt: _mutationWithParams<'postPetAdopt'>(
       base,
-      { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null },
+      { path: '/api/pet/{pet_id}/adopt', method: HttpMethod.POST, listPath: null, operationId: 'postPetAdopt' },
       postPetAdopt_enums,
     ),
     /**
@@ -480,7 +535,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     postPetGiveTreats: _mutationNoParams<'postPetGiveTreats'>(
       base,
-      { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null },
+      { path: '/api/pet/give_treats', method: HttpMethod.POST, listPath: null, operationId: 'postPetGiveTreats' },
       postPetGiveTreats_enums,
     ),
     /**
@@ -488,7 +543,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     searchPets: _queryNoParams<'searchPets'>(
       base,
-      { path: '/pets/search', method: HttpMethod.GET, listPath: null },
+      { path: '/pets/search', method: HttpMethod.GET, listPath: null, operationId: 'searchPets' },
       searchPets_enums,
     ),
     /**
@@ -499,7 +554,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     updatePet: _mutationWithParams<'updatePet'>(
       base,
-      { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets' },
+      { path: '/pets/{petId}', method: HttpMethod.PUT, listPath: '/pets', operationId: 'updatePet' },
       updatePet_enums,
     ),
     /**
@@ -510,7 +565,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     updatePetPetId: _mutationWithParams<'updatePetPetId'>(
       base,
-      { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/' },
+      { path: '/api/pet/{pet_id}', method: HttpMethod.PATCH, listPath: '/api/pet/', operationId: 'updatePetPetId' },
       updatePetPetId_enums,
     ),
     /**
@@ -520,7 +575,7 @@ export function createApiClient(axios: AxiosInstance, queryClient: QueryClient =
      */
     uploadPetPic: _mutationWithParams<'uploadPetPic'>(
       base,
-      { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null },
+      { path: '/pets/{petId}/upload', method: HttpMethod.POST, listPath: null, operationId: 'uploadPetPic' },
       uploadPetPic_enums,
     ),
   } as const
