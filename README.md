@@ -318,7 +318,7 @@ const { data } = api.listPets.useQuery({
 {
   data: ComputedRef<T | undefined>
   isLoading: ComputedRef<boolean>
-  error: ComputedRef<AxiosError<TError> | null>
+  error: Ref<AxiosError<TError> | null>
   isEnabled: ComputedRef<boolean>
   queryKey: ComputedRef<unknown[]>
   onLoad: (cb: (data: T) => void) => void
@@ -332,7 +332,7 @@ const { data } = api.listPets.useQuery({
 {
   data: ComputedRef<AxiosResponse<T> | undefined>
   isPending: ComputedRef<boolean>
-  error: ComputedRef<AxiosError<TError> | null>
+  error: Ref<AxiosError<TError> | null>
   mutate: (vars) => void
   mutateAsync: (vars) => Promise<AxiosResponse>
   extraPathParams: Ref<PathParams> // for dynamic path params

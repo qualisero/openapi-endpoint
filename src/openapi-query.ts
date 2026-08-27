@@ -88,7 +88,7 @@ function buildQueryFn<TResponse>(
 /**
  * Return type of `useEndpointQuery` (the `useQuery` composable on a generated namespace).
  *
- * Extends TanStack's `UseQueryReturnType<TResponse, Error>` so all fields — including
+ * Extends TanStack's `UseQueryReturnType<TResponse, AxiosError<TError>>` so all fields — including
  * `refetch`, `isPending`, `isLoading`, `isSuccess`, `isError`, `error`, etc. — carry
  * their real TanStack types. `data` is overridden with a `ComputedRef` typed to
  * `TResponse | undefined`, and three extra fields are added for our own abstractions.

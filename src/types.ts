@@ -227,7 +227,9 @@ export type QueryOptions<
    * (e.g. only on 409). The promise rejects either way; this controls the
    * global side-effect only.
    *
-   * Note: a non-axios throw also reaches the predicate. Documented, not hidden.
+   * Note: the predicate is only evaluated for axios errors. A non-axios throw
+   * (e.g. synthesised by a request interceptor) cannot be selectively
+   * suppressed; use `skipGlobalError: true` to always suppress.
    *
    * The predicate parameter is narrowed to `AxiosError<TError>` when `TError`
    * is supplied. With the default `TError = unknown` it is `AxiosError<unknown>`.
@@ -332,7 +334,9 @@ export type MutationOptions<
      * (e.g. only on 409). The promise rejects either way; this controls the
      * global side-effect only.
      *
-     * Note: a non-axios throw also reaches the predicate. Documented, not hidden.
+     * Note: the predicate is only evaluated for axios errors. A non-axios throw
+     * (e.g. synthesised by a request interceptor) cannot be selectively
+     * suppressed; use `skipGlobalError: true` to always suppress.
      *
      * The predicate parameter is narrowed to `AxiosError<TError>` when `TError`
      * is supplied. With the default `TError = unknown` it is `AxiosError<unknown>`.
@@ -486,7 +490,9 @@ export type ApiErrorOf<Ops extends AnyOps, Op extends keyof Ops> = AxiosError<Ex
  * @example
  * ```ts
  * type E = ApiErrorData<operations, 'createVessel'>
- * // → { code?: string; message?: string } | undefined
+ * // → { code?: string; message?: string }
+ * // (`undefined` only appears via optional chaining on `error.response`,
+ * //  it is not part of `ApiErrorData` itself)
  * ```
  */
 export type ApiErrorData<Ops extends AnyOps, Op extends keyof Ops> = ExtractErrorData<Ops, Op>
