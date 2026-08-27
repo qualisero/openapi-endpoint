@@ -11,6 +11,20 @@ import {
   isQueryMethod,
 } from './types'
 import { normalizeParamsOptions, useResolvedOperation, generateQueryKey } from './openapi-utils'
+import { stampErrorPolicyMeta } from './error-policy'
+
+/**
+ * No-retry policy for 4xx HTTP errors. Extracted so both `useEndpointQuery`
+ * and the lazy `fetch()` call share identical retry behaviour.
+ *
+ * @internal
+ */
+function no4xxRetry(_failureCount: number, error: Error): boolean {
+  if (isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
+    return false
+  }
+  return _failureCount < 3
+}
 
 /**
  * Private helper: build the query function for useEndpointQuery and useEndpointLazyQuery.
@@ -60,7 +74,11 @@ function buildQueryFn<TResponse>(
       if (errorHandler && isAxiosError(error)) {
         const result = await errorHandler(error)
         if (result !== undefined) return result
-        return undefined as unknown as TResponse
+        // TanStack Query v5 throws when a query function returns `undefined`.
+        // Returning null preserves the "swallow" semantics (the query resolves
+        // without data) while satisfying TanStack's non-undefined requirement.
+        // @deprecated path — callers should migrate to createApiErrorCaches.
+        return null as unknown as TResponse
       }
       throw error
     }
@@ -80,8 +98,12 @@ function buildQueryFn<TResponse>(
  *
  * @group Types
  */
-export type QueryReturn<TResponse, TPathParams extends Record<string, unknown> = Record<string, never>> = Omit<
-  UseQueryReturnType<TResponse, Error>,
+export type QueryReturn<
+  TResponse,
+  TPathParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
+> = Omit<
+  UseQueryReturnType<TResponse, AxiosError<TError>>,
   // `data` is replaced with a ComputedRef typed to TResponse | undefined.
   // `isEnabled` is replaced with our own computed that also gates on path-param resolution
   // (TanStack's isEnabled only tracks the `enabled` option flag).
@@ -118,8 +140,9 @@ export type LazyQueryReturn<
   TResponse,
   TPathParams extends Record<string, unknown> = Record<string, never>,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
 > = Pick<
-  QueryReturn<TResponse, TPathParams>,
+  QueryReturn<TResponse, TPathParams, TError>,
   'data' | 'isPending' | 'isSuccess' | 'isError' | 'error' | 'isEnabled' | 'pathParams' | 'queryKey' | 'responseHeaders'
 > & {
   /**
@@ -154,11 +177,12 @@ export function useEndpointQuery<
   TResponse,
   TPathParams extends Record<string, unknown> = Record<string, never>,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
 >(
   config: EndpointConfig,
   pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
-  options?: QueryOptions<TResponse, TQueryParams>,
-): QueryReturn<TResponse, TPathParams> {
+  options?: QueryOptions<TResponse, TQueryParams, TError>,
+): QueryReturn<TResponse, TPathParams, TError> {
   if (!isQueryMethod(config.method)) {
     throw new Error(
       `Operation at '${config.path}' uses method ${config.method} and cannot be used with useQuery(). ` +
@@ -168,8 +192,10 @@ export function useEndpointQuery<
 
   const { pathParams: resolvedPathParamsInput, options: resolvedOptions } = normalizeParamsOptions<
     Record<string, string | number | undefined>,
-    QueryOptions<TResponse, TQueryParams>
+    QueryOptions<TResponse, TQueryParams, TError>
   >(pathParams, options)
+
+  const { rest: resolvedOptionsWithoutSkip, meta } = stampErrorPolicyMeta(resolvedOptions, config, 'query')
 
   const {
     enabled: enabledInit,
@@ -177,8 +203,9 @@ export function useEndpointQuery<
     axiosOptions,
     errorHandler,
     queryParams,
+    meta: _callerMeta,
     ...useQueryOptions
-  } = resolvedOptions
+  } = resolvedOptionsWithoutSkip
 
   const {
     resolvedPath,
@@ -208,12 +235,8 @@ export function useEndpointQuery<
     ),
     enabled: isEnabled,
     staleTime: 1000 * 60,
-    retry: (_failureCount: number, error: Error) => {
-      if (isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
-        return false
-      }
-      return _failureCount < 3
-    },
+    retry: no4xxRetry,
+    meta,
     ...useQueryOptions,
   } as unknown as Parameters<typeof useQuery>[0]
 
@@ -251,7 +274,7 @@ export function useEndpointQuery<
     onLoad,
     pathParams: resolvedPathParams as ComputedRef<TPathParams>,
     responseHeaders,
-  } as unknown as QueryReturn<TResponse, TPathParams>
+  } as unknown as QueryReturn<TResponse, TPathParams, TError>
 }
 
 /**
@@ -276,11 +299,12 @@ export function useEndpointLazyQuery<
   TResponse,
   TPathParams extends Record<string, unknown> = Record<string, never>,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
 >(
   config: EndpointConfig,
   pathParams?: MaybeRefOrGetter<Record<string, string | number | undefined> | null | undefined>,
-  options?: Omit<QueryOptions<TResponse, TQueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-): LazyQueryReturn<TResponse, TPathParams, TQueryParams> {
+  options?: Omit<QueryOptions<TResponse, TQueryParams, TError>, 'queryParams' | 'onLoad' | 'enabled'>,
+): LazyQueryReturn<TResponse, TPathParams, TQueryParams, TError> {
   if (!isQueryMethod(config.method)) {
     throw new Error(
       `Operation at '${config.path}' uses method ${config.method} and cannot be used with useLazyQuery(). ` +
@@ -290,12 +314,19 @@ export function useEndpointLazyQuery<
 
   const { pathParams: resolvedPathParamsInput } = normalizeParamsOptions<
     Record<string, string | number | undefined>,
-    Omit<QueryOptions<TResponse, TQueryParams>, 'queryParams' | 'onLoad' | 'enabled'>
+    Omit<QueryOptions<TResponse, TQueryParams, TError>, 'queryParams' | 'onLoad' | 'enabled'>
   >(pathParams, options)
 
-  const { axiosOptions, errorHandler, ...useQueryOptions } = (options || {}) as Omit<
-    QueryOptions<TResponse, TQueryParams>,
-    'queryParams' | 'onLoad' | 'enabled'
+  const { rest: optionsWithoutSkip, meta } = stampErrorPolicyMeta(options, config, 'query')
+
+  const {
+    axiosOptions,
+    errorHandler,
+    meta: _callerMetaLazy,
+    ...useQueryOptions
+  } = (optionsWithoutSkip || {}) as Omit<
+    QueryOptions<TResponse, TQueryParams, TError>,
+    'queryParams' | 'onLoad' | 'enabled' | 'skipGlobalError'
   >
 
   // Use shared path/key resolution
@@ -310,8 +341,12 @@ export function useEndpointLazyQuery<
     undefined, // no queryParams at hook level for lazy queries
   )
 
-  // Underlying query for reactive state only — never auto-fires
-  const query = useEndpointQuery<TResponse, TPathParams, TQueryParams>(config, pathParams, {
+  // Underlying query for reactive state only — never auto-fires.
+  // Pass the full `options` (not `optionsWithoutSkip`) so the inner hook's
+  // stampErrorPolicyMeta call also includes `skipGlobalError`, making both
+  // stamps identical and removing the ordering dependency on fetchQuery being
+  // the last writer of meta.
+  const query = useEndpointQuery<TResponse, TPathParams, TQueryParams, TError>(config, pathParams, {
     ...options,
     enabled: false,
     staleTime: useQueryOptions?.staleTime ?? Infinity,
@@ -344,6 +379,8 @@ export function useEndpointLazyQuery<
         responseHeaders,
       ),
       staleTime: useQueryOptions?.staleTime ?? Infinity,
+      retry: no4xxRetry,
+      meta,
     })
   }
 

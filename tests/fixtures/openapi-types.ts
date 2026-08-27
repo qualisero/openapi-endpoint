@@ -202,6 +202,8 @@ export interface components {
   schemas: {
     /** @enum {string} */
     PetStatus: 'available' | 'pending' | 'adopted'
+    /** @enum {string} */
+    PetPriority: '0' | '0.1' | '0.2' | '0.5' | '0.7' | '1' | '2' | '3'
     Pet: {
       /** Format: uuid */
       readonly id?: string
@@ -232,6 +234,7 @@ export interface operations {
       query?: {
         limit?: number
         status?: components['schemas']['PetStatus']
+        priority?: components['schemas']['PetPriority']
       }
       header?: never
       path?: never

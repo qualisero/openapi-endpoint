@@ -730,12 +730,15 @@ ${members}
 export type ${enumInfo.name} = typeof ${enumInfo.name}[keyof typeof ${enumInfo.name}]
 `
 
-      // Generate type aliases for duplicates
+      // Generate type aliases for duplicates (skip self-aliases where alias === primary name)
       if (enumInfo.aliases && enumInfo.aliases.length > 0) {
-        output += '\n// Type aliases for duplicate enum values\n'
-        for (const alias of enumInfo.aliases) {
-          output += `export const ${alias} = ${enumInfo.name}\n`
-          output += `export type ${alias} = ${enumInfo.name}\n`
+        const nonSelfAliases = enumInfo.aliases.filter((alias) => alias !== enumInfo.name)
+        if (nonSelfAliases.length > 0) {
+          output += '\n// Type aliases for duplicate enum values\n'
+          for (const alias of nonSelfAliases) {
+            output += `export const ${alias} = ${enumInfo.name}\n`
+            output += `export type ${alias} = ${enumInfo.name}\n`
+          }
         }
       }
 
@@ -827,10 +830,16 @@ import type { components } from './openapi-types'
       const cleanedName = removeSchemaSuffix(schemaName)
       const exportedName = toPascalCase(cleanedName)
 
-      // Only add comment if the name changed
-      const comment = exportedName !== schemaName ? `// Schema: ${schemaName}\n` : ''
+      // Guard against names that shadow built-in globals (e.g. `Error` shadows the global Error constructor).
+      // Suffix them with 'Schema' so the generated alias is unambiguous.
+      // The original components['schemas'][...] access is left unchanged.
+      const RESERVED_EXPORT_NAMES = new Set(['Error'])
+      const safeExportedName = RESERVED_EXPORT_NAMES.has(exportedName) ? `${exportedName}Schema` : exportedName
 
-      return `${comment}export type ${exportedName} = components['schemas']['${schemaName}']`
+      // Only add comment if the name changed (either suffix-stripped or reserved-name-guarded)
+      const comment = safeExportedName !== schemaName ? `// Schema: ${schemaName}\n` : ''
+
+      return `${comment}export type ${safeExportedName} = components['schemas']['${schemaName}']`
     })
     .join('\n\n')
 
@@ -963,25 +972,26 @@ function generateApiClientContent(operationMap: Record<string, OperationInfo>, u
  */
 function _queryNoParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type Response = ${responseType}<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   const useQuery = (
-    options?: QueryOptions<Response, QueryParams>,
-  ): QueryReturn<Response, Record<string, never>> =>
-    useEndpointQuery<Response, Record<string, never>, QueryParams>(
+    options?: QueryOptions<Response, QueryParams, ErrorData>,
+  ): QueryReturn<Response, Record<string, never>, ErrorData> =>
+    useEndpointQuery<Response, Record<string, never>, QueryParams, ErrorData>(
       { ...base, ...cfg },
       undefined,
       options,
     )
 
   const useLazyQuery = (
-    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-  ): LazyQueryReturn<Response, Record<string, never>, QueryParams> =>
-    useEndpointLazyQuery<Response, Record<string, never>, QueryParams>(
+    options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, Record<string, never>, QueryParams, ErrorData> =>
+    useEndpointLazyQuery<Response, Record<string, never>, QueryParams, ErrorData>(
       { ...base, ...cfg },
       undefined,
       options,
@@ -1039,43 +1049,44 @@ function _queryNoParams<Op extends AllOps>(
  */
 function _queryWithParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type PathParams = ApiPathParams<Op>
   type PathParamsInput = ApiPathParamsInput<Op>
   type Response = ${responseType}<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   // Two-overload interface: non-function (exact via object-literal checking) +
   // getter function (exact via NoExcessReturn constraint).
   type _UseQuery = {
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams>
+      options?: QueryOptions<Response, QueryParams, ErrorData>,
+    ): QueryReturn<Response, PathParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: QueryOptions<Response, QueryParams>,
-    ): QueryReturn<Response, PathParams>
+      options?: QueryOptions<Response, QueryParams, ErrorData>,
+    ): QueryReturn<Response, PathParams, ErrorData>
   }
 
   type _UseLazyQuery = {
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-    ): LazyQueryReturn<Response, PathParams, QueryParams>
+      options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-    ): LazyQueryReturn<Response, PathParams, QueryParams>
+      options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+    ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData>
   }
 
   const _impl = (
     pathParams: ReactiveOr<PathParamsInput>,
-    options?: QueryOptions<Response, QueryParams>,
-  ): QueryReturn<Response, PathParams> =>
-    useEndpointQuery<Response, PathParams, QueryParams>(
+    options?: QueryOptions<Response, QueryParams, ErrorData>,
+  ): QueryReturn<Response, PathParams, ErrorData> =>
+    useEndpointQuery<Response, PathParams, QueryParams, ErrorData>(
       { ...base, ...cfg },
       pathParams as _PathParamsCast,
       options,
@@ -1083,9 +1094,9 @@ function _queryWithParams<Op extends AllOps>(
 
   const _lazyImpl = (
     pathParams: ReactiveOr<PathParamsInput>,
-    options?: Omit<QueryOptions<Response, QueryParams>, 'queryParams' | 'onLoad' | 'enabled'>,
-  ): LazyQueryReturn<Response, PathParams, QueryParams> =>
-    useEndpointLazyQuery<Response, PathParams, QueryParams>(
+    options?: Omit<QueryOptions<Response, QueryParams, ErrorData>, 'queryParams' | 'onLoad' | 'enabled'>,
+  ): LazyQueryReturn<Response, PathParams, QueryParams, ErrorData> =>
+    useEndpointLazyQuery<Response, PathParams, QueryParams, ErrorData>(
       { ...base, ...cfg },
       pathParams as _PathParamsCast,
       options,
@@ -1158,17 +1169,18 @@ function _queryWithParams<Op extends AllOps>(
  */
 function _mutationNoParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type RequestBody = ApiRequest<Op>
   type Response = ${responseType}<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   const useMutation = (
-    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams>,
-  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams> =>
-    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams>(
+    options?: MutationOptions<Response, Record<string, never>, RequestBody, QueryParams, ErrorData>,
+  ): MutationReturn<Response, Record<string, never>, RequestBody, QueryParams, ErrorData> =>
+    useEndpointMutation<Response, Record<string, never>, RequestBody, QueryParams, ErrorData>(
       { ...base, ...cfg },
       undefined,
       options,
@@ -1201,7 +1213,7 @@ function _mutationNoParams<Op extends AllOps>(
  */
 function _mutationWithParams<Op extends AllOps>(
   base: _Config,
-  cfg: { path: string; method: HttpMethod; listPath: string | null },
+  cfg: { path: string; method: HttpMethod; listPath: string | null; operationId?: string },
   enums: Record<string, unknown>,
 ) {
   type PathParams = ApiPathParams<Op>
@@ -1209,6 +1221,7 @@ function _mutationWithParams<Op extends AllOps>(
   type RequestBody = ApiRequest<Op>
   type Response = ${responseType}<Op>
   type QueryParams = ApiQueryParams<Op>
+  type ErrorData = ApiErrorData<Op>
 
   // Three-overload interface:
   // 1. Deferred path params — omit or pass undefined/null; supply at mutateAsync() time via pathParams variable
@@ -1217,23 +1230,23 @@ function _mutationWithParams<Op extends AllOps>(
   type _UseMutation = {
     (
       pathParams?: undefined | null,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
     (
       pathParams: PathParamsInput | Ref<PathParamsInput> | ComputedRef<PathParamsInput>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
     <F extends () => PathParamsInput>(
       pathParams: NoExcessReturn<PathParamsInput, F>,
-      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-    ): MutationReturn<Response, PathParams, RequestBody, QueryParams>
+      options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+    ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData>
   }
 
   const _impl = (
     pathParams: ReactiveOr<PathParamsInput> | undefined | null,
-    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams>,
-  ): MutationReturn<Response, PathParams, RequestBody, QueryParams> =>
-    useEndpointMutation<Response, PathParams, RequestBody, QueryParams>(
+    options?: MutationOptions<Response, PathParams, RequestBody, QueryParams, ErrorData>,
+  ): MutationReturn<Response, PathParams, RequestBody, QueryParams, ErrorData> =>
+    useEndpointMutation<Response, PathParams, RequestBody, QueryParams, ErrorData>(
       { ...base, ...cfg },
       pathParams as _PathParamsCast,
       options,
@@ -1271,7 +1284,7 @@ function _mutationWithParams<Op extends AllOps>(
       const query = isQuery(id)
       const withParams = hasPathParams(id)
 
-      const cfg = `{ path: '${apiPath}', method: HttpMethod.${method}, listPath: ${listPathStr} }`
+      const cfg = `{ path: '${apiPath}', method: HttpMethod.${method}, listPath: ${listPathStr}, operationId: '${id}' }`
       const helper = query
         ? withParams
           ? '_queryWithParams'
@@ -1349,6 +1362,7 @@ import type {
   ApiPathParams,
   ApiPathParamsInput,
   ApiQueryParams,
+  ApiErrorData,
   operations,
 } from './api-operations.js'
 
@@ -1728,7 +1742,11 @@ export type ApiPathParams<K extends AllOps> = _ApiPathParams<operations, K>
 /** Path parameters input type (allows undefined values for reactive resolution). */
 export type ApiPathParamsInput<K extends AllOps> = _ApiPathParamsInput<operations, K>
 /** Query parameters type. */
-export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>`
+export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>
+/** Error data type (union of JSON bodies from 4xx / 5xx / default responses). */
+export type ApiErrorData<K extends AllOps> = _ApiErrorData<operations, K>
+/** AxiosError typed to this operation's error body. */
+export type ApiError<K extends AllOps> = _ApiErrorOf<operations, K>`
 
   // Re-exports
   // Use type-only wildcard export to avoid duplicate identifier errors
@@ -1749,6 +1767,8 @@ import type {
   ApiPathParams as _ApiPathParams,
   ApiPathParamsInput as _ApiPathParamsInput,
   ApiQueryParams as _ApiQueryParams,
+  ApiErrorData as _ApiErrorData,
+  ApiErrorOf as _ApiErrorOf,
 } from '@qualisero/openapi-endpoint'
 
 export type { operations }

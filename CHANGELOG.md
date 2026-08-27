@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-08-27
+
+### Added
+
+- Client-level error policy via `createApiErrorCaches`: build your `QueryClient`'s `queryCache` and `mutationCache` from it and pass an `onError` callback that fires **once per logical failure, after retries, and never swallows the rejection** — the right place for a global error banner. The callback receives the error plus the operation's `operationId`, `path`, `method`, and whether it was a query or mutation.
+- `skipGlobalError` per-call opt-out on `useQuery` and `useMutation`: `true` always suppresses the global `onError` policy for that call; a predicate (typed to the operation's error body) suppresses it selectively (e.g. only on 409). The promise rejects either way — this controls the global side-effect only.
+- Typed error channel: `error.value` is now `AxiosError<TError>` carrying the operation's declared error payload (4xx/5xx/`default` JSON bodies), so `error.value?.response?.data?.errors` is fully typed with no casts. Generated `api-operations.ts` exports `ApiErrorData<Op>` and `ApiError<Op>` helpers.
+- `operationId` in the generated endpoint config, enabling the error policy's operation context.
+
+### Changed
+
+- Error type widens from `Error` to `AxiosError<TError>` (default `unknown`) across query/mutation options and return values. `error.value.message` still works (`AxiosError` extends `Error`), but code annotated `: Error` may need updating.
+- Reserved schema names (e.g. a schema literally named `Error`) are now emitted with a `Schema` suffix in `api-schemas.ts` (e.g. `ErrorSchema`) so they don't shadow the global `Error`. The original name remains reachable via `components['schemas']['Error']`.
+
+### Deprecated
+
+- `errorHandler` query option: it swallows the error unless it rethrows, and fires per retry attempt. Use the client-level `onError` policy from `createApiErrorCaches` instead, which observes without swallowing and fires once per logical failure.
+
+### Fixed
+
+- `useEndpointLazyQuery`'s `fetch()` now applies the standard no-retry-on-4xx policy. Previously the lazy fetch inherited the `QueryClient`'s default retry, so a 404 could be retried three times.
+- Deprecated `errorHandler` swallow path now resolves the query with `null` instead of triggering TanStack v5's "Query data cannot be undefined" error state. Queries that use a swallowing `errorHandler` will have `data.value === null` (previously they entered an error state).
+- Generated `api-enums.ts` no longer emits self-alias declarations (`export const X = X`) when a promoted common-suffix enum name coincidentally matches one of its own aliases, which would produce `TS2451` "Cannot redeclare block-scoped variable" errors in the generated output.
+- Caller-supplied `meta` that is a Vue `ref` is now unwrapped before merging with the error-policy identity stamp. Previously the ref's internals (`__v_isRef`, `_value`, …) were spread into `meta` instead of its value.
+- `ApiErrorData` now resolves error bodies for operations whose status keys are quoted numeric strings (e.g. `'404'`), in addition to the unquoted numeric keys `openapi-typescript` emits.
+
 ## [0.24.0] - 2026-07-22
 
 ### Added

@@ -98,6 +98,47 @@ export interface EndpointConfig {
    * option at mutation time. Generated and embedded by the CLI.
    */
   operationsRegistry?: Readonly<Record<string, { path: string }>>
+  /**
+   * The OpenAPI `operationId` for this operation. Provided by generated code;
+   * used to populate `ApiErrorContext.operationId` in the error policy.
+   * When absent, the policy falls back to `"METHOD /path/template"`.
+   */
+  operationId?: string
+}
+
+// ============================================================================
+// Error policy types
+// ============================================================================
+
+/**
+ * Context passed to the global `onError` policy callback. Identifies which
+ * operation failed so the policy can log, display, or filter by operation.
+ */
+export interface ApiErrorContext {
+  /** The OpenAPI `operationId`, or `"METHOD /path/template"` when not set. */
+  operationId: string
+  /** The OpenAPI path template, e.g. `'/pets/{petId}'`. */
+  path: string
+  /** HTTP method of the operation. */
+  method: HttpMethod
+  /** Whether the failure came from a query or a mutation. */
+  kind: 'query' | 'mutation'
+}
+
+/**
+ * Global error side-effect callback. Observe-only — the promise always rejects
+ * after this returns. `error` is `unknown` (not `AxiosError`) because the
+ * cache-level hook fires for ANY rejection, including non-axios throws.
+ * Narrow with `isAxiosError` inside the policy if needed.
+ */
+export type ApiErrorPolicy = (error: unknown, ctx: ApiErrorContext) => void
+
+/**
+ * Options for `createApiErrorCaches`.
+ */
+export interface ApiErrorPolicyOptions {
+  /** Called once per logical failure, after retries, without swallowing the rejection. */
+  onError?: ApiErrorPolicy
 }
 
 // ============================================================================
@@ -149,8 +190,8 @@ type MaybeRefDeep<T> = T extends (...args: never[]) => unknown
     ? { [K in keyof T]: MaybeRefDeep<T[K]> }
     : MaybeRefLeaf<T>
 
-type BaseQueryOptions<TResponse, _TQueryParams extends Record<string, unknown>> = MaybeRefDeep<
-  QueryObserverOptions<TResponse, Error, TResponse, TResponse, QueryKey>
+type BaseQueryOptions<TResponse, _TQueryParams extends Record<string, unknown>, TError = unknown> = MaybeRefDeep<
+  QueryObserverOptions<TResponse, AxiosError<TError>, TResponse, TResponse, QueryKey>
 > & { shallow?: boolean }
 
 /**
@@ -164,14 +205,34 @@ type BaseQueryOptions<TResponse, _TQueryParams extends Record<string, unknown>> 
  * @template TResponse    The response data type for this operation
  * @template TQueryParams The query parameters type for this operation
  */
-export type QueryOptions<TResponse, TQueryParams extends Record<string, unknown> = Record<string, never>> = Omit<
-  BaseQueryOptions<TResponse, TQueryParams>,
-  'queryKey' | 'queryFn' | 'enabled'
-> & {
+export type QueryOptions<
+  TResponse,
+  TQueryParams extends Record<string, unknown> = Record<string, never>,
+  TError = unknown,
+> = Omit<BaseQueryOptions<TResponse, TQueryParams, TError>, 'queryKey' | 'queryFn' | 'enabled'> & {
   enabled?: ReactiveOr<boolean>
   onLoad?: (data: TResponse) => void
   axiosOptions?: AxiosRequestConfigExtended
+  /**
+   * @deprecated Use the `onError` policy on `createApiErrorCaches` instead.
+   * `errorHandler` swallows the error unless it rethrows, fires per retry
+   * attempt, and only receives `AxiosError` (non-axios throws bypass it).
+   * The cache-level `onError` policy fires once, after retries, and receives
+   * any rejection.
+   */
   errorHandler?: (error: AxiosError) => TResponse | void | Promise<TResponse | void>
+  /**
+   * Suppress the client-level `onError` policy for this call.
+   * `true` → always suppress; function → suppress when it returns `true`
+   * (e.g. only on 409). The promise rejects either way; this controls the
+   * global side-effect only.
+   *
+   * Note: a non-axios throw also reaches the predicate. Documented, not hidden.
+   *
+   * The predicate parameter is narrowed to `AxiosError<TError>` when `TError`
+   * is supplied. With the default `TError = unknown` it is `AxiosError<unknown>`.
+   */
+  skipGlobalError?: boolean | ((error: AxiosError<TError>) => boolean)
   queryParams?: ReactiveOr<TQueryParams>
 }
 
@@ -222,8 +283,14 @@ type BaseMutationOptions<
   TPathParams extends Record<string, unknown>,
   TRequest,
   TQueryParams extends Record<string, unknown>,
+  TError = unknown,
 > = MaybeRefDeep<
-  MutationObserverOptions<AxiosResponse<TResponse>, Error, MutationVars<TPathParams, TRequest, TQueryParams>, unknown>
+  MutationObserverOptions<
+    AxiosResponse<TResponse>,
+    AxiosError<TError>,
+    MutationVars<TPathParams, TRequest, TQueryParams>,
+    unknown
+  >
 > & { shallow?: boolean }
 
 /**
@@ -239,7 +306,8 @@ export type MutationOptions<
   TPathParams extends Record<string, unknown>,
   TRequest,
   TQueryParams extends Record<string, unknown> = Record<string, never>,
-> = Omit<BaseMutationOptions<TResponse, TPathParams, TRequest, TQueryParams>, 'mutationFn' | 'mutationKey'> &
+  TError = unknown,
+> = Omit<BaseMutationOptions<TResponse, TPathParams, TRequest, TQueryParams, TError>, 'mutationFn' | 'mutationKey'> &
   CacheInvalidationOptions & {
     axiosOptions?: AxiosRequestConfigExtended
     queryParams?: ReactiveOr<TQueryParams>
@@ -258,6 +326,18 @@ export type MutationOptions<
      * `serialize`. A warning is emitted when both are set.
      */
     serialize?: boolean | string
+    /**
+     * Suppress the client-level `onError` policy for this call.
+     * `true` → always suppress; function → suppress when it returns `true`
+     * (e.g. only on 409). The promise rejects either way; this controls the
+     * global side-effect only.
+     *
+     * Note: a non-axios throw also reaches the predicate. Documented, not hidden.
+     *
+     * The predicate parameter is narrowed to `AxiosError<TError>` when `TError`
+     * is supplied. With the default `TError = unknown` it is `AxiosError<unknown>`.
+     */
+    skipGlobalError?: boolean | ((error: AxiosError<TError>) => boolean)
   }
 
 // ============================================================================
@@ -334,6 +414,84 @@ type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] ext
           : Ops[Op] extends { responses: { 206: { content: { 'application/json': infer Data } } } }
             ? Data
             : unknown
+
+// ============================================================================
+// Error response type extraction
+// ============================================================================
+
+/**
+ * Keys in an OpenAPI `responses` object that denote error responses:
+ * the string `'default'`, range keys `'4XX'` / `'5XX'`, and numeric
+ * 4xx / 5xx status codes.
+ *
+ * Numeric range detection uses a template-literal `${S}` trick because
+ * numeric literal types are not directly pattern-matchable. A third arm
+ * also accepts quoted numeric string keys (e.g. '404') by checking the
+ * string prefix directly ('4...' or '5...').
+ *
+ * @internal
+ */
+type ErrorStatusKey<S> = S extends 'default' | '4XX' | '5XX'
+  ? S
+  : S extends number
+    ? `${S}` extends `4${string}` | `5${string}`
+      ? S
+      : never
+    : S extends `4${string}` | `5${string}`
+      ? S
+      : never
+
+/**
+ * Extract the union of JSON body types declared for error responses
+ * (4xx, 5xx, `default`, `4XX`, `5XX`) of operation `Op`.
+ *
+ * Falls back to `unknown` when no error response declares a JSON body —
+ * so `error.response.data` is always at least `unknown`, never `never`.
+ *
+ * @internal
+ */
+type ExtractErrorData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends { responses: infer R }
+  ? {
+      [S in keyof R as ErrorStatusKey<S>]: R[S] extends { content: { 'application/json': infer D } } ? D : never
+    } extends infer M extends Record<PropertyKey, unknown>
+    ? M[keyof M] extends infer U
+      ? [U] extends [never]
+        ? unknown
+        : U
+      : unknown
+    : unknown
+  : unknown
+
+/**
+ * The `AxiosError` type for operation `Op`, with its `response.data` typed to
+ * the union of JSON bodies declared for all error responses (4xx / 5xx /
+ * `default`). Falls back to `AxiosError<unknown>` for operations that declare
+ * no JSON error body.
+ *
+ * @example
+ * ```ts
+ * // Assuming operations.createVessel has a 422 response with JSON body:
+ * type E = ApiErrorOf<operations, 'createVessel'>
+ * // → AxiosError<{ code?: string; message?: string }>
+ * ```
+ */
+export type ApiErrorOf<Ops extends AnyOps, Op extends keyof Ops> = AxiosError<ExtractErrorData<Ops, Op>>
+
+/**
+ * Extract the union of JSON body types declared for error responses.
+ * Equivalent to the `response.data` type of `ApiErrorOf<Ops, Op>`.
+ *
+ * Use this when you need the raw error payload type (not wrapped in `AxiosError`).
+ *
+ * @example
+ * ```ts
+ * type E = ApiErrorData<operations, 'createVessel'>
+ * // → { code?: string; message?: string } | undefined
+ * ```
+ */
+export type ApiErrorData<Ops extends AnyOps, Op extends keyof Ops> = ExtractErrorData<Ops, Op>
+
+// ============================================================================
 
 /**
  * Extract response data type (ALL fields required - default behavior).

@@ -9,10 +9,13 @@ import type {
   ApiPathParams as _ApiPathParams,
   ApiPathParamsInput as _ApiPathParamsInput,
   ApiQueryParams as _ApiQueryParams,
+  ApiErrorData as _ApiErrorData,
+  ApiErrorOf as _ApiErrorOf,
 } from '@qualisero/openapi-endpoint'
 
 export type { operations }
 
+export { PetPriority } from './api-enums'
 export { PetStatus } from './api-enums'
 export type * from './api-enums'
 
@@ -39,6 +42,16 @@ export const listPets_enums = {
     Available: 'available' as const,
     Pending: 'pending' as const,
     Adopted: 'adopted' as const,
+  } as const,
+  priority: {
+    _0: '0' as const,
+    _0_1: '0.1' as const,
+    _0_2: '0.2' as const,
+    _0_5: '0.5' as const,
+    _0_7: '0.7' as const,
+    _1: '1' as const,
+    _2: '2' as const,
+    _3: '3' as const,
   } as const,
 } as const
 
@@ -102,3 +115,7 @@ export type ApiPathParams<K extends AllOps> = _ApiPathParams<operations, K>
 export type ApiPathParamsInput<K extends AllOps> = _ApiPathParamsInput<operations, K>
 /** Query parameters type. */
 export type ApiQueryParams<K extends AllOps> = _ApiQueryParams<operations, K>
+/** Error data type (union of JSON bodies from 4xx / 5xx / default responses). */
+export type ApiErrorData<K extends AllOps> = _ApiErrorData<operations, K>
+/** AxiosError typed to this operation's error body. */
+export type ApiError<K extends AllOps> = _ApiErrorOf<operations, K>

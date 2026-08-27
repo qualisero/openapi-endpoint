@@ -5,6 +5,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, effectScope, computed } from 'vue'
 import { flushPromises } from '@vue/test-utils'
+import { QueryClient } from '@tanstack/vue-query'
+import { createApiErrorCaches } from '@qualisero/openapi-endpoint'
 import { mockAxios } from '../setup'
 import { createTestScope } from '../helpers'
 import { createApiClient } from '../fixtures/api-client'
@@ -106,16 +108,81 @@ describe('Lazy Query', () => {
     })
 
     it('should set isError and error after axios rejects', async () => {
-      const testError = new Error('Network error')
+      // Use an axios-shaped 4xx error. no4xxRetry returns false for 4xx, so
+      // there is exactly one attempt — no setTimeout-based retry delays.
+      const testError = { isAxiosError: true, response: { status: 400 }, message: 'Bad Request' }
       mockAxios.mockRejectedValueOnce(testError)
 
       const query = scope.run(() => api.listPets.useLazyQuery())!
 
-      await expect(query.fetch()).rejects.toThrow('Network error')
+      await expect(query.fetch()).rejects.toMatchObject({ message: 'Bad Request' })
       await flushPromises()
 
       expect(query.isError.value).toBe(true)
       expect(query.error.value).toBeTruthy()
+    })
+
+    it('(§2.2) lazy fetch() on 404 makes exactly one axios call even with a retry:3 QueryClient', async () => {
+      // A retry:3 client proves the fix: without no4xxRetry on the lazy fetchQuery,
+      // the 404 would retry 3× → 4 calls; with the fix applied, only 1 call is made.
+      const retryClient = new QueryClient({
+        defaultOptions: { queries: { retry: 3, retryDelay: 0, gcTime: 0 } },
+      })
+      const error404 = { isAxiosError: true, response: { status: 404 }, message: 'Not Found' }
+      mockAxios.mockRejectedValueOnce(error404)
+
+      const { scope: testScope } = createTestScope(mockAxios, retryClient)
+      const query = testScope.run(() => createApiClient(mockAxios, retryClient).listPets.useLazyQuery())!
+
+      await expect(query.fetch()).rejects.toMatchObject({ message: 'Not Found' })
+      await flushPromises()
+
+      // no4xxRetry returns false for 4xx → exactly 1 call, no retries
+      expect(mockAxios).toHaveBeenCalledTimes(1)
+      expect(query.isError.value).toBe(true)
+
+      testScope.stop()
+    })
+
+    it('(§2.2b) lazy fetch() with a plain Error retries and then rejects', async () => {
+      // A non-axios error passes no4xxRetry's isAxiosError guard → retries are allowed.
+      // This pins that the lazy path uses no4xxRetry consistently with useQuery.
+      vi.useFakeTimers()
+      try {
+        const retryClient = new QueryClient({
+          defaultOptions: { queries: { retry: 3, retryDelay: 0, gcTime: 0 } },
+        })
+        const networkError = new Error('Network error')
+        // Queue 4 rejections: 1 initial + 3 retries
+        mockAxios
+          .mockRejectedValueOnce(networkError)
+          .mockRejectedValueOnce(networkError)
+          .mockRejectedValueOnce(networkError)
+          .mockRejectedValueOnce(networkError)
+
+        const { scope: testScope } = createTestScope(mockAxios, retryClient)
+        const query = testScope.run(() => createApiClient(mockAxios, retryClient).listPets.useLazyQuery())!
+
+        const fetchPromise = query.fetch()
+        // Suppress unhandled-rejection noise while timers are advancing:
+        // the promise rejects during timer advancement and Node warns if no
+        // handler is attached yet. Attaching a no-op catch here silences the
+        // warning without affecting the assertion below.
+        fetchPromise.catch(() => {})
+        // Advance through all retry timeouts (retryDelay: 0 → setTimeout(0, …) × 3)
+        await vi.runAllTimersAsync()
+
+        await expect(fetchPromise).rejects.toThrow('Network error')
+        await flushPromises()
+
+        // 1 initial + 3 retries = 4 total calls
+        expect(mockAxios).toHaveBeenCalledTimes(4)
+        expect(query.isError.value).toBe(true)
+
+        testScope.stop()
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 
@@ -224,6 +291,38 @@ describe('Lazy Query', () => {
           },
         }),
       )
+    })
+  })
+
+  describe('useLazyQuery - error policy', () => {
+    it('(§10) lazy + skipGlobalError:true → zero onError calls, fetch still rejects', async () => {
+      // Build a client wired with the error policy
+      const onError = vi.fn()
+      const { queryCache, mutationCache } = createApiErrorCaches({ onError })
+      const qc = new QueryClient({
+        queryCache,
+        mutationCache,
+        defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
+      })
+
+      const error404 = { isAxiosError: true, response: { status: 404 }, message: 'Not Found' }
+      mockAxios.mockRejectedValueOnce(error404)
+
+      const { scope: testScope } = createTestScope(mockAxios, qc)
+      const query = testScope.run(() =>
+        createApiClient(mockAxios, qc).listPets.useLazyQuery({ skipGlobalError: true }),
+      )!
+
+      // fetch() must reject (the promise is never swallowed)
+      await expect(query.fetch()).rejects.toMatchObject({ message: 'Not Found' })
+      await flushPromises()
+
+      // skipGlobalError suppresses the global side-effect — zero onError calls
+      expect(onError).not.toHaveBeenCalled()
+      // The query is in error state (reject propagated normally)
+      expect(query.isError.value).toBe(true)
+
+      testScope.stop()
     })
   })
 })

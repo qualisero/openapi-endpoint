@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, computed, effectScope } from 'vue'
 import { QueryClient } from '@tanstack/vue-query'
 import type { QueryObserverResult } from '@tanstack/query-core'
-import type { AxiosResponse } from 'axios'
+import type { AxiosError, AxiosResponse } from 'axios'
 import { mockAxios } from '../setup'
 import { createApiClient } from '../fixtures/api-client'
 import { createTestScope } from '../helpers'
@@ -1099,10 +1099,11 @@ describe('API Usage Patterns', () => {
 
       const _refetchResult = _query.refetch()
 
-      // At the type level, refetch should return a Promise<QueryObserverResult<listPets.Response, Error>>
+      // At the type level, refetch should return a Promise<QueryObserverResult<listPets.Response, AxiosError<unknown>>>
+      // (TError defaults to unknown; previously was hard-coded as Error)
       // (In the mock environment, the result is undefined, but the type is correct)
       type RefetchRuntimeReturn = typeof _refetchResult
-      type ExpectedRuntimeReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
+      type ExpectedRuntimeReturn = Promise<QueryObserverResult<Types.listPets.Response, AxiosError<unknown>>>
       const _forwardCheckRuntime: RefetchRuntimeReturn extends ExpectedRuntimeReturn ? true : false = true
       const _backwardCheckRuntime: ExpectedRuntimeReturn extends RefetchRuntimeReturn ? true : false = true
       expect(_forwardCheckRuntime && _backwardCheckRuntime).toBe(true)
@@ -1112,9 +1113,10 @@ describe('API Usage Patterns', () => {
       const _query = run(() => api.listPets.useQuery())
 
       // The refetch return type should flow from the OpenAPI spec: listPets returns Pet[]
-      // So refetch should return Promise<QueryObserverResult<Pet[], Error>>, not Promise<void>
+      // So refetch should return Promise<QueryObserverResult<Pet[], AxiosError<unknown>>>, not Promise<void>
+      // (TError defaults to unknown; previously was hard-coded as Error)
       type RefetchReturn = ReturnType<typeof _query.refetch>
-      type ExpectedReturn = Promise<QueryObserverResult<Types.listPets.Response, Error>>
+      type ExpectedReturn = Promise<QueryObserverResult<Types.listPets.Response, AxiosError<unknown>>>
 
       // Compile-time check: the return types must be assignable both ways (i.e., equivalent)
       const _forwardCheck: RefetchReturn extends ExpectedReturn ? true : false = true
