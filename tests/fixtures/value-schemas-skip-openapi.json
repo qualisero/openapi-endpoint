@@ -1,0 +1,141 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Skip API",
+    "description": "Spec exercising $ref deref, JSON media-type widening, and genuinely skipped operations",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/refbody": {
+      "post": {
+        "operationId": "createWithRefBody",
+        "summary": "Request body is a $ref to components.requestBodies",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateBody"
+        },
+        "responses": {
+          "201": {
+            "description": "Created (no content)"
+          }
+        }
+      }
+    },
+    "/charset": {
+      "post": {
+        "operationId": "createWithCharset",
+        "summary": "JSON media type with charset parameter",
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/Thing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bothmedia": {
+      "post": {
+        "operationId": "createWithBothMedia",
+        "summary": "Exact application/json must win over the +json variant",
+        "requestBody": {
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Alt"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Thing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/textbody": {
+      "post": {
+        "operationId": "createWithTextBody",
+        "summary": "No JSON media type anywhere — still skipped with warnings",
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "requestBodies": {
+      "CreateBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Thing"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "Alt": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -403,21 +403,46 @@ type RequireReadonlyOrRequired<T> = {
   [K in keyof T as IsReadonly<T, K> extends false ? (undefined extends T[K] ? K : never) : never]: T[K]
 }
 
-type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends {
-  responses: { 200: { content: { 'application/json': infer Data } } }
-}
-  ? Data
-  : Ops[Op] extends { responses: { 201: { content: { 'application/json': infer Data } } } }
-    ? Data
-    : Ops[Op] extends { responses: { 202: { content: { 'application/json': infer Data } } } }
-      ? Data
-      : Ops[Op] extends { responses: { 203: { content: { 'application/json': infer Data } } } }
-        ? Data
-        : Ops[Op] extends { responses: { 204: { content: { 'application/json': infer Data } } } }
-          ? Data
-          : Ops[Op] extends { responses: { 206: { content: { 'application/json': infer Data } } } }
-            ? Data
-            : unknown
+/**
+ * Media-type keys treated as JSON: exact `application/json`, `application/json`
+ * with parameters (e.g. `; charset=utf-8`), and `application/*+json`
+ * structured-syntax suffixes (e.g. `application/vnd.api+json`).
+ */
+type JsonMediaKey =
+  | 'application/json'
+  | `application/json;${string}`
+  | `application/${string}+json`
+  | `application/${string}+json;${string}`
+
+/**
+ * Select the JSON media-type value from an OpenAPI `content` map:
+ * exact `application/json` wins, else any `application/*+json` variant.
+ * Resolves to `never` when no JSON-compatible key exists.
+ */
+type JsonMediaValue<C> = 'application/json' extends keyof C
+  ? C['application/json' & keyof C]
+  : { [K in keyof C]: K extends JsonMediaKey ? C[K] : never }[keyof C]
+
+/** Success status codes checked in priority order by {@link ExtractResponseData}. */
+type SuccessStatusOrder = readonly [200, 201, 202, 203, 204, 206]
+
+/** Walk `Codes` in order and return the first JSON media-type response body found. */
+type FirstJsonResponse<R, Codes extends readonly number[]> = Codes extends readonly [
+  infer H,
+  ...infer Rest extends readonly number[],
+]
+  ? H extends keyof R
+    ? R[H] extends { content: infer C }
+      ? [JsonMediaValue<C>] extends [never]
+        ? FirstJsonResponse<R, Rest>
+        : JsonMediaValue<C>
+      : FirstJsonResponse<R, Rest>
+    : FirstJsonResponse<R, Rest>
+  : unknown
+
+type ExtractResponseData<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends { responses: infer R }
+  ? FirstJsonResponse<R, SuccessStatusOrder>
+  : unknown
 
 // ============================================================================
 // Error response type extraction
@@ -535,12 +560,14 @@ type Writable<T> = {
  * @example `ApiRequest<operations, 'createPet'>` → `{ name: string, species?: string }`
  */
 export type ApiRequest<Ops extends AnyOps, Op extends keyof Ops> = Ops[Op] extends {
-  requestBody: { content: { 'application/json': infer Body } }
+  requestBody: { content: infer C }
 }
-  ? Writable<Body>
-  : Ops[Op] extends { requestBody: { content: { 'multipart/form-data': infer Body } } }
-    ? Writable<Body> | FormData
-    : never
+  ? [JsonMediaValue<C>] extends [never]
+    ? C extends { 'multipart/form-data': infer Body }
+      ? Writable<Body> | FormData
+      : never
+    : Writable<JsonMediaValue<C>>
+  : never
 
 /**
  * Extract path parameters type (all required).

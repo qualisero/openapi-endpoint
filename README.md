@@ -1,6 +1,6 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.25.1)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.26.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260827)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
@@ -49,6 +49,9 @@ npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
 
 # From remote URL
 npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/generated
+
+# Also emit JSON Schema value constraints (add 'all' for response schemas too)
+npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated --emit-value-schemas
 ```
 
 Generated files:
@@ -61,6 +64,12 @@ Generated files:
 | `api-enums.ts`      | Schema enums                                 |
 | `api-schemas.ts`    | Schema type aliases                          |
 | `openapi-types.ts`  | Raw OpenAPI types                            |
+
+With `--emit-value-schemas [request|all]` (default: off):
+
+| File                   | Description                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `api-value-schemas.ts` | Standard JSON Schema value constraints (see [Value schemas](#value-schemas)) |
 
 ## API Reference
 
@@ -395,6 +404,31 @@ const { data } = api.listPets.useQuery({
 ```
 
 Only code-level labels change. The values sent over the wire, the emitted union types, and the runtime library behaviour are all unchanged.
+
+### Value schemas
+
+Pass `--emit-value-schemas` to additionally generate `api-value-schemas.ts`: per-operation request (and, with `all`, response) value constraints as standard JSON Schema data, with shared component schemas in a `schemaDefs` map. Use `resolveSchema` to compose a self-contained schema document for any JSON-Schema tool — validators (AJV 8 with `ajv-formats` registered, or `validateFormats:false`, because `format` keywords are emitted by design), form generators (JSONForms, react-jsonschema-form, vjsf), etc.:
+
+```bash
+npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated --emit-value-schemas all
+```
+
+Install the validator in your app (`ajv` and `ajv-formats` are not transitive dependencies of this package): `npm i ajv ajv-formats`. Register `ajv-formats` because emitted schemas carry `format` keywords (`date-time`, `uuid`, …) and AJV 8 throws on unknown formats in its default strict mode; alternatively pass `new Ajv({ validateFormats: false })` to skip format checking entirely.
+
+```typescript
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
+import { resolveSchema } from '@qualisero/openapi-endpoint'
+import { requestSchemas, schemaDefs } from './generated/api-value-schemas'
+
+const ajv = addFormats(new Ajv())
+const validate = ajv.compile(resolveSchema(requestSchemas.createPet, schemaDefs))
+validate({ name: 'Fluffy', species: 'cat' }) // true or false, errors in validate.errors
+```
+
+Request bodies and responses referenced via `#/components/requestBodies/...` / `#/components/responses/...` are dereferenced one level, and any JSON media type is accepted: exact `application/json` first, then `application/*+json` variants such as `application/vnd.api+json` (parameters like `; charset=utf-8` are allowed). Operations with no extractable JSON schema (e.g. `text/plain` only) are skipped with a codegen warning.
+
+For hand-rolled form rules or tables, `fieldsOf(requestSchemas.createPet, schemaDefs)` returns a flat list of fields with their constraints (`type`, `required`, `enum`, `minLength`, `maxLength`, `minimum`, `maximum`, `format`, `readOnly`, `nullable`).
 
 ## Documentation
 

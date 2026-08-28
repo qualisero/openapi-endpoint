@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-08-28
+
+### Added
+
+- `--emit-value-schemas [request|all]` CLI flag: opt-in generation of `api-value-schemas.ts` alongside the existing six files. Emits three exports — `schemaDefs` (transitively-referenced component schemas converted to portable JSON Schema, sorted alphabetically), `requestSchemas` (per-operation request body schema, keyed by operationId), and `responseSchemas` (first 2xx response schema per operation when `all`, otherwise `{}`). Feed the result of `resolveSchema(requestSchemas.op, schemaDefs)` directly to AJV 8 (with `ajv-formats` registered, or `validateFormats:false`, because `format` keywords are emitted by design), JSONForms, react-jsonschema-form, vjsf, etc. Flag absent means zero change to existing outputs (byte-identical).
+- New runtime exports `resolveSchema` and `fieldsOf` from the package for consuming emitted artifacts.
+- New type exports `ValueSchema`, `ValueSchemaObject`, `SchemaDefs`, and `SchemaField` from the package. `ValueSchema` models standard JSON Schema fully: boolean schemas and tuple-form `items` are accepted anywhere a schema is expected.
+- OpenAPI 3.0 → JSON Schema conversion: `nullable: true` becomes `type: [T, "null"]`, boolean `exclusiveMinimum`/`exclusiveMaximum` become numeric, `xml`/`discriminator`/`externalDocs`/`example` are stripped, and `$ref: "#/components/schemas/X"` is rewritten to `$ref: "#/$defs/X"`. Conversion also recurses into `$defs` and `definitions` members. OpenAPI 3.1 schemas pass through unchanged.
+- Entry-local `$defs` support: an operation schema carrying its own `$defs` (e.g. an OpenAPI 3.1 inline body) is merged with the shared `schemaDefs` map by `resolveSchema` instead of clobbering it, with entry-local names shadowing shared ones (a name collision also emits a codegen warning). Entry-local names no longer trigger the dangling-`$ref` warning.
+- JSON media-type widening and one-level `$ref` dereferencing across all generators: request bodies and responses referenced via `#/components/requestBodies/X` / `#/components/responses/X` are resolved one level, and schemas are extracted from any JSON media type — exact `application/json` first, else the first `application/*+json` variant in document order (parameters like `; charset=utf-8` allowed). Applies to value-schema emission and operation/enum extraction. The type-level `ApiRequest` / response-data helpers accept the same media-type keys, with exact `application/json` taking priority; multiple `+json` variants resolve to a union of their body types, since key order is not observable at the type level.
+- Codegen warnings for skipped operations: a `requestBody` (or, in `all` mode, a 2xx response with content) with no extractable JSON schema (e.g. `text/plain` only) now prints a warning instead of being silently skipped.
+- CLI argument validation: invalid `--emit-value-schemas` values (anything other than `request`/`all`) and unknown options now exit 1 with an error instead of being silently accepted or ignored; `--use-strict-response` no longer consumes a following option token as its value.
+- `fieldsOf`: inline sibling `properties` win over colliding `allOf` branch properties (the local refinement is the narrower definition).
+
 ## [0.25.1] - 2026-08-27
 
 ### Fixed
