@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-08-28
+
+### Fixed
+
+- Value-schema conversion: `nullable: true` on a typeless, constraint-free schema (e.g. `{readOnly: true, nullable: true}`) no longer produces a vacuous `anyOf` null-union wrap — a typeless schema already accepts null, so the wrap only buried annotations. Emitted value-schemas for such fields change shape; regenerate.
+- Value-schema conversion: when a null-union wrap is synthesized (`$ref`/`allOf` + `nullable`), all annotation keywords (`title`, `description`, `default`, `deprecated`, `readOnly`, `writeOnly`, `examples`) are hoisted to the wrapper's top level instead of being buried in a branch, so form tools (JSONForms, RJSF, vjsf) see them. Validation semantics are unchanged.
+- `fieldsOf`: null-union `anyOf`/`oneOf` properties (one payload branch plus null-ish branches, e.g. `[{$ref: X}, {type: 'null'}]` or marshmallow-style `[{$ref: X}, {type: ['object', 'null']}]`) are now folded into the payload with `nullable: true`, resolving the payload `$ref` and merging branch annotations. Genuine sum types stay un-flattened. Also covers native OpenAPI 3.1 null-unions passed through conversion.
+- `fieldsOf`: an enum containing `null` now sets `nullable: true` on the field.
+
 ## [0.26.0] - 2026-08-28
 
 ### Added

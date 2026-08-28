@@ -27,14 +27,66 @@ describe('toJsonSchema', () => {
       expect(result).toEqual({ type: 'string' })
     })
 
-    it('wraps typeless nullable node in anyOf, hoisting annotation keys', () => {
-      // A bare nullable: true with no type or $ref/allOf – annotation stays at outer level
-      const result = toJsonSchema({ nullable: true, description: 'maybe null' }) as Record<string, unknown>
-      expect(result).not.toHaveProperty('nullable')
-      // Annotation keyword hoisted to outer level
-      expect(result['description']).toBe('maybe null')
-      // anyOf wraps the (empty) inner schema and {type:"null"}
-      expect(result['anyOf']).toEqual([{}, { type: 'null' }])
+    it('hoists all annotation keywords out of a synthesized $ref-null wrap', () => {
+      const converted = toJsonSchema({
+        $ref: '#/components/schemas/Addr',
+        nullable: true,
+        readOnly: true,
+        deprecated: true,
+        examples: [{ street: 'Main St' }],
+        description: 'maybe an address',
+      }) as Record<string, unknown>
+      expect(converted).not.toHaveProperty('nullable')
+      // Annotations at parent level, branches clean
+      expect(converted['readOnly']).toBe(true)
+      expect(converted['deprecated']).toBe(true)
+      expect(converted['examples']).toEqual([{ street: 'Main St' }])
+      expect(converted['description']).toBe('maybe an address')
+      expect(converted['anyOf']).toEqual([{ $ref: '#/$defs/Addr' }, { type: 'null' }])
+    })
+
+    it('AJV equivalence: annotation-hoisted $ref-null wrap validates like the branch-buried shape', () => {
+      const converted = toJsonSchema({
+        $ref: '#/components/schemas/Addr',
+        nullable: true,
+        readOnly: true,
+      }) as Record<string, unknown>
+      const oldShape = { anyOf: [{ $ref: '#/$defs/Addr', readOnly: true }, { type: 'null' }] }
+      const defs = { $defs: { Addr: { type: 'object', properties: { street: { type: 'string' } } } } }
+
+      const ajv = new Ajv()
+      const validateNew = ajv.compile({ ...defs, ...converted })
+      const validateOld = ajv.compile({ ...defs, ...oldShape })
+      for (const value of [null, { street: 'Main St' }, 42, 'str']) {
+        expect(validateNew(value)).toBe(validateOld(value))
+      }
+    })
+
+    it('drops nullable without wrapping on a constraint-free typeless node (annotation-only)', () => {
+      // {readOnly, nullable} → {readOnly}: a typeless schema already accepts null
+      expect(toJsonSchema({ nullable: true, readOnly: true })).toEqual({ readOnly: true })
+      expect(toJsonSchema({ nullable: true, description: 'maybe null' })).toEqual({ description: 'maybe null' })
+    })
+
+    it('drops nullable without wrapping on a typeless properties-only node (type-scoped keywords)', () => {
+      const result = toJsonSchema({
+        nullable: true,
+        properties: { street: { type: 'string' } },
+      })
+      expect(result).toEqual({ properties: { street: { type: 'string' } } })
+    })
+
+    it('AJV equivalence: unwrapped annotation-only nullable accepts the same values as the old wrap', () => {
+      const converted = toJsonSchema({ nullable: true, readOnly: true }) as Record<string, unknown>
+      const oldShape = { anyOf: [{ readOnly: true }, { type: 'null' }] }
+
+      const ajv = new Ajv()
+      const validateNew = ajv.compile(converted)
+      const validateOld = ajv.compile(oldShape)
+      for (const value of [null, 'str', 42, { a: 1 }, [1], true]) {
+        expect(validateNew(value)).toBe(validateOld(value))
+        expect(validateNew(value)).toBe(true) // both accept everything, including null
+      }
     })
 
     it('wraps {$ref, nullable:true} in anyOf so the ref value AND null are both accepted (AJV verified)', () => {
@@ -71,6 +123,12 @@ describe('toJsonSchema', () => {
       expect(validate({ street: 'Main St' })).toBe(true)
       expect(validate(null)).toBe(true)
       expect(validate(42)).toBe(false)
+    })
+
+    it('keeps the enum-null conversion for typeless enum-only nullable node (boundary guard)', () => {
+      // enum is a constraint keyword — nullable must still be expressed (via enum append)
+      const result = toJsonSchema({ enum: ['x'], nullable: true })
+      expect(result).toEqual({ enum: ['x', null] })
     })
 
     it('appends null to enum for typeless enum-only nullable node (AJV verified)', () => {
