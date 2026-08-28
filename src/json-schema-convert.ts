@@ -41,19 +41,9 @@ const HOIST_KEYS = new Set(['title', 'description', 'default', 'deprecated', 're
 // Keywords that constrain values independent of `type`. A typeless nullable
 // node needs an anyOf null-union wrap only when one of these is present;
 // everything else (properties, minLength, items, …) is type-scoped and
-// vacuously accepts null, making the wrap a no-op.
-const TYPELESS_CONSTRAINT_KEYS = new Set([
-  '$ref',
-  'allOf',
-  'anyOf',
-  'oneOf',
-  'not',
-  'const',
-  'enum',
-  'if',
-  'then',
-  'else',
-])
+// vacuously accepts null, making the wrap a no-op. `enum` and a pre-existing
+// `anyOf` are handled by dedicated branches before this set is consulted.
+const TYPELESS_CONSTRAINT_KEYS = new Set(['$ref', 'allOf', 'oneOf', 'not', 'const', 'if', 'then', 'else'])
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)

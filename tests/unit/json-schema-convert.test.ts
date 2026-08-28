@@ -125,12 +125,6 @@ describe('toJsonSchema', () => {
       expect(validate(42)).toBe(false)
     })
 
-    it('keeps the enum-null conversion for typeless enum-only nullable node (boundary guard)', () => {
-      // enum is a constraint keyword — nullable must still be expressed (via enum append)
-      const result = toJsonSchema({ enum: ['x'], nullable: true })
-      expect(result).toEqual({ enum: ['x', null] })
-    })
-
     it('appends null to enum for typeless enum-only nullable node (AJV verified)', () => {
       const converted = toJsonSchema({ enum: ['a', 'b'], nullable: true }) as Record<string, unknown>
       expect(converted).not.toHaveProperty('nullable')

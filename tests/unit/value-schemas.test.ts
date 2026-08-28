@@ -527,6 +527,46 @@ describe('fieldsOf', () => {
     expect(fields[0].nullable).toBe(true)
   })
 
+  it('does not fold when the union node carries a sibling constraint next to anyOf', () => {
+    const localDefs: SchemaDefs = { X: { type: 'string', minLength: 2 } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        v: { type: 'string', maxLength: 10, anyOf: [{ $ref: '#/$defs/X' }, { type: 'null' }] },
+      },
+    }
+    // Sibling type: 'string' rejects null despite the null branch — no fold,
+    // the node's own keywords are surfaced instead
+    expect(fieldsOf(schema, localDefs)).toEqual([{ name: 'v', type: 'string', maxLength: 10 }])
+  })
+
+  it('does not fold a genuine sum type with a {type: [string, null]} branch', () => {
+    const localDefs: SchemaDefs = {
+      Addr: { type: 'object', properties: { street: { type: 'string' } } },
+    }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        value: { anyOf: [{ $ref: '#/$defs/Addr' }, { type: ['string', 'null'] }] },
+      },
+    }
+    // The second branch accepts strings, not just null — folding would drop it
+    expect(fieldsOf(schema, localDefs)).toEqual([{ name: 'value' }])
+  })
+
+  it('keeps payload-branch sibling keywords over the referenced definition when folding', () => {
+    const localDefs: SchemaDefs = { Id: { type: 'string', format: 'uuid' } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        id: { anyOf: [{ $ref: '#/$defs/Id', format: 'legacy-id', maxLength: 36 }, { type: 'null' }] },
+      },
+    }
+    expect(fieldsOf(schema, localDefs)).toEqual([
+      { name: 'id', type: 'string', format: 'legacy-id', maxLength: 36, nullable: true },
+    ])
+  })
+
   it('leaves a 3-branch sum type un-flattened (no type, no nullable)', () => {
     const schema: ValueSchema = {
       type: 'object',

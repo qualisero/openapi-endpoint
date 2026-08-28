@@ -120,18 +120,22 @@ function resolveRef(ref: string, defs: SchemaDefs): ValueSchemaObject | undefine
   return typeof resolved === 'object' && resolved !== null ? resolved : undefined
 }
 
-// Annotation keywords (JSON Schema 2020-12 §annotations) — allowed on a
-// null-ish branch of a null-union without disqualifying the fold.
+// Annotation keywords (JSON Schema 2020-12 §annotations) — allowed on the
+// union node and on null-ish branches without disqualifying the fold.
 const ANNOTATION_KEYS = new Set(['title', 'description', 'default', 'deprecated', 'readOnly', 'writeOnly', 'examples'])
 
 /**
  * A branch is null-ish when it carries no keywords other than annotations and
- * a `type` that is `'null'` or an array containing `'null'`.
+ * a `type` that only admits null — `'null'` / `['null']` — or the
+ * marshmallow-style `['object', 'null']`. Broader arrays like
+ * `['string', 'null']` are genuine alternatives, not null markers.
  */
 function isNullishBranch(branch: ValueSchema): branch is ValueSchemaObject {
   if (typeof branch === 'boolean') return false
   const type = branch.type
-  const typeIsNullish = type === 'null' || (Array.isArray(type) && type.includes('null'))
+  const typeIsNullish =
+    type === 'null' ||
+    (Array.isArray(type) && type.includes('null') && type.every((t) => t === 'null' || t === 'object'))
   if (!typeIsNullish) return false
   return Object.keys(branch).every((k) => k === 'type' || ANNOTATION_KEYS.has(k))
 }
@@ -139,12 +143,19 @@ function isNullishBranch(branch: ValueSchema): branch is ValueSchemaObject {
 /**
  * Fold a null-union `anyOf`/`oneOf` (exactly one payload branch plus one or
  * more null-ish branches, in any order) into the resolved payload schema.
- * Returns `undefined` when the shape does not match (genuine sum types stay
- * un-flattened). The payload branch is resolved through one level of `$ref`
- * only. Annotations found on the union schema or any branch are merged in
- * (OR of readOnly/writeOnly; first non-empty description).
+ * Returns `undefined` when the shape does not match: genuine sum types stay
+ * un-flattened, and so does a union node carrying sibling keywords beyond
+ * annotations (a sibling `type: 'string'` rejects null despite the null
+ * branch). The payload branch is resolved through one level of `$ref`, its
+ * sibling keywords winning over the referenced definition. `readOnly` is
+ * OR-merged from the union node and all branches.
  */
 function foldNullUnion(schema: ValueSchemaObject, defs: SchemaDefs): ValueSchemaObject | undefined {
+  // A non-annotation sibling next to the union changes the accepted values —
+  // folding would misreport the field. Both keywords at once is ambiguous.
+  if (!Object.keys(schema).every((k) => k === 'anyOf' || k === 'oneOf' || ANNOTATION_KEYS.has(k))) return undefined
+  if (Array.isArray(schema.anyOf) && Array.isArray(schema.oneOf)) return undefined
+
   const branches = Array.isArray(schema.anyOf) ? schema.anyOf : Array.isArray(schema.oneOf) ? schema.oneOf : undefined
   if (!branches) return undefined
 
@@ -160,16 +171,22 @@ function foldNullUnion(schema: ValueSchemaObject, defs: SchemaDefs): ValueSchema
   }
   if (payload === undefined || nullish.length === 0) return undefined
 
-  const resolved = payload.$ref ? (resolveRef(payload.$ref, defs) ?? payload) : payload
-  const folded: ValueSchemaObject = { ...resolved }
-
-  const carriers = [schema, payload, ...nullish]
-  if (carriers.some((s) => s.readOnly === true)) folded.readOnly = true
-  if (carriers.some((s) => s.writeOnly === true)) folded.writeOnly = true
-  if (folded.description === undefined || folded.description === '') {
-    const description = carriers.map((s) => s.description).find((d) => typeof d === 'string' && d !== '')
-    if (description !== undefined) folded.description = description
+  let folded: ValueSchemaObject
+  if (payload.$ref) {
+    const referenced = resolveRef(payload.$ref, defs)
+    if (referenced) {
+      // Payload siblings ($ref-adjacent format, readOnly, …) are the narrower
+      // refinement and win over the referenced definition.
+      const { $ref: _ref, ...siblings } = payload
+      folded = { ...referenced, ...siblings }
+    } else {
+      folded = { ...payload }
+    }
+  } else {
+    folded = { ...payload }
   }
+
+  if ([schema, ...nullish].some((s) => s.readOnly === true)) folded.readOnly = true
   return folded
 }
 
