@@ -4,6 +4,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { HttpMethod } from './types.js'
 import { toPascalCase, buildMemberLabelMap, type EnumCase } from './enum-naming.js'
+import { toJsonSchema, collectRefNames } from './json-schema-convert.js'
 
 const execAsync = promisify(exec)
 
@@ -1475,6 +1476,11 @@ Options:
                                 'const'  = CONSTANT_CASE / SCREAMING_SNAKE_CASE labels (e.g. AVAILABLE, IN_PROGRESS)
                                 Changes only code-level label names; the values sent to the API are unchanged.
                                 Label collisions abort codegen; re-run without this flag or fix the spec.
+  --emit-value-schemas [MODE]   Emit api-value-schemas.ts with portable JSON Schema data for use with AJV
+                                (with ajv-formats registered), JSONForms, react-jsonschema-form, etc.
+                                format keywords are emitted by design. (default: off)
+                                'request' = emit requestSchemas only (default when flag is present)
+                                'all'     = emit requestSchemas + first 2xx responseSchemas per operation
   --help, -h                    Show this help message
 
 Examples:
@@ -1484,14 +1490,17 @@ Examples:
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --exclude-prefix false
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --use-strict-response true
   npx @qualisero/openapi-endpoint ./api.json ./src/gen --enum-case const
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --emit-value-schemas
+  npx @qualisero/openapi-endpoint ./api.json ./src/gen --emit-value-schemas all
 
 This command will generate:
-  - openapi-types.ts   (TypeScript types from OpenAPI spec)
-  - api-client.ts      (Fully-typed createApiClient factory — main file to use)
-  - api-operations.ts  (Operations map + type aliases)
-  - api-types.ts       (Types namespace for type-only access)
-  - api-enums.ts       (Type-safe enum objects from OpenAPI spec)
-  - api-schemas.ts     (Type aliases for schema objects from OpenAPI spec)
+  - openapi-types.ts        (TypeScript types from OpenAPI spec)
+  - api-client.ts           (Fully-typed createApiClient factory — main file to use)
+  - api-operations.ts       (Operations map + type aliases)
+  - api-types.ts            (Types namespace for type-only access)
+  - api-enums.ts            (Type-safe enum objects from OpenAPI spec)
+  - api-schemas.ts          (Type aliases for schema objects from OpenAPI spec)
+  - api-value-schemas.ts    (JSON Schema data for validation/forms — only with --emit-value-schemas)
 
 Response Typing (--use-strict-response):
   By default, ApiResponse makes ALL fields required for all endpoint responses
@@ -1922,6 +1931,108 @@ async function generateApiTypesFile(
   console.log(`✅ Generated api-types.ts`)
 }
 
+// ============================================================================
+// New generator: api-value-schemas.ts
+// ============================================================================
+
+/**
+ * Generates the content for `api-value-schemas.ts`.
+ *
+ * @param openApiSpec  Parsed OpenAPI spec
+ * @param excludePrefix  Operations with this prefix are excluded (same filter as other generators)
+ * @param mode  'request' — only request schemas emitted; 'all' — also emits first 2xx response schema
+ */
+function generateApiValueSchemasContent(
+  openApiSpec: OpenAPISpec,
+  excludePrefix: string | null,
+  mode: 'request' | 'all',
+): string {
+  const rawSchemas = openApiSpec.components?.schemas ?? {}
+
+  const requestSchemasMap: Record<string, unknown> = {}
+  const responseSchemasMap: Record<string, unknown> = {}
+  const allReferencedNames = new Set<string>()
+
+  for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+    for (const [method, rawOp] of Object.entries(pathItem)) {
+      if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
+      const op = rawOp as OpenAPIOperation & {
+        requestBody?: { content?: { 'application/json'?: { schema?: OpenAPISchema } } }
+        responses?: Record<string, { content?: { 'application/json'?: { schema?: OpenAPISchema } } }>
+      }
+      if (!op.operationId) continue
+      if (excludePrefix && op.operationId.startsWith(excludePrefix)) continue
+
+      // Request body schema
+      const reqBodySchema = op.requestBody?.content?.['application/json']?.schema
+      if (reqBodySchema) {
+        const converted = toJsonSchema(reqBodySchema)
+        requestSchemasMap[op.operationId] = converted
+        collectRefNames(converted, rawSchemas).forEach((n) => allReferencedNames.add(n))
+      }
+
+      // First 2xx application/json response schema (only when mode === 'all')
+      if (mode === 'all' && op.responses) {
+        const twoxxCodes = Object.keys(op.responses)
+          .filter((c) => c >= '200' && c < '300')
+          .sort()
+        for (const code of twoxxCodes) {
+          const resSchema = op.responses[code]?.content?.['application/json']?.schema
+          if (resSchema) {
+            const converted = toJsonSchema(resSchema)
+            responseSchemasMap[op.operationId] = converted
+            collectRefNames(converted, rawSchemas).forEach((n) => allReferencedNames.add(n))
+            break
+          }
+        }
+      }
+    }
+  }
+
+  // Build schemaDefs: transitively referenced component schemas, converted and sorted
+  const schemaDefs: Record<string, unknown> = {}
+  for (const name of [...allReferencedNames].sort()) {
+    if (Object.prototype.hasOwnProperty.call(rawSchemas, name)) {
+      schemaDefs[name] = toJsonSchema(rawSchemas[name])
+    } else {
+      console.warn(
+        `⚠️  Value schema warning: ref '#/$defs/${name}' collected but '${name}' is not in components.schemas — emitted schema will have a dangling $ref`,
+      )
+    }
+  }
+
+  const schemaDefsJson = JSON.stringify(schemaDefs, null, 2)
+  const requestSchemasJson = JSON.stringify(requestSchemasMap, null, 2)
+  const responseSchemasJson = JSON.stringify(mode === 'all' ? responseSchemasMap : {}, null, 2)
+
+  return `// Auto-generated from OpenAPI specification - do not edit manually
+
+import type { operations } from './openapi-types'
+import type { ValueSchema, SchemaDefs } from '@qualisero/openapi-endpoint'
+
+export const schemaDefs: SchemaDefs = ${schemaDefsJson}
+
+export const requestSchemas: Partial<Record<keyof operations, ValueSchema>> = ${requestSchemasJson}
+
+export const responseSchemas: Partial<Record<keyof operations, ValueSchema>> = ${responseSchemasJson}
+`
+}
+
+/**
+ * Async wrapper for generateApiValueSchemasContent.
+ */
+async function generateApiValueSchemasFile(
+  openApiSpec: OpenAPISpec,
+  outputDir: string,
+  excludePrefix: string | null,
+  mode: 'request' | 'all',
+): Promise<void> {
+  console.log('🔨 Generating api-value-schemas.ts...')
+  const content = generateApiValueSchemasContent(openApiSpec, excludePrefix, mode)
+  fs.writeFileSync(path.join(outputDir, 'api-value-schemas.ts'), content)
+  console.log(`✅ Generated api-value-schemas.ts`)
+}
+
 /**
  * Validates that no two distinct non-enum schema names map to the same exported alias
  * after schema-suffix removal, PascalCase conversion, and reserved-name suffixing.
@@ -2005,6 +2116,7 @@ async function main(): Promise<void> {
   let excludePrefix: string | null = '_deprecated' // default
   let useStrictResponse = false // default to false
   let enumCase: EnumCase = 'pascal' // default
+  let emitValueSchemasMode: 'request' | 'all' | null = null // null = off
 
   for (let i = 0; i < optionArgs.length; i++) {
     if (optionArgs[i] === '--exclude-prefix') {
@@ -2047,6 +2159,20 @@ async function main(): Promise<void> {
         printUsage()
         process.exit(1)
       }
+    } else if (optionArgs[i] === '--emit-value-schemas') {
+      if (i + 1 < optionArgs.length) {
+        const next = optionArgs[i + 1]
+        if (next === 'request' || next === 'all') {
+          emitValueSchemasMode = next
+          i++ // consume the value token
+        } else {
+          // Next token is a flag or another arg — default to 'request'
+          emitValueSchemasMode = 'request'
+        }
+      } else {
+        // Flag without value — default to 'request'
+        emitValueSchemasMode = 'request'
+      }
     }
   }
 
@@ -2078,6 +2204,13 @@ async function main(): Promise<void> {
       console.log(`✅ Using PascalCase enum labels (default)`)
     }
 
+    // Log value-schemas setting
+    if (emitValueSchemasMode !== null) {
+      console.log(`✅ Emitting value schemas (mode: ${emitValueSchemasMode}) → api-value-schemas.ts`)
+    } else {
+      console.log(`🚫 Value schema emission disabled (use --emit-value-schemas to enable)`)
+    }
+
     // Fetch and parse OpenAPI spec once
     let openapiContent = await fetchOpenAPISpec(openapiInput)
     const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
@@ -2101,6 +2234,9 @@ async function main(): Promise<void> {
       generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames, enumCase),
       generateApiTypesFile(openApiSpec, outputDir, excludePrefix, enumCase),
       generateApiClientFile(openApiSpec, outputDir, excludePrefix, useStrictResponse),
+      ...(emitValueSchemasMode !== null
+        ? [generateApiValueSchemasFile(openApiSpec, outputDir, excludePrefix, emitValueSchemasMode)]
+        : []),
     ])
 
     console.log('🎉 Code generation completed successfully!')

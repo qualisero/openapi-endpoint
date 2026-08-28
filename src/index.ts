@@ -68,6 +68,12 @@ export { HttpMethod, QUERY_METHODS, MUTATION_METHODS, isQueryMethod, isMutationM
 export { buildUrl } from './openapi-utils'
 
 // ============================================================================
+// Value schema types and runtime helpers
+// ============================================================================
+export type { ValueSchema, SchemaDefs, SchemaField } from './value-schemas'
+export { resolveSchema, fieldsOf } from './value-schemas'
+
+// ============================================================================
 // Re-export Vue types (ensures consumer's version is used)
 // ============================================================================
 export type { Ref, ComputedRef, ShallowRef } from 'vue'
