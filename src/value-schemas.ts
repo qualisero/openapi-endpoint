@@ -9,7 +9,8 @@
 // ---------------------------------------------------------------------------
 
 /**
- * A standard JSON Schema value (draft-07/2019-09/2020-12 portable subset).
+ * A standard JSON Schema value (2019-09/2020-12 portable subset — shared
+ * definitions use `$defs`, not the draft-07 `definitions` keyword).
  * Emitted by the generator and consumed by AJV, JSONForms, etc.
  * No $schema keyword — consumers apply their own default dialect.
  *
