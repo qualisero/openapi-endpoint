@@ -99,7 +99,13 @@ export function resolveSchema(entry: ValueSchema | undefined, defs: SchemaDefs):
     )
   }
   if (typeof entry === 'boolean') return entry
-  return { $defs: defs, ...entry }
+  // Merge entry-local $defs (e.g. OpenAPI 3.1 inline bodies) with the shared map
+  // instead of letting one clobber the other. Entry-local names shadow shared
+  // ones because refs inside the entry were authored against its own $defs.
+  // Known residual: a name collision also rebinds refs inside shared defs to
+  // the entry-local definition.
+  const own = entry.$defs
+  return own && typeof own === 'object' ? { ...entry, $defs: { ...defs, ...own } } : { ...entry, $defs: defs }
 }
 
 /**
@@ -160,7 +166,9 @@ export function fieldsOf(schema: ValueSchema | undefined, defs: SchemaDefs): Sch
   let required: string[] = resolved.required ?? []
   if (resolved.allOf) {
     const merged = mergeAllOf(resolved.allOf, defs)
-    properties = { ...properties, ...merged.properties }
+    // Inline sibling properties win over allOf branches: the local definition
+    // is the narrower refinement (whole-property replacement, no deep merge)
+    properties = { ...merged.properties, ...properties }
     required = [...required, ...merged.required]
   }
 

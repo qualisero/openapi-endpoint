@@ -53,6 +53,33 @@ describe('resolveSchema', () => {
     expect(result.$defs).toBe(defs)
   })
 
+  it('merges entry-local $defs with the shared defs map (both refs resolve under AJV)', () => {
+    const entry: ValueSchema = {
+      type: 'object',
+      required: ['kind', 'addr'],
+      properties: {
+        kind: { $ref: '#/$defs/Kind' },
+        addr: { $ref: '#/$defs/Address' },
+      },
+      $defs: {
+        Kind: { type: 'string', enum: ['a', 'b'] },
+      },
+    }
+    const result = resolveSchema(entry, defs)
+    expect(result.$defs).toEqual({ ...defs, Kind: { type: 'string', enum: ['a', 'b'] } })
+
+    const validate = new Ajv().compile(result)
+    expect(validate({ kind: 'a', addr: { street: '1 Main St' } })).toBe(true)
+    expect(validate({ kind: 'z', addr: { street: '1 Main St' } })).toBe(false)
+    expect(validate({ kind: 'a', addr: {} })).toBe(false)
+  })
+
+  it('entry-local $defs shadow shared defs of the same name', () => {
+    const entry: ValueSchema = { $ref: '#/$defs/Tag', $defs: { Tag: { type: 'number' } } }
+    const result = resolveSchema(entry, defs)
+    expect(result.$defs?.['Tag']).toEqual({ type: 'number' })
+  })
+
   it('throws a clear error when the entry is undefined (missing operation)', () => {
     expect(() => resolveSchema(undefined, defs)).toThrow(/no schema entry for this operation/)
   })
@@ -301,6 +328,28 @@ describe('fieldsOf', () => {
     const fields = fieldsOf(schema, {})
     expect(fields.find((f) => f.name === 'id')?.required).toBe(true)
     expect(fields.find((f) => f.name === 'name')?.required).toBe(true)
+  })
+
+  it('inline sibling properties win over colliding allOf branch properties', () => {
+    const localDefs: SchemaDefs = {
+      CodeBase: {
+        type: 'object',
+        required: ['code'],
+        properties: { code: { type: 'string', maxLength: 10 } },
+      },
+    }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        code: { type: 'string', maxLength: 3, enum: ['AAA', 'BBB'] },
+      },
+      allOf: [{ $ref: '#/$defs/CodeBase' }],
+    }
+    const fields = fieldsOf(schema, localDefs)
+    const code = fields.find((f) => f.name === 'code')
+    expect(code?.maxLength).toBe(3)
+    expect(code?.enum).toEqual(['AAA', 'BBB'])
+    expect(code?.required).toBe(true)
   })
 
   it('resolves $ref inside allOf when merging', () => {

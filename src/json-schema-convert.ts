@@ -4,8 +4,8 @@
  *
  * Converts recursively through: properties, items (schema and tuple forms),
  * additionalProperties, additionalItems, not, if/then/else, contains,
- * propertyNames, patternProperties, dependentSchemas, dependencies (schema-valued),
- * allOf, anyOf, oneOf, prefixItems.
+ * propertyNames, patternProperties, dependentSchemas, $defs, definitions,
+ * dependencies (schema-valued), allOf, anyOf, oneOf, prefixItems.
  *
  * OpenAPI 3.1 schemas (type arrays, numeric exclusiveMinimum/Maximum) pass through untouched.
  */
@@ -25,6 +25,9 @@ const SINGLE_SCHEMA_KEYS = new Set([
   'contains',
   'propertyNames',
 ])
+
+// Keys whose value is an object of named schemas
+const OBJECT_OF_SCHEMAS_KEYS = new Set(['patternProperties', 'dependentSchemas', '$defs', 'definitions'])
 
 // Keys that contain arrays of schemas
 const ARRAY_SCHEMA_KEYS = new Set(['allOf', 'anyOf', 'oneOf', 'prefixItems'])
@@ -161,7 +164,7 @@ export function toJsonSchema(schema: unknown): unknown {
         converted[propName] = toJsonSchema(propSchema)
       }
       intermediate[key] = converted
-    } else if ((key === 'patternProperties' || key === 'dependentSchemas') && isObject(val)) {
+    } else if (OBJECT_OF_SCHEMAS_KEYS.has(key) && isObject(val)) {
       // Object whose values are schemas
       const converted: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(val)) {

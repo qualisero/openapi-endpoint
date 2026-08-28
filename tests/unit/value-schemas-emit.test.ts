@@ -38,6 +38,8 @@ function extractConstJson(fileText: string, constName: string): string {
 describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 }, () => {
   const CLI = path.join(os.tmpdir(), 'openapi-cli-value-schemas-bundle.js')
   const VALUE_SPEC = path.join(process.cwd(), 'tests/fixtures/value-schemas-openapi.json')
+  const VALUE_31_SPEC = path.join(process.cwd(), 'tests/fixtures/value-schemas-31-openapi.json')
+  const SKIP_SPEC = path.join(process.cwd(), 'tests/fixtures/value-schemas-skip-openapi.json')
   let outDir: string
 
   beforeAll(() => {
@@ -361,6 +363,105 @@ describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 },
     // Violating payload: missing required 'name', status not in enum
     const violating = { status: 'bad_value' }
     expect(validate!(violating)).toBe(false)
+  })
+
+  // ─── OpenAPI 3.1 inline request body with entry-local $defs ─────────────
+
+  it('emits an entry-local $defs request body (3.1) that resolves against shared defs under AJV', () => {
+    const result = spawnSync('node', [CLI, VALUE_31_SPEC, outDir, '--emit-value-schemas'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(0)
+
+    // Entry-local $defs names must not trigger the dangling-$ref warning
+    expect(result.stdout + result.stderr).not.toContain('dangling $ref')
+
+    const content = fs.readFileSync(path.join(outDir, 'api-value-schemas.ts'), 'utf8')
+    const schemaDefs = JSON.parse(extractConstJson(content, 'schemaDefs'))
+    const requestSchemas = JSON.parse(extractConstJson(content, 'requestSchemas'))
+
+    // Entry-local def stays on the entry, converted (component ref rewritten to #/$defs/);
+    // the shared component lands in schemaDefs
+    expect(requestSchemas.createGadget.$defs.Meta).toEqual({ $ref: '#/$defs/SharedThing' })
+    expect(schemaDefs).toHaveProperty('SharedThing')
+    expect(schemaDefs).not.toHaveProperty('Meta')
+
+    // resolveSchema merges both def sources instead of letting the entry-local
+    // $defs clobber the shared map — AJV compiles and #/$defs/SharedThing resolves
+    const schema = resolveSchema(requestSchemas.createGadget, schemaDefs)
+    const validate = new Ajv().compile(schema)
+    expect(validate({ kind: 'basic', shared: { id: 'x' } })).toBe(true)
+    expect(validate({ kind: 'bogus' })).toBe(false)
+    expect(validate({ kind: 'basic', shared: {} })).toBe(false)
+  })
+
+  // ─── skipped operations warn instead of silently emitting nothing ───────
+
+  it('warns for $ref-valued requestBody and non-literal JSON media types, exits 0, ops absent from maps', () => {
+    const result = spawnSync('node', [CLI, SKIP_SPEC, outDir, '--emit-value-schemas', 'all'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(0)
+
+    const output = result.stdout + result.stderr
+    // $ref-valued requestBody
+    expect(output).toContain(
+      "operation 'createWithRefBody' has a requestBody without an inline 'application/json' schema",
+    )
+    // application/json; charset=utf-8 media type (request and response)
+    expect(output).toContain(
+      "operation 'createWithCharset' has a requestBody without an inline 'application/json' schema",
+    )
+    expect(output).toContain(
+      "operation 'createWithCharset' has a 2xx response without an inline 'application/json' schema",
+    )
+    // createWithRefBody's 201 has no content — nothing skipped, no response warning
+    expect(output).not.toContain("operation 'createWithRefBody' has a 2xx response")
+
+    const content = fs.readFileSync(path.join(outDir, 'api-value-schemas.ts'), 'utf8')
+    expect(JSON.parse(extractConstJson(content, 'requestSchemas'))).toEqual({})
+    expect(JSON.parse(extractConstJson(content, 'responseSchemas'))).toEqual({})
+  })
+
+  // ─── option parsing ────────────────────────────────────────────────
+
+  it('rejects an invalid --emit-value-schemas mode with exit 1', () => {
+    const result = spawnSync('node', [CLI, VALUE_SPEC, outDir, '--emit-value-schemas', 'al'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("--emit-value-schemas must be 'request' or 'all'")
+    expect(fs.existsSync(path.join(outDir, 'api-value-schemas.ts'))).toBe(false)
+  })
+
+  it('honors both flags in --use-strict-response --emit-value-schemas all (no greedy token consumption)', () => {
+    const result = spawnSync(
+      'node',
+      [CLI, VALUE_SPEC, outDir, '--use-strict-response', '--emit-value-schemas', 'all'],
+      {
+        encoding: 'utf8',
+        timeout: 30_000,
+      },
+    )
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('ApiResponseStrict')
+    expect(fs.existsSync(path.join(outDir, 'api-value-schemas.ts'))).toBe(true)
+
+    const content = fs.readFileSync(path.join(outDir, 'api-value-schemas.ts'), 'utf8')
+    const responseSchemas = JSON.parse(extractConstJson(content, 'responseSchemas'))
+    expect(responseSchemas).toHaveProperty('createWidget')
+  })
+
+  it('rejects unknown options (e.g. --emit-value-schema typo) with exit 1', () => {
+    const result = spawnSync('node', [CLI, VALUE_SPEC, outDir, '--emit-value-schema', 'all'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Unknown option')
   })
 
   // ─── excludePrefix filtering ───────────────────────────────────────────────

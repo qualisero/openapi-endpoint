@@ -380,6 +380,27 @@ describe('toJsonSchema', () => {
       const result = toJsonSchema({ type: 'object', additionalProperties: false })
       expect(result).toEqual({ type: 'object', additionalProperties: false })
     })
+
+    it('converts schemas inside $defs (ref rewrite + nullable)', () => {
+      const result = toJsonSchema({
+        type: 'object',
+        properties: { kind: { $ref: '#/$defs/Kind' } },
+        $defs: {
+          Kind: { type: 'string', nullable: true, enum: ['a', 'b'] },
+          Linked: { $ref: '#/components/schemas/Shared' },
+        },
+      }) as Record<string, Record<string, unknown>>
+      expect(result['$defs']['Kind']).toEqual({ type: ['string', 'null'], enum: ['a', 'b', null] })
+      expect(result['$defs']['Linked']).toEqual({ $ref: '#/$defs/Shared' })
+    })
+
+    it('converts schemas inside definitions (draft-07 style)', () => {
+      const result = toJsonSchema({
+        type: 'object',
+        definitions: { Note: { type: 'string', nullable: true } },
+      }) as Record<string, Record<string, unknown>>
+      expect(result['definitions']['Note']).toEqual({ type: ['string', 'null'] })
+    })
   })
 
   // -------------------------------------------------------------------------

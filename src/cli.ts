@@ -1953,6 +1953,30 @@ function generateApiValueSchemasContent(
   const responseSchemasMap: Record<string, unknown> = {}
   const allReferencedNames = new Set<string>()
 
+  /**
+   * Collect shared-component ref names from a converted entry, skipping names
+   * defined in the entry's own $defs (those refs resolve locally, so they must
+   * not trigger the dangling-$ref warning or pull in same-named components).
+   */
+  const addReferencedNames = (converted: unknown): void => {
+    const entry = converted as { $defs?: unknown }
+    const localDefs =
+      typeof entry === 'object' && entry !== null && typeof entry.$defs === 'object' && entry.$defs !== null
+        ? (entry.$defs as Record<string, unknown>)
+        : {}
+    const localNames = new Set(Object.keys(localDefs))
+    for (const name of localNames) {
+      if (Object.prototype.hasOwnProperty.call(rawSchemas, name)) {
+        console.warn(
+          `⚠️  Value schema warning: entry-local $defs name '${name}' collides with a component schema — refs to '#/$defs/${name}' resolve to the entry-local definition after resolveSchema()`,
+        )
+      }
+    }
+    collectRefNames(converted, rawSchemas).forEach((n) => {
+      if (!localNames.has(n)) allReferencedNames.add(n)
+    })
+  }
+
   for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
     for (const [method, rawOp] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
@@ -1968,21 +1992,47 @@ function generateApiValueSchemasContent(
       if (reqBodySchema) {
         const converted = toJsonSchema(reqBodySchema)
         requestSchemasMap[op.operationId] = converted
-        collectRefNames(converted, rawSchemas).forEach((n) => allReferencedNames.add(n))
+        addReferencedNames(converted)
+      } else if (op.requestBody) {
+        // $ref-valued requestBody or a JSON media type other than the exact
+        // literal 'application/json' (e.g. '; charset=utf-8', 'application/vnd.api+json')
+        console.warn(
+          `⚠️  Value schema warning: operation '${op.operationId}' has a requestBody without an inline 'application/json' schema — skipped from requestSchemas`,
+        )
       }
 
       // First 2xx application/json response schema (only when mode === 'all')
       if (mode === 'all' && op.responses) {
         const twoxxCodes = Object.keys(op.responses)
+          // Lexicographic compare is correct for all valid OpenAPI status keys:
+          // '2XX' wildcards are intentionally admitted, and concrete codes sort before them.
           .filter((c) => c >= '200' && c < '300')
           .sort()
+        let emitted = false
         for (const code of twoxxCodes) {
           const resSchema = op.responses[code]?.content?.['application/json']?.schema
           if (resSchema) {
             const converted = toJsonSchema(resSchema)
             responseSchemasMap[op.operationId] = converted
-            collectRefNames(converted, rawSchemas).forEach((n) => allReferencedNames.add(n))
+            addReferencedNames(converted)
+            emitted = true
             break
+          }
+        }
+        if (!emitted) {
+          // Warn only when something was actually skipped: a $ref-valued response
+          // or one with content but no inline 'application/json' schema.
+          // Content-less responses (e.g. 204) have nothing to emit — no warning.
+          const skipped = twoxxCodes.some((code) => {
+            const res = op.responses?.[code] as Record<string, unknown> | undefined
+            if (!res) return false
+            const content = res['content']
+            return '$ref' in res || (typeof content === 'object' && content !== null && Object.keys(content).length > 0)
+          })
+          if (skipped) {
+            console.warn(
+              `⚠️  Value schema warning: operation '${op.operationId}' has a 2xx response without an inline 'application/json' schema — skipped from responseSchemas`,
+            )
           }
         }
       }
@@ -2003,7 +2053,8 @@ function generateApiValueSchemasContent(
 
   const schemaDefsJson = JSON.stringify(schemaDefs, null, 2)
   const requestSchemasJson = JSON.stringify(requestSchemasMap, null, 2)
-  const responseSchemasJson = JSON.stringify(mode === 'all' ? responseSchemasMap : {}, null, 2)
+  // responseSchemasMap is only populated when mode === 'all'
+  const responseSchemasJson = JSON.stringify(responseSchemasMap, null, 2)
 
   return `// Auto-generated from OpenAPI specification - do not edit manually
 
@@ -2135,14 +2186,14 @@ async function main(): Promise<void> {
         process.exit(1)
       }
     } else if (optionArgs[i] === '--use-strict-response') {
-      if (i + 1 < optionArgs.length) {
-        const value = optionArgs[i + 1]
-        // Support 'true' or 'false' values
-        useStrictResponse = value !== 'false'
-        i++ // Skip next arg since we consumed it
-      } else {
-        // Flag without value means true
+      const next = i + 1 < optionArgs.length ? optionArgs[i + 1] : undefined
+      if (next === undefined || next.startsWith('-')) {
+        // Bare flag, or next token is another option — means true
         useStrictResponse = true
+      } else {
+        // Support 'true' or 'false' values
+        useStrictResponse = next !== 'false'
+        i++ // Skip next arg since we consumed it
       }
     } else if (optionArgs[i] === '--enum-case') {
       if (i + 1 < optionArgs.length) {
@@ -2160,19 +2211,22 @@ async function main(): Promise<void> {
         process.exit(1)
       }
     } else if (optionArgs[i] === '--emit-value-schemas') {
-      if (i + 1 < optionArgs.length) {
-        const next = optionArgs[i + 1]
-        if (next === 'request' || next === 'all') {
-          emitValueSchemasMode = next
-          i++ // consume the value token
-        } else {
-          // Next token is a flag or another arg — default to 'request'
-          emitValueSchemasMode = 'request'
-        }
-      } else {
-        // Flag without value — default to 'request'
+      const next = i + 1 < optionArgs.length ? optionArgs[i + 1] : undefined
+      if (next === 'request' || next === 'all') {
+        emitValueSchemasMode = next
+        i++ // consume the value token
+      } else if (next === undefined || next.startsWith('-')) {
+        // Bare flag, or next token is another option — default to 'request'
         emitValueSchemasMode = 'request'
+      } else {
+        console.error(`❌ Error: --emit-value-schemas must be 'request' or 'all', got: ${JSON.stringify(next)}`)
+        printUsage()
+        process.exit(1)
       }
+    } else {
+      console.error(`❌ Error: Unknown option: ${JSON.stringify(optionArgs[i])}`)
+      printUsage()
+      process.exit(1)
     }
   }
 

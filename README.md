@@ -413,14 +413,20 @@ Pass `--emit-value-schemas` to additionally generate `api-value-schemas.ts`: per
 npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated --emit-value-schemas all
 ```
 
+Install the validator in your app (`ajv` and `ajv-formats` are not transitive dependencies of this package): `npm i ajv ajv-formats`. Register `ajv-formats` because emitted schemas carry `format` keywords (`date-time`, `uuid`, …) and AJV 8 throws on unknown formats in its default strict mode; alternatively pass `new Ajv({ validateFormats: false })` to skip format checking entirely.
+
 ```typescript
 import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
 import { resolveSchema } from '@qualisero/openapi-endpoint'
 import { requestSchemas, schemaDefs } from './generated/api-value-schemas'
 
-const validate = new Ajv().compile(resolveSchema(requestSchemas.createPet, schemaDefs))
+const ajv = addFormats(new Ajv())
+const validate = ajv.compile(resolveSchema(requestSchemas.createPet, schemaDefs))
 validate({ name: 'Fluffy', species: 'cat' }) // true or false, errors in validate.errors
 ```
+
+Limitation: only schemas declared inline under the exact `application/json` media type are emitted; `$ref`-valued request bodies/responses and other JSON media types (e.g. `application/json; charset=utf-8`) are skipped with a codegen warning.
 
 For hand-rolled form rules or tables, `fieldsOf(requestSchemas.createPet, schemaDefs)` returns a flat list of fields with their constraints (`type`, `required`, `enum`, `minLength`, `maxLength`, `minimum`, `maximum`, `format`, `readOnly`, `nullable`).
 
