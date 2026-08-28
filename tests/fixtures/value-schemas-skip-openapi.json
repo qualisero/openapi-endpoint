@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Skip API",
-    "description": "Spec whose operations have no extractable inline application/json schema",
+    "description": "Spec exercising $ref deref, JSON media-type widening, and genuinely skipped operations",
     "version": "1.0.0"
   },
   "paths": {
@@ -46,6 +46,65 @@
           }
         }
       }
+    },
+    "/bothmedia": {
+      "post": {
+        "operationId": "createWithBothMedia",
+        "summary": "Exact application/json must win over the +json variant",
+        "requestBody": {
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Alt"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Thing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/textbody": {
+      "post": {
+        "operationId": "createWithTextBody",
+        "summary": "No JSON media type anywhere — still skipped with warnings",
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -65,6 +124,14 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string"
+          }
+        }
+      },
+      "Alt": {
+        "type": "object",
+        "properties": {
+          "alt": {
             "type": "string"
           }
         }

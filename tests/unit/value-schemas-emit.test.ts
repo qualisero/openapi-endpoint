@@ -396,9 +396,9 @@ describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 },
     expect(validate({ kind: 'basic', shared: {} })).toBe(false)
   })
 
-  // ─── skipped operations warn instead of silently emitting nothing ───────
+  // ─── $ref deref + JSON media-type widening ───────────────────────────
 
-  it('warns for $ref-valued requestBody and non-literal JSON media types, exits 0, ops absent from maps', () => {
+  it('derefs $ref-valued requestBody one level and widens JSON media types (exact application/json wins)', () => {
     const result = spawnSync('node', [CLI, SKIP_SPEC, outDir, '--emit-value-schemas', 'all'], {
       encoding: 'utf8',
       timeout: 30_000,
@@ -406,23 +406,49 @@ describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 },
     expect(result.status).toBe(0)
 
     const output = result.stdout + result.stderr
-    // $ref-valued requestBody
-    expect(output).toContain(
-      "operation 'createWithRefBody' has a requestBody without an inline 'application/json' schema",
-    )
-    // application/json; charset=utf-8 media type (request and response)
-    expect(output).toContain(
-      "operation 'createWithCharset' has a requestBody without an inline 'application/json' schema",
-    )
-    expect(output).toContain(
-      "operation 'createWithCharset' has a 2xx response without an inline 'application/json' schema",
-    )
+    // These operations are all extractable now — no warnings for them
+    expect(output).not.toContain('createWithRefBody')
+    expect(output).not.toContain('createWithCharset')
+    expect(output).not.toContain('createWithBothMedia')
+
+    const content = fs.readFileSync(path.join(outDir, 'api-value-schemas.ts'), 'utf8')
+    const schemaDefs = JSON.parse(extractConstJson(content, 'schemaDefs'))
+    const requestSchemas = JSON.parse(extractConstJson(content, 'requestSchemas'))
+    const responseSchemas = JSON.parse(extractConstJson(content, 'responseSchemas'))
+
+    // #/components/requestBodies/CreateBody deref'd one level to its JSON schema
+    expect(requestSchemas.createWithRefBody).toEqual({ $ref: '#/$defs/Thing' })
+    // 'application/json; charset=utf-8' widened (request and response)
+    expect(requestSchemas.createWithCharset).toEqual({ $ref: '#/$defs/Thing' })
+    expect(responseSchemas.createWithCharset).toEqual({ $ref: '#/$defs/Thing' })
+    // Exact 'application/json' wins over 'application/vnd.api+json' in the same map
+    expect(requestSchemas.createWithBothMedia).toEqual({ $ref: '#/$defs/Thing' })
+    // Response only has the +json variant — selected in document order
+    expect(responseSchemas.createWithBothMedia).toEqual({ $ref: '#/$defs/Alt' })
+
+    expect(schemaDefs).toHaveProperty('Thing')
+    expect(schemaDefs).toHaveProperty('Alt')
+  })
+
+  // ─── skipped operations warn instead of silently emitting nothing ───────
+
+  it('warns for operations with no JSON media type at all, exits 0, ops absent from maps', () => {
+    const result = spawnSync('node', [CLI, SKIP_SPEC, outDir, '--emit-value-schemas', 'all'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(0)
+
+    const output = result.stdout + result.stderr
+    // text/plain-only request and response — both warn
+    expect(output).toContain("operation 'createWithTextBody' has a requestBody without an extractable JSON schema")
+    expect(output).toContain("operation 'createWithTextBody' has a 2xx response without an extractable JSON schema")
     // createWithRefBody's 201 has no content — nothing skipped, no response warning
     expect(output).not.toContain("operation 'createWithRefBody' has a 2xx response")
 
     const content = fs.readFileSync(path.join(outDir, 'api-value-schemas.ts'), 'utf8')
-    expect(JSON.parse(extractConstJson(content, 'requestSchemas'))).toEqual({})
-    expect(JSON.parse(extractConstJson(content, 'responseSchemas'))).toEqual({})
+    expect(JSON.parse(extractConstJson(content, 'requestSchemas'))).not.toHaveProperty('createWithTextBody')
+    expect(JSON.parse(extractConstJson(content, 'responseSchemas'))).not.toHaveProperty('createWithTextBody')
   })
 
   // ─── option parsing ────────────────────────────────────────────────

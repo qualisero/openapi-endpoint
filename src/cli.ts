@@ -28,7 +28,19 @@ interface OpenAPISpec {
   }
   components?: {
     schemas?: Record<string, OpenAPISchema>
+    requestBodies?: Record<string, OpenAPIBodyObject>
+    responses?: Record<string, OpenAPIBodyObject>
   }
+}
+
+/**
+ * A requestBody or response object: either a one-level `$ref` into
+ * `components.requestBodies` / `components.responses`, or an inline object
+ * with a media-type content map.
+ */
+interface OpenAPIBodyObject {
+  $ref?: string
+  content?: Record<string, { schema?: OpenAPISchema } | undefined>
 }
 
 interface OpenAPISchema {
@@ -38,6 +50,51 @@ interface OpenAPISchema {
   properties?: Record<string, OpenAPISchema>
   items?: OpenAPISchema
   [key: string]: unknown
+}
+
+// Matches any JSON-compatible media type: application/json and application/*+json
+// structured-syntax suffixes, with optional parameters (e.g. '; charset=utf-8')
+const JSON_MEDIA_TYPE_RE = /^application\/(.+\+)?json\s*(;.*)?$/i
+
+/**
+ * Select the JSON media-type object from a content map with deterministic
+ * priority: exact `application/json` first, else the first JSON-compatible
+ * media type in document order (e.g. 'application/json; charset=utf-8',
+ * 'application/vnd.api+json').
+ */
+function selectJsonMedia(
+  content: Record<string, { schema?: OpenAPISchema } | undefined> | undefined,
+): { schema?: OpenAPISchema } | undefined {
+  if (!content) return undefined
+  if (content['application/json']) return content['application/json']
+  for (const [mediaType, media] of Object.entries(content)) {
+    if (JSON_MEDIA_TYPE_RE.test(mediaType)) return media
+  }
+  return undefined
+}
+
+/**
+ * Resolve a requestBody/response object one `$ref` level deep against
+ * `components.requestBodies` / `components.responses`. Returns `undefined`
+ * for unresolvable refs (external, dangling, or nested `$ref` targets).
+ */
+function derefBodyObject(
+  body: OpenAPIBodyObject | undefined,
+  components: OpenAPISpec['components'],
+): OpenAPIBodyObject | undefined {
+  if (!body || typeof body.$ref !== 'string') return body
+  const m = /^#\/components\/(requestBodies|responses)\/(.+)$/.exec(body.$ref)
+  const resolved = m ? components?.[m[1] as 'requestBodies' | 'responses']?.[m[2]] : undefined
+  // One level only: a resolved object that is itself a $ref is not followed
+  return resolved && typeof resolved.$ref !== 'string' ? resolved : undefined
+}
+
+/**
+ * Shared JSON-schema extraction for requestBody/response objects across all
+ * generators: one-level `$ref` deref, then JSON media-type selection.
+ */
+function getJsonBodySchema(openApiSpec: OpenAPISpec, body: OpenAPIBodyObject | undefined): OpenAPISchema | undefined {
+  return selectJsonMedia(derefBodyObject(body, openApiSpec.components)?.content)?.schema
 }
 
 interface OperationInfo {
@@ -1538,23 +1595,8 @@ function buildOperationMap(openApiSpec: OpenAPISpec, excludePrefix: string | nul
         summary?: string
         description?: string
         parameters?: Array<{ name: string; in: string; schema?: { type?: string; $ref?: string } }>
-        requestBody?: {
-          content?: {
-            'application/json'?: {
-              schema?: { $ref?: string; type?: string }
-            }
-          }
-        }
-        responses?: Record<
-          string,
-          {
-            content?: {
-              'application/json'?: {
-                schema?: { $ref?: string; type?: string }
-              }
-            }
-          }
-        >
+        requestBody?: OpenAPIBodyObject
+        responses?: Record<string, OpenAPIBodyObject>
       }
       if (!op.operationId) continue
       if (excludePrefix && op.operationId.startsWith(excludePrefix)) continue
@@ -1575,7 +1617,7 @@ function buildOperationMap(openApiSpec: OpenAPISpec, excludePrefix: string | nul
 
       // Extract request body schema
       let requestBodySchema: string | undefined
-      const reqBodyRef = op.requestBody?.content?.['application/json']?.schema?.$ref
+      const reqBodyRef = getJsonBodySchema(openApiSpec, op.requestBody)?.$ref
       if (reqBodyRef) {
         requestBodySchema = reqBodyRef.split('/').pop()
       }
@@ -1584,7 +1626,7 @@ function buildOperationMap(openApiSpec: OpenAPISpec, excludePrefix: string | nul
       let responseSchema: string | undefined
       if (op.responses) {
         for (const statusCode of ['200', '201']) {
-          const resRef = op.responses[statusCode]?.content?.['application/json']?.schema?.$ref
+          const resRef = getJsonBodySchema(openApiSpec, op.responses[statusCode])?.$ref
           if (resRef) {
             responseSchema = resRef.split('/').pop()
             break
@@ -1664,7 +1706,7 @@ function buildOperationEnums(
     for (const [method, rawOp] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
       const op = rawOp as OpenAPIOperation & {
-        requestBody?: { content?: { 'application/json'?: { schema?: OpenAPISchema } } }
+        requestBody?: OpenAPIBodyObject
         parameters?: Array<{ name: string; in: string; schema?: OpenAPISchema }>
       }
       if (!op.operationId || !(op.operationId in operationMap)) continue
@@ -1672,7 +1714,7 @@ function buildOperationEnums(
       const fields: Record<string, Record<string, string>> = {}
 
       // Request body properties
-      const bodyProps = op.requestBody?.content?.['application/json']?.schema?.properties
+      const bodyProps = getJsonBodySchema(openApiSpec, op.requestBody)?.properties
       if (bodyProps) {
         for (const [fieldName, fieldSchema] of Object.entries(bodyProps)) {
           const resolved = resolveEnums(fieldSchema, `${op.operationId}.${fieldName}`)
@@ -1981,23 +2023,22 @@ function generateApiValueSchemasContent(
     for (const [method, rawOp] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
       const op = rawOp as OpenAPIOperation & {
-        requestBody?: { content?: { 'application/json'?: { schema?: OpenAPISchema } } }
-        responses?: Record<string, { content?: { 'application/json'?: { schema?: OpenAPISchema } } }>
+        requestBody?: OpenAPIBodyObject
+        responses?: Record<string, OpenAPIBodyObject>
       }
       if (!op.operationId) continue
       if (excludePrefix && op.operationId.startsWith(excludePrefix)) continue
 
-      // Request body schema
-      const reqBodySchema = op.requestBody?.content?.['application/json']?.schema
+      // Request body schema (one-level $ref deref + JSON media-type selection)
+      const reqBodySchema = getJsonBodySchema(openApiSpec, op.requestBody)
       if (reqBodySchema) {
         const converted = toJsonSchema(reqBodySchema)
         requestSchemasMap[op.operationId] = converted
         addReferencedNames(converted)
       } else if (op.requestBody) {
-        // $ref-valued requestBody or a JSON media type other than the exact
-        // literal 'application/json' (e.g. '; charset=utf-8', 'application/vnd.api+json')
+        // Non-JSON media types only, an unresolvable/nested $ref, or no content
         console.warn(
-          `⚠️  Value schema warning: operation '${op.operationId}' has a requestBody without an inline 'application/json' schema — skipped from requestSchemas`,
+          `⚠️  Value schema warning: operation '${op.operationId}' has a requestBody without an extractable JSON schema — skipped from requestSchemas`,
         )
       }
 
@@ -2010,7 +2051,7 @@ function generateApiValueSchemasContent(
           .sort()
         let emitted = false
         for (const code of twoxxCodes) {
-          const resSchema = op.responses[code]?.content?.['application/json']?.schema
+          const resSchema = getJsonBodySchema(openApiSpec, op.responses[code])
           if (resSchema) {
             const converted = toJsonSchema(resSchema)
             responseSchemasMap[op.operationId] = converted
@@ -2020,18 +2061,20 @@ function generateApiValueSchemasContent(
           }
         }
         if (!emitted) {
-          // Warn only when something was actually skipped: a $ref-valued response
-          // or one with content but no inline 'application/json' schema.
+          // Warn only when something was actually skipped: an unresolvable $ref,
+          // or content (after one-level deref) with no extractable JSON schema.
           // Content-less responses (e.g. 204) have nothing to emit — no warning.
           const skipped = twoxxCodes.some((code) => {
-            const res = op.responses?.[code] as Record<string, unknown> | undefined
-            if (!res) return false
-            const content = res['content']
-            return '$ref' in res || (typeof content === 'object' && content !== null && Object.keys(content).length > 0)
+            const raw = op.responses?.[code]
+            if (!raw) return false
+            const resolved = derefBodyObject(raw, openApiSpec.components)
+            if (!resolved) return true // dangling, external, or nested $ref
+            const content = resolved.content
+            return typeof content === 'object' && content !== null && Object.keys(content).length > 0
           })
           if (skipped) {
             console.warn(
-              `⚠️  Value schema warning: operation '${op.operationId}' has a 2xx response without an inline 'application/json' schema — skipped from responseSchemas`,
+              `⚠️  Value schema warning: operation '${op.operationId}' has a 2xx response without an extractable JSON schema — skipped from responseSchemas`,
             )
           }
         }

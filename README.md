@@ -426,7 +426,7 @@ const validate = ajv.compile(resolveSchema(requestSchemas.createPet, schemaDefs)
 validate({ name: 'Fluffy', species: 'cat' }) // true or false, errors in validate.errors
 ```
 
-Limitation: only schemas declared inline under the exact `application/json` media type are emitted; `$ref`-valued request bodies/responses and other JSON media types (e.g. `application/json; charset=utf-8`) are skipped with a codegen warning.
+Request bodies and responses referenced via `#/components/requestBodies/...` / `#/components/responses/...` are dereferenced one level, and any JSON media type is accepted: exact `application/json` first, then `application/*+json` variants such as `application/vnd.api+json` (parameters like `; charset=utf-8` are allowed). Operations with no extractable JSON schema (e.g. `text/plain` only) are skipped with a codegen warning.
 
 For hand-rolled form rules or tables, `fieldsOf(requestSchemas.createPet, schemaDefs)` returns a flat list of fields with their constraints (`type`, `required`, `enum`, `minLength`, `maxLength`, `minimum`, `maximum`, `format`, `readOnly`, `nullable`).
 
