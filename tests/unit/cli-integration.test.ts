@@ -519,11 +519,12 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
     expect(result.stderr).toContain('"Error"')
     expect(result.stderr).toContain('"ErrorSchema"')
 
-    // No generated files must be written (fail-fast, zero output)
-    const generatedFiles = ['api-enums.ts', 'api-operations.ts', 'api-types.ts', 'api-schemas.ts', 'api-client.ts']
-    for (const file of generatedFiles) {
-      expect(fs.existsSync(path.join(outDir, file))).toBe(false)
-    }
+    // No generated files must be written (fail-fast, zero output).
+    // Assert the output dir is empty (or absent) rather than enumerating
+    // files, so anything the CLI might write before failing — including
+    // openapi-types.ts — is caught.
+    const leftovers = fs.existsSync(outDir) ? fs.readdirSync(outDir) : []
+    expect(leftovers).toEqual([])
   })
 
   it('generated api-client.ts cfg literals include operationId for every operation', () => {
