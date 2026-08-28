@@ -1,6 +1,6 @@
 // Auto-generated from OpenAPI specification - do not edit manually
 
-import type { operations } from './openapi-types.js'
+import type { operations } from './openapi-types'
 import { HttpMethod } from '@qualisero/openapi-endpoint'
 import type {
   ApiResponse as _ApiResponse,

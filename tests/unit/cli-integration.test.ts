@@ -504,6 +504,29 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
     expect(schemasContent).toContain("export type NewItem = components['schemas']['NewItem']")
   })
 
+  it('aborts with exit 1 and an explicit error when two schemas collide on the same exported alias', () => {
+    const SCHEMA_COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/schema-alias-collision-openapi.json')
+    const result = spawnSync('node', [CLI, SCHEMA_COLLISION_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    // Must exit non-zero
+    expect(result.status).toBe(1)
+
+    // Error message must name both colliding schema names and the resulting alias
+    expect(result.stderr).toContain('Schema alias collision')
+    expect(result.stderr).toContain('"Error"')
+    expect(result.stderr).toContain('"ErrorSchema"')
+
+    // No generated files must be written (fail-fast, zero output).
+    // Assert the output dir is empty (or absent) rather than enumerating
+    // files, so anything the CLI might write before failing — including
+    // openapi-types.ts — is caught.
+    const leftovers = fs.existsSync(outDir) ? fs.readdirSync(outDir) : []
+    expect(leftovers).toEqual([])
+  })
+
   it('generated api-client.ts cfg literals include operationId for every operation', () => {
     const result = spawnSync('node', [CLI, TOY_SPEC, outDir], {
       encoding: 'utf8',
@@ -601,5 +624,44 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
       throw new Error(`tsc type-check of generated files failed:\n${output}`)
     }
     expect(tscResult.status).toBe(0)
+  })
+
+  it('generated files (after prettier) are byte-equal to tests/fixtures/ so hand-patched drift is detected', () => {
+    // Generate from toy-openapi.json with default flags — same invocation that produced the fixtures.
+    const genResult = spawnSync('node', [CLI, TOY_SPEC, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(genResult.status).toBe(0)
+
+    // Format with the repo's own prettier config so the comparison is apples-to-apples.
+    // Fixtures are covered by `prettier --check .` and are always in project-formatted form;
+    // raw CLI output must be formatted the same way before diffing.
+    const projRoot = process.cwd()
+    const prettierResult = spawnSync(
+      'npx',
+      ['prettier', '--config', path.join(projRoot, 'package.json'), '--write', `${outDir}/`],
+      { cwd: projRoot, encoding: 'utf8', timeout: 30_000 },
+    )
+    expect(prettierResult.status).toBe(0)
+
+    // All six generated files must be byte-equal to the checked-in fixtures.
+    // None of these files are intentionally divergent: they are all produced from
+    // toy-openapi.json with default flags. If any file differs, the fixture was
+    // hand-patched and must be resynchronised (re-run CLI, run prettier, copy).
+    const fixturesDir = path.join(projRoot, 'tests/fixtures')
+    const generatedFiles = [
+      'api-client.ts',
+      'api-enums.ts',
+      'api-operations.ts',
+      'api-schemas.ts',
+      'api-types.ts',
+      'openapi-types.ts',
+    ]
+    for (const file of generatedFiles) {
+      const generated = fs.readFileSync(path.join(outDir, file), 'utf8')
+      const fixture = fs.readFileSync(path.join(fixturesDir, file), 'utf8')
+      expect(generated, `fixture ${file} diverges from CLI output — re-run CLI and copy`).toBe(fixture)
+    }
   })
 })

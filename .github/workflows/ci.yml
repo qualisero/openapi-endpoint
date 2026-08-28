@@ -54,6 +54,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Type check tests
+        run: npm run types:test
+
   test:
     runs-on: ubuntu-latest
     name: Run Tests

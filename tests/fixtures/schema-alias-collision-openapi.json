@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Schema Alias Collision Test API",
+    "description": "Spec with both Error and ErrorSchema schemas that produce duplicate exported alias ErrorSchema",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      },
+      "ErrorSchema": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
