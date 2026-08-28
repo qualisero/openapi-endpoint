@@ -38,7 +38,7 @@ function extractConstJson(fileText: string, constName: string): string {
 describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 }, () => {
   const CLI = path.join(os.tmpdir(), 'openapi-cli-value-schemas-bundle.js')
   const VALUE_SPEC = path.join(process.cwd(), 'tests/fixtures/value-schemas-openapi.json')
-  const outDir = '/tmp/openapi-value-schemas-test'
+  let outDir: string
 
   beforeAll(() => {
     buildSync({
@@ -50,13 +50,11 @@ describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 },
   })
 
   beforeEach(() => {
-    if (fs.existsSync(outDir)) {
-      fs.rmSync(outDir, { recursive: true, force: true })
-    }
+    outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openapi-value-schemas-test-'))
   })
 
   afterEach(() => {
-    if (fs.existsSync(outDir)) {
+    if (outDir && fs.existsSync(outDir)) {
       fs.rmSync(outDir, { recursive: true, force: true })
     }
   })

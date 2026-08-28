@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `--emit-value-schemas [request|all]` CLI flag: opt-in generation of `api-value-schemas.ts` alongside the existing six files. Emits three exports — `schemaDefs` (transitively-referenced component schemas converted to portable JSON Schema, sorted alphabetically), `requestSchemas` (per-operation request body schema, keyed by operationId), and `responseSchemas` (first 2xx response schema per operation when `all`, otherwise `{}`). Feed the result of `resolveSchema(requestSchemas.op, schemaDefs)` directly to AJV 8 (with `ajv-formats` registered, or `validateFormats:false`, because `format` keywords are emitted by design), JSONForms, react-jsonschema-form, vjsf, etc. Flag absent means zero change to existing outputs (byte-identical).
 - New runtime exports `resolveSchema` and `fieldsOf` from the package for consuming emitted artifacts.
-- New type exports `ValueSchema`, `SchemaDefs`, and `SchemaField` from the package.
+- New type exports `ValueSchema`, `ValueSchemaObject`, `SchemaDefs`, and `SchemaField` from the package. `ValueSchema` models standard JSON Schema fully: boolean schemas and tuple-form `items` are accepted anywhere a schema is expected.
 - OpenAPI 3.0 → JSON Schema conversion: `nullable: true` becomes `type: [T, "null"]`, boolean `exclusiveMinimum`/`exclusiveMaximum` become numeric, `xml`/`discriminator`/`externalDocs`/`example` are stripped, and `$ref: "#/components/schemas/X"` is rewritten to `$ref: "#/$defs/X"`. OpenAPI 3.1 schemas pass through unchanged.
 
 ## [0.25.1] - 2026-08-27

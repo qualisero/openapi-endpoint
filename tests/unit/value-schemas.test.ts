@@ -53,6 +53,15 @@ describe('resolveSchema', () => {
     expect(result.$defs).toBe(defs)
   })
 
+  it('throws a clear error when the entry is undefined (missing operation)', () => {
+    expect(() => resolveSchema(undefined, defs)).toThrow(/no schema entry for this operation/)
+  })
+
+  it('returns boolean schemas as-is (already self-contained)', () => {
+    expect(resolveSchema(true, defs)).toBe(true)
+    expect(resolveSchema(false, defs)).toBe(false)
+  })
+
   // ── AJV 8 strict-mode round-trip ─────────────────────────────────────────
 
   describe('AJV 8 strict-mode round-trip', () => {
@@ -153,6 +162,22 @@ describe('resolveSchema', () => {
 // ---------------------------------------------------------------------------
 // fieldsOf
 // ---------------------------------------------------------------------------
+
+describe('fieldsOf boolean schema handling', () => {
+  it('returns [] for a boolean schema', () => {
+    expect(fieldsOf(true, defs)).toEqual([])
+    expect(fieldsOf(false, defs)).toEqual([])
+  })
+
+  it('emits a bare field (name/required only) for boolean property schemas', () => {
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: { anything: true, nothing: false },
+      required: ['anything'],
+    }
+    expect(fieldsOf(schema, defs)).toEqual([{ name: 'anything', required: true }, { name: 'nothing' }])
+  })
+})
 
 describe('fieldsOf', () => {
   // ── undefined entry ────────────────────────────────────────────────────────

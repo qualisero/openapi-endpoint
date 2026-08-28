@@ -70,7 +70,7 @@ export { buildUrl } from './openapi-utils'
 // ============================================================================
 // Value schema types and runtime helpers
 // ============================================================================
-export type { ValueSchema, SchemaDefs, SchemaField } from './value-schemas'
+export type { ValueSchema, ValueSchemaObject, SchemaDefs, SchemaField } from './value-schemas'
 export { resolveSchema, fieldsOf } from './value-schemas'
 
 // ============================================================================

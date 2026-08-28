@@ -12,8 +12,16 @@
  * A standard JSON Schema value (draft-07/2019-09/2020-12 portable subset).
  * Emitted by the generator and consumed by AJV, JSONForms, etc.
  * No $schema keyword — consumers apply their own default dialect.
+ *
+ * Like standard JSON Schema, any schema position may also be a boolean
+ * (`true` accepts everything, `false` rejects everything).
  */
-export interface ValueSchema {
+export type ValueSchema = ValueSchemaObject | boolean
+
+/**
+ * The object form of a {@link ValueSchema}.
+ */
+export interface ValueSchemaObject {
   $ref?: string
   $defs?: Record<string, ValueSchema>
   type?: string | string[]
@@ -28,7 +36,7 @@ export interface ValueSchema {
   pattern?: string
   required?: string[]
   properties?: Record<string, ValueSchema>
-  items?: ValueSchema
+  items?: ValueSchema | ValueSchema[]
   additionalProperties?: boolean | ValueSchema
   allOf?: ValueSchema[]
   anyOf?: ValueSchema[]
@@ -73,11 +81,24 @@ export interface SchemaField {
  * Compose a self-contained standard JSON Schema document for one operation.
  * Feed the result directly to AJV, JSONForms, vjsf, RJSF, etc.
  *
+ * Accepts `undefined` so `requestSchemas[op]` / `responseSchemas[op]` lookups
+ * (which are `Partial` records) can be passed directly; throws a clear error
+ * when the operation has no emitted schema. Boolean schemas are returned
+ * as-is (they are already self-contained).
+ *
  * @example
  * const schema = resolveSchema(requestSchemas.createVessel, schemaDefs)
  * const validate = new Ajv().compile(schema)
  */
-export function resolveSchema(entry: ValueSchema, defs: SchemaDefs): ValueSchema {
+export function resolveSchema(entry: ValueSchemaObject | undefined, defs: SchemaDefs): ValueSchemaObject
+export function resolveSchema(entry: ValueSchema | undefined, defs: SchemaDefs): ValueSchema
+export function resolveSchema(entry: ValueSchema | undefined, defs: SchemaDefs): ValueSchema {
+  if (entry === undefined) {
+    throw new Error(
+      'resolveSchema: no schema entry for this operation (not emitted — check the operation id and the --emit-value-schemas mode)',
+    )
+  }
+  if (typeof entry === 'boolean') return entry
   return { $defs: defs, ...entry }
 }
 
@@ -85,10 +106,11 @@ export function resolveSchema(entry: ValueSchema, defs: SchemaDefs): ValueSchema
  * Resolve a `#/$defs/X` reference in the context of `defs`.
  * Returns `undefined` if the ref is not found or not a simple `#/$defs/X` ref.
  */
-function resolveRef(ref: string, defs: SchemaDefs): ValueSchema | undefined {
+function resolveRef(ref: string, defs: SchemaDefs): ValueSchemaObject | undefined {
   const m = /^#\/\$defs\/(.+)$/.exec(ref)
   if (!m) return undefined
-  return defs[m[1]]
+  const resolved = defs[m[1]]
+  return typeof resolved === 'object' && resolved !== null ? resolved : undefined
 }
 
 /**
@@ -102,6 +124,7 @@ function mergeAllOf(
   const properties: Record<string, ValueSchema> = {}
   const required: string[] = []
   for (const s of schemas) {
+    if (typeof s === 'boolean') continue
     const resolved = s.$ref ? (resolveRef(s.$ref, defs) ?? s) : s
     if (resolved.properties) {
       Object.assign(properties, resolved.properties)
@@ -124,10 +147,10 @@ function mergeAllOf(
  * // → [{ name: 'name', type: 'string', required: true }, ...]
  */
 export function fieldsOf(schema: ValueSchema | undefined, defs: SchemaDefs): SchemaField[] {
-  if (schema === undefined) return []
+  if (schema === undefined || typeof schema === 'boolean') return []
 
   // Resolve top-level $ref
-  let resolved: ValueSchema = schema
+  let resolved: ValueSchemaObject = schema
   if (schema.$ref) {
     resolved = resolveRef(schema.$ref, defs) ?? schema
   }
@@ -145,8 +168,16 @@ export function fieldsOf(schema: ValueSchema | undefined, defs: SchemaDefs): Sch
   const fields: SchemaField[] = []
 
   for (const [name, propSchema] of Object.entries(properties)) {
+    // Boolean property schemas carry no field constraints
+    if (typeof propSchema === 'boolean') {
+      const field: SchemaField = { name }
+      if (requiredSet.has(name)) field.required = true
+      fields.push(field)
+      continue
+    }
+
     // Resolve per-property $ref
-    let prop: ValueSchema = propSchema
+    let prop: ValueSchemaObject = propSchema
     if (propSchema.$ref) {
       prop = resolveRef(propSchema.$ref, defs) ?? propSchema
     }
