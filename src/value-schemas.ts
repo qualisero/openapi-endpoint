@@ -120,6 +120,76 @@ function resolveRef(ref: string, defs: SchemaDefs): ValueSchemaObject | undefine
   return typeof resolved === 'object' && resolved !== null ? resolved : undefined
 }
 
+// Annotation keywords (JSON Schema 2020-12 §annotations) — allowed on the
+// union node and on null-ish branches without disqualifying the fold.
+const ANNOTATION_KEYS = new Set(['title', 'description', 'default', 'deprecated', 'readOnly', 'writeOnly', 'examples'])
+
+/**
+ * A branch is null-ish when it carries no keywords other than annotations and
+ * a `type` that only admits null — `'null'` / `['null']` — or the
+ * marshmallow-style `['object', 'null']`. Broader arrays like
+ * `['string', 'null']` are genuine alternatives, not null markers.
+ */
+function isNullishBranch(branch: ValueSchema): branch is ValueSchemaObject {
+  if (typeof branch === 'boolean') return false
+  const type = branch.type
+  const typeIsNullish =
+    type === 'null' ||
+    (Array.isArray(type) && type.includes('null') && type.every((t) => t === 'null' || t === 'object'))
+  if (!typeIsNullish) return false
+  return Object.keys(branch).every((k) => k === 'type' || ANNOTATION_KEYS.has(k))
+}
+
+/**
+ * Fold a null-union `anyOf`/`oneOf` (exactly one payload branch plus one or
+ * more null-ish branches, in any order) into the resolved payload schema.
+ * Returns `undefined` when the shape does not match: genuine sum types stay
+ * un-flattened, and so does a union node carrying sibling keywords beyond
+ * annotations (a sibling `type: 'string'` rejects null despite the null
+ * branch). The payload branch is resolved through one level of `$ref`, its
+ * sibling keywords winning over the referenced definition. `readOnly` is
+ * OR-merged from the union node and all branches.
+ */
+function foldNullUnion(schema: ValueSchemaObject, defs: SchemaDefs): ValueSchemaObject | undefined {
+  // A non-annotation sibling next to the union changes the accepted values —
+  // folding would misreport the field. Both keywords at once is ambiguous.
+  if (!Object.keys(schema).every((k) => k === 'anyOf' || k === 'oneOf' || ANNOTATION_KEYS.has(k))) return undefined
+  if (Array.isArray(schema.anyOf) && Array.isArray(schema.oneOf)) return undefined
+
+  const branches = Array.isArray(schema.anyOf) ? schema.anyOf : Array.isArray(schema.oneOf) ? schema.oneOf : undefined
+  if (!branches) return undefined
+
+  let payload: ValueSchemaObject | undefined
+  const nullish: ValueSchemaObject[] = []
+  for (const branch of branches) {
+    if (isNullishBranch(branch)) {
+      nullish.push(branch)
+    } else {
+      if (typeof branch === 'boolean' || payload !== undefined) return undefined
+      payload = branch
+    }
+  }
+  if (payload === undefined || nullish.length === 0) return undefined
+
+  let folded: ValueSchemaObject
+  if (payload.$ref) {
+    const referenced = resolveRef(payload.$ref, defs)
+    if (referenced) {
+      // Payload siblings ($ref-adjacent format, readOnly, …) are the narrower
+      // refinement and win over the referenced definition.
+      const { $ref: _ref, ...siblings } = payload
+      folded = { ...referenced, ...siblings }
+    } else {
+      folded = { ...payload }
+    }
+  } else {
+    folded = { ...payload }
+  }
+
+  if ([schema, ...nullish].some((s) => s.readOnly === true)) folded.readOnly = true
+  return folded
+}
+
 /**
  * Merge allOf schemas into a flat properties + required object.
  * Only merges simple object schemas (properties, required fields).
@@ -148,6 +218,14 @@ function mergeAllOf(
  *
  * Resolves the top-level `$ref`, one level of `allOf` merge, and
  * per-property `$ref`s. Ordering stays app-side (presentation policy).
+ *
+ * Null-union `anyOf`/`oneOf` properties (exactly one payload branch plus
+ * null-ish branches, e.g. `[{$ref: X}, {type: 'null'}]`) are folded into the
+ * payload with `nullable: true`. Judgment call: a null-ish branch like
+ * `{type: ['object', 'null']}` (marshmallow-style) actually accepts *any*
+ * object, so the fold is lossy — the field is presented as payload-typed.
+ * Acceptable because `fieldsOf` is a metadata view, never validation; the
+ * emitted schemas and AJV behaviour are untouched.
  *
  * @example
  * const fields = fieldsOf(requestSchemas.createVessel, schemaDefs)
@@ -191,6 +269,14 @@ export function fieldsOf(schema: ValueSchema | undefined, defs: SchemaDefs): Sch
       prop = resolveRef(propSchema.$ref, defs) ?? propSchema
     }
 
+    // Fold null-union anyOf/oneOf into the payload branch
+    let unionNullable = false
+    const folded = foldNullUnion(prop, defs)
+    if (folded !== undefined) {
+      prop = folded
+      unionNullable = true
+    }
+
     const rawType = prop.type
     const type = Array.isArray(rawType) ? rawType.find((t) => t !== 'null') : rawType
     const nullable = Array.isArray(rawType) ? rawType.includes('null') : undefined
@@ -201,13 +287,14 @@ export function fieldsOf(schema: ValueSchema | undefined, defs: SchemaDefs): Sch
     if (requiredSet.has(name)) field.required = true
     if (prop.enum !== undefined) {
       field.enum = prop.enum.filter((v): v is string => typeof v === 'string')
+      if (prop.enum.includes(null)) field.nullable = true
     }
     if (prop.minLength !== undefined) field.minLength = prop.minLength
     if (prop.maxLength !== undefined) field.maxLength = prop.maxLength
     if (prop.minimum !== undefined) field.minimum = prop.minimum
     if (prop.maximum !== undefined) field.maximum = prop.maximum
     if (prop.readOnly !== undefined) field.readOnly = prop.readOnly
-    if (nullable) field.nullable = true
+    if (nullable || unionNullable) field.nullable = true
 
     fields.push(field)
   }

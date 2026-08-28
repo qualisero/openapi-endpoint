@@ -32,8 +32,18 @@ const OBJECT_OF_SCHEMAS_KEYS = new Set(['patternProperties', 'dependentSchemas',
 // Keys that contain arrays of schemas
 const ARRAY_SCHEMA_KEYS = new Set(['allOf', 'anyOf', 'oneOf', 'prefixItems'])
 
-// Annotation keywords hoisted to the outer wrapper when wrapping a typeless nullable node
-const HOIST_KEYS = new Set(['description', 'title', 'default'])
+// Annotation keywords (JSON Schema 2020-12 §annotations) hoisted to the outer
+// wrapper when the converter synthesizes an anyOf wrap for a typeless nullable
+// node. They describe the field, not one union branch — form tools (JSONForms,
+// RJSF, vjsf) read readOnly/description at the schema top level.
+const HOIST_KEYS = new Set(['title', 'description', 'default', 'deprecated', 'readOnly', 'writeOnly', 'examples'])
+
+// Keywords that constrain values independent of `type`. A typeless nullable
+// node needs an anyOf null-union wrap only when one of these is present;
+// everything else (properties, minLength, items, …) is type-scoped and
+// vacuously accepts null, making the wrap a no-op. `enum` and a pre-existing
+// `anyOf` are handled by dedicated branches before this set is consulted.
+const TYPELESS_CONSTRAINT_KEYS = new Set(['$ref', 'allOf', 'oneOf', 'not', 'const', 'if', 'then', 'else'])
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -89,10 +99,11 @@ function convertNode(schema: Record<string, unknown>): Record<string, unknown> {
         if (!existing.some((s: unknown) => isObject(s) && (s as Record<string, unknown>)['type'] === 'null')) {
           out['anyOf'] = [...existing, { type: 'null' }]
         }
-      } else {
-        // Bare typeless node ($ref, allOf, annotation-only, …):
+      } else if (Object.keys(out).some((k) => TYPELESS_CONSTRAINT_KEYS.has(k))) {
+        // Bare typeless node with a type-independent constraint ($ref, allOf, …):
         // wrapping in anyOf avoids unsatisfiable AND semantics.
-        // Hoist annotation keywords to the outer wrapper for legibility.
+        // Hoist annotation keywords to the outer wrapper — they describe the
+        // field, not one union branch.
         const inner: Record<string, unknown> = {}
         const hoisted: Record<string, unknown> = {}
         for (const [k, v] of Object.entries(out)) {
@@ -106,6 +117,8 @@ function convertNode(schema: Record<string, unknown>): Record<string, unknown> {
         Object.assign(out, hoisted)
         out['anyOf'] = [inner, { type: 'null' }]
       }
+      // Constraint-free typeless node (annotation-only, properties-only, …):
+      // it already accepts null — `nullable` is a no-op, drop it without wrapping.
     }
     // If type is already an array the schema is 3.1-style; nullable shouldn't appear, but leave type alone.
   } else if ('nullable' in out && out['nullable'] === false) {

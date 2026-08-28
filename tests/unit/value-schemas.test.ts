@@ -441,6 +441,166 @@ describe('fieldsOf', () => {
     expect(value.nullable).toBe(true)
   })
 
+  // ── null-union anyOf/oneOf fold ───────────────────────────────────────────
+
+  it('folds null-union anyOf with $ref payload into type + nullable + ref constraints', () => {
+    const localDefs: SchemaDefs = {
+      Country: { type: 'string', minLength: 2, maxLength: 2, format: 'iso-3166' },
+    }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        country: { anyOf: [{ $ref: '#/$defs/Country' }, { type: 'null' }] },
+      },
+    }
+    const fields = fieldsOf(schema, localDefs)
+    expect(fields).toEqual([
+      { name: 'country', type: 'string', format: 'iso-3166', minLength: 2, maxLength: 2, nullable: true },
+    ])
+  })
+
+  it('folds 3.1-style null-union regardless of branch order', () => {
+    const localDefs: SchemaDefs = { Tag: { type: 'string', enum: ['alpha', 'beta'] } }
+    const reversed: ValueSchema = {
+      type: 'object',
+      properties: {
+        tag: { anyOf: [{ type: 'null' }, { $ref: '#/$defs/Tag' }] },
+      },
+    }
+    const fields = fieldsOf(reversed, localDefs)
+    expect(fields[0].type).toBe('string')
+    expect(fields[0].nullable).toBe(true)
+    expect(fields[0].enum).toEqual(['alpha', 'beta'])
+  })
+
+  it('folds marshmallow-style null-union with {type: [object, null]} branch', () => {
+    const localDefs: SchemaDefs = {
+      CountryNested: { type: 'object', properties: { code: { type: 'string' } } },
+    }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        country: { anyOf: [{ $ref: '#/$defs/CountryNested' }, { type: ['object', 'null'] }] },
+      },
+    }
+    const fields = fieldsOf(schema, localDefs)
+    expect(fields[0].type).toBe('object')
+    expect(fields[0].nullable).toBe(true)
+  })
+
+  it('folds oneOf null-unions identically to anyOf', () => {
+    const localDefs: SchemaDefs = { Tag: { type: 'string' } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        tag: { oneOf: [{ $ref: '#/$defs/Tag' }, { type: 'null' }] },
+      },
+    }
+    const fields = fieldsOf(schema, localDefs)
+    expect(fields[0].type).toBe('string')
+    expect(fields[0].nullable).toBe(true)
+  })
+
+  it('surfaces branch-carried readOnly when folding a null-union', () => {
+    const localDefs: SchemaDefs = { Flag: { type: 'string' } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        flag: { anyOf: [{ $ref: '#/$defs/Flag', readOnly: true }, { type: 'null' }] },
+      },
+    }
+    const fields = fieldsOf(schema, localDefs)
+    expect(fields[0].readOnly).toBe(true)
+    expect(fields[0].nullable).toBe(true)
+  })
+
+  it('surfaces parent-level readOnly on a null-union (converter-hoisted shape)', () => {
+    const localDefs: SchemaDefs = { Flag: { type: 'string' } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        flag: { readOnly: true, anyOf: [{ $ref: '#/$defs/Flag' }, { type: 'null' }] },
+      },
+    }
+    const fields = fieldsOf(schema, localDefs)
+    expect(fields[0].readOnly).toBe(true)
+    expect(fields[0].nullable).toBe(true)
+  })
+
+  it('does not fold when the union node carries a sibling constraint next to anyOf', () => {
+    const localDefs: SchemaDefs = { X: { type: 'string', minLength: 2 } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        v: { type: 'string', maxLength: 10, anyOf: [{ $ref: '#/$defs/X' }, { type: 'null' }] },
+      },
+    }
+    // Sibling type: 'string' rejects null despite the null branch — no fold,
+    // the node's own keywords are surfaced instead
+    expect(fieldsOf(schema, localDefs)).toEqual([{ name: 'v', type: 'string', maxLength: 10 }])
+  })
+
+  it('does not fold a genuine sum type with a {type: [string, null]} branch', () => {
+    const localDefs: SchemaDefs = {
+      Addr: { type: 'object', properties: { street: { type: 'string' } } },
+    }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        value: { anyOf: [{ $ref: '#/$defs/Addr' }, { type: ['string', 'null'] }] },
+      },
+    }
+    // The second branch accepts strings, not just null — folding would drop it
+    expect(fieldsOf(schema, localDefs)).toEqual([{ name: 'value' }])
+  })
+
+  it('keeps payload-branch sibling keywords over the referenced definition when folding', () => {
+    const localDefs: SchemaDefs = { Id: { type: 'string', format: 'uuid' } }
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        id: { anyOf: [{ $ref: '#/$defs/Id', format: 'legacy-id', maxLength: 36 }, { type: 'null' }] },
+      },
+    }
+    expect(fieldsOf(schema, localDefs)).toEqual([
+      { name: 'id', type: 'string', format: 'legacy-id', maxLength: 36, nullable: true },
+    ])
+  })
+
+  it('leaves a 3-branch sum type un-flattened (no type, no nullable)', () => {
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        value: { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
+      },
+    }
+    const fields = fieldsOf(schema, {})
+    expect(fields).toEqual([{ name: 'value' }])
+  })
+
+  it('leaves a payload-only anyOf (no null-ish branch) un-flattened', () => {
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        value: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+      },
+    }
+    const fields = fieldsOf(schema, {})
+    expect(fields).toEqual([{ name: 'value' }])
+  })
+
+  it('sets nullable: true when enum contains null', () => {
+    const schema: ValueSchema = {
+      type: 'object',
+      properties: {
+        status: { enum: ['active', 'inactive', null] },
+      },
+    }
+    const fields = fieldsOf(schema, {})
+    expect(fields[0].enum).toEqual(['active', 'inactive'])
+    expect(fields[0].nullable).toBe(true)
+  })
+
   // ── readOnly ───────────────────────────────────────────────────────────────
 
   it('includes readOnly: true when property has readOnly: true', () => {
