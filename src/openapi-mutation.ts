@@ -206,10 +206,15 @@ export function useEndpointMutation<
           refetchEndpoints: refetchEndpointsMutate,
         } = (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams>
 
-        // Update cache for PUT/PATCH
+        // Update cache for PUT/PATCH.
+        // An empty response body (e.g. 204 No Content) surfaces from axios as
+        // undefined/null/'' — nothing usable to write, so fall through to
+        // invalidation-based refetching instead. Valid falsy JSON bodies
+        // (0, false) are cached like any other value.
+        const hasResponseBody = data !== undefined && data !== null && data !== ''
         const cacheUpdated =
           (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) &&
-          Boolean(data) &&
+          hasResponseBody &&
           [HttpMethod.PUT, HttpMethod.PATCH].includes(config.method)
         if (cacheUpdated) {
           await config.queryClient.setQueryData(queryKey.value, data)

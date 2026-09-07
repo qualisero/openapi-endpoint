@@ -37,7 +37,12 @@ describe('mutation cache update vs invalidation', () => {
     scope.stop()
   })
 
-  /** invalidateQueries calls that target the exact item query key. */
+  /**
+   * invalidateQueries calls whose `queryKey` filter equals the given key.
+   * Matches by queryKey only — callers assert on `exact` separately where
+   * relevant (item invalidations use exact: true, POST prefix invalidation
+   * uses exact: false).
+   */
   function itemInvalidations(itemKey: unknown[]) {
     return invalidateQueries.mock.calls.filter(
       ([filters]) => JSON.stringify((filters as { queryKey?: unknown[] })?.queryKey) === JSON.stringify(itemKey),
@@ -96,6 +101,26 @@ describe('mutation cache update vs invalidation', () => {
 
     expect(setQueryData).not.toHaveBeenCalled()
     expect(itemInvalidations(['pets', '123'])).toHaveLength(1)
+  })
+
+  it("PUT with '' response body (204 No Content via axios): skips cache update and invalidates", async () => {
+    mockAxios.mockResolvedValueOnce({ data: '' })
+    const mutation = run(() => api.updatePet.useMutation({ petId: '123' }))
+
+    await mutation.mutateAsync({ data: { name: 'Updated' } })
+
+    expect(setQueryData).not.toHaveBeenCalled()
+    expect(itemInvalidations(['pets', '123'])).toHaveLength(1)
+  })
+
+  it('PUT with valid falsy response body (false): updates cache and does NOT invalidate', async () => {
+    mockAxios.mockResolvedValueOnce({ data: false })
+    const mutation = run(() => api.updatePet.useMutation({ petId: '123' }))
+
+    await mutation.mutateAsync({ data: { name: 'Updated' } })
+
+    expect(setQueryData).toHaveBeenCalledWith(['pets', '123'], false)
+    expect(itemInvalidations(['pets', '123'])).toHaveLength(0)
   })
 
   it('mutate-time dontUpdateCache: true overrides hook-time default and restores invalidation', async () => {
