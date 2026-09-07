@@ -11,7 +11,8 @@
  * When the cache update does not happen (dontUpdateCache: true, empty response
  * body, POST/DELETE), item-level invalidation behaves as before.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest'
+import type { QueryClient } from '@tanstack/vue-query'
 import { effectScope } from 'vue'
 import { createApiClient } from '../fixtures/api-client'
 import { createTestScope } from '../helpers'
@@ -22,8 +23,8 @@ describe('mutation cache update vs invalidation', () => {
   let scope: ReturnType<typeof effectScope>
   let queryClient: ReturnType<typeof createTestScope>['queryClient']
   let run: <T>(fn: () => T) => T
-  let setQueryData: ReturnType<typeof vi.spyOn>
-  let invalidateQueries: ReturnType<typeof vi.spyOn>
+  let setQueryData: MockInstance<QueryClient['setQueryData']>
+  let invalidateQueries: MockInstance<QueryClient['invalidateQueries']>
 
   beforeEach(() => {
     vi.clearAllMocks()
