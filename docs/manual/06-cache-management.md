@@ -43,6 +43,15 @@ await createPet.mutateAsync({
 // - listPets query is invalidated and refetches
 ```
 
+**PUT/PATCH self-invalidation:** when the response body is written into the
+cache (the default for PUT/PATCH), the exact item query is **not** additionally
+invalidated — the cached value already is the server's latest state, and
+refetching it would mark fresh data stale and spawn a GET that races with
+subsequent mutations. List-path invalidation and `invalidateOperations` still
+run. To force invalidation-based refetching instead (e.g. when the PATCH
+response is not a full representation of the resource), set
+`dontUpdateCache: true`.
+
 ## Cache Configuration
 
 ### Stale Time

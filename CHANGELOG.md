@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-01
+
+### Changed
+
+- Mutations: when a PUT/PATCH response body is written into the cache (`setQueryData`, the default), the exact item query is no longer additionally invalidated. Writing fresh data and immediately marking it stale triggered a redundant GET whose response could race with (and clobber) subsequent mutations. List-path invalidation, `invalidateOperations`, and `refetchEndpoints` are unaffected. Behavior is unchanged whenever the cache update does not happen: `dontUpdateCache: true`, empty response body, POST, and DELETE all invalidate exactly as before. Set `dontUpdateCache: true` to restore invalidation-based refetching (e.g. when the PATCH response is not a full representation of the resource).
+
 ## [0.26.1] - 2026-08-28
 
 ### Fixed

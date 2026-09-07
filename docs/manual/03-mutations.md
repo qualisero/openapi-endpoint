@@ -407,6 +407,12 @@ const updatePet = api.updatePet.useMutation(
 )
 ```
 
+Note: when a PUT/PATCH response body updates the cache (the default), the exact
+item query is not additionally invalidated — the cache already holds the
+server's latest state. List-path invalidation still runs. Set
+`dontUpdateCache: true` if the response is not a full representation and a
+refetch is required instead.
+
 ### Specify Operations to Invalidate
 
 ```typescript

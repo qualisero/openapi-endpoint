@@ -382,7 +382,7 @@ describe('DELETE mutation invalidation behavior', () => {
     expect(listInvalidationCalls.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('should invalidate item-level query key on PUT as before', async () => {
+  it('should update item cache from PUT response without invalidating the item key', async () => {
     // Seed the item cache
     queryClient.setQueryData(['pets', '123'], { id: '123', name: 'Fluffy' })
 
@@ -396,7 +396,11 @@ describe('DELETE mutation invalidation behavior', () => {
 
     await updateMutation.mutateAsync({ data: { name: 'Updated' } })
 
-    // The item key ['pets', '123'] SHOULD have been invalidated for PUT
+    // The cache now holds the PUT response — the server's latest state…
+    expect(queryClient.getQueryData(['pets', '123'])).toEqual({ id: '123', name: 'Updated' })
+
+    // …so the item key is NOT invalidated (a refetch of just-written data would
+    // mark it stale and race with subsequent mutations)
     const itemInvalidationCalls = invalidateSpy.mock.calls.filter((call) => {
       const arg = call[0] as { queryKey?: readonly unknown[]; exact?: boolean }
       if (arg.queryKey && arg.exact === true) {
@@ -405,6 +409,6 @@ describe('DELETE mutation invalidation behavior', () => {
       }
       return false
     })
-    expect(itemInvalidationCalls.length).toBeGreaterThanOrEqual(1)
+    expect(itemInvalidationCalls.length).toBe(0)
   })
 })
