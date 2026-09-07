@@ -164,7 +164,16 @@ export interface Refetchable {
  * Options for controlling automatic cache invalidation after mutations.
  */
 export interface CacheInvalidationOptions {
-  /** Skip automatic cache invalidation. @default false */
+  /**
+   * Skip automatic cache invalidation. @default false
+   *
+   * Note: when a PUT/PATCH response body has been written to the cache (see
+   * `dontUpdateCache`), the exact item query is not additionally invalidated —
+   * the cached value already is the server's latest state, and refetching it
+   * would race with subsequent mutations. List-path and `invalidateOperations`
+   * invalidation still run. Set `dontUpdateCache: true` to force
+   * invalidation-based refetching instead.
+   */
   dontInvalidate?: boolean
   /** Skip automatic cache update for PUT/PATCH responses. @default false */
   dontUpdateCache?: boolean

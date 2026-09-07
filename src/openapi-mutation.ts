@@ -206,20 +206,29 @@ export function useEndpointMutation<
           refetchEndpoints: refetchEndpointsMutate,
         } = (vars || {}) as MutationVars<TPathParams, TRequest, TQueryParams>
 
-        // Update cache for PUT/PATCH
-        if (
+        // Update cache for PUT/PATCH.
+        // An empty response body (e.g. 204 No Content) surfaces from axios as
+        // undefined/null/'' — nothing usable to write, so fall through to
+        // invalidation-based refetching instead. Valid falsy JSON bodies
+        // (0, false) are cached like any other value.
+        const hasResponseBody = data !== undefined && data !== null && data !== ''
+        const cacheUpdated =
           (dontUpdateCacheMutate !== undefined ? !dontUpdateCacheMutate : !dontUpdateCache) &&
-          data &&
+          hasResponseBody &&
           [HttpMethod.PUT, HttpMethod.PATCH].includes(config.method)
-        ) {
+        if (cacheUpdated) {
           await config.queryClient.setQueryData(queryKey.value, data)
         }
 
         // Invalidate queries for this path
         if (dontInvalidateMutate !== undefined ? !dontInvalidateMutate : !dontInvalidate) {
-          // Skip item-level invalidation for DELETE — the resource no longer exists,
-          // so a refetch would 404. List-path invalidation below still runs.
-          if (config.method !== HttpMethod.DELETE) {
+          // Skip item-level invalidation when:
+          // - DELETE — the resource no longer exists, so a refetch would 404.
+          // - The cache was just updated from the PUT/PATCH response — the cached
+          //   value is already the server's latest state; invalidating it would mark
+          //   fresh data stale and spawn a refetch that races with subsequent
+          //   mutations. List-path invalidation below still runs in both cases.
+          if (config.method !== HttpMethod.DELETE && !cacheUpdated) {
             await config.queryClient.invalidateQueries({
               queryKey: queryKey.value,
               exact: config.method !== HttpMethod.POST,
