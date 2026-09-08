@@ -201,19 +201,20 @@ describe('api-types.ts — Source JSDoc traceability (plan 1c)', { timeout: 60_0
     // listPets response is an array schema, not a direct $ref → no Source on listPets.Response
     const listPetsBlock = typesContent.match(/export namespace listPets \{[\s\S]*?\}/)
     expect(listPetsBlock).not.toBeNull()
-    // The listPets response is an array with items.$ref, not a direct $ref
-    // → no Source line should appear in the listPets namespace for Response
-    const responseComment = listPetsBlock![0].match(/Response type - ALL fields required[^\n]*/)
-    expect(responseComment).not.toBeNull()
-    expect(responseComment![0]).not.toContain('Source:')
+    // The listPets response is an array with items.$ref, not a direct $ref.
+    // The matched block (up to and including the first closing brace) contains the
+    // Response and StrictResponse multi-line JSDoc comments.  Neither should carry a Source:
+    // annotation because no direct-$ref resolution is possible for array schemas.
+    expect(listPetsBlock![0]).toContain('Response type \u2014') // confirms new block-comment format
+    expect(listPetsBlock![0]).not.toContain('Source:')
   })
 
   it('emits Source JSDoc on StrictResponse (same schema as Response)', () => {
-    // StrictResponse inherits the same source as Response
-    // For createPet, StrictResponse should also have a Source comment for PetDetail
+    // For createPet (direct $ref → PetDetail), both Response and StrictResponse carry a
+    // Source: annotation.  The block-comment format changed in phase 6: Source now appears
+    // at the end of the multi-line JSDoc rather than on a one-liner.
     const createPetBlock = typesContent.match(/export namespace createPet \{[\s\S]*?\}/)
     expect(createPetBlock).not.toBeNull()
-    // The strict mode comment should contain the Source reference
-    expect(createPetBlock![0]).toContain("(strict mode). Source: components['schemas']['PetDetail']")
+    expect(createPetBlock![0]).toContain("Source: components['schemas']['PetDetail'] (POST /pets)")
   })
 })

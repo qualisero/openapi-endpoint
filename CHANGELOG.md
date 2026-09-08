@@ -7,46 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.28.2] - 2026-09-08
-
-### Fixed
-
-- **Empty-object sentinel stripped from generated unions (plan §1f):** `openapi-typescript` renders `{ "properties": {} }` (empty-properties schema) as `Record<string, never>`, which appears in generated `anyOf`/`oneOf` union types (e.g. `GroupA | Record<string, never> | null`). The codegen pipeline now strips the sentinel member from all union types in `openapi-types.ts` via a post-generation transform. Standalone `Record<string, never>` assignments (`webhooks`, `$defs` boilerplate) are preserved. Consumers no longer need hand-rolled `CleanGroup`/`Clean` utilities to work around this artifact.
-
-## [0.28.1] - 2026-09-08
+## [0.28.0] - 2026-09-08
 
 ### Added
 
+- **`x-direction-finalized` marker detection (plan §3):** the codegen CLI now reads the root-level `x-direction-finalized: true` OAS extension key. When present, an advisory is logged: presence policy is already spec-side (dump-direction `required` encoded in the spec), `RequireAll` in `ApiResponse` is a no-op over fully-required schemas, and `--use-strict-response` is redundant for that spec. No behaviour change is made in this release; the `Response` / `StrictResponse` collapse for finalized specs is deferred to a later major.
 - **`Responses` namespace in `api-schemas.ts` (plan 1b):** codegen now emits `export namespace Responses { ... }` containing one `RequireAll<components['schemas']['X']>` entry per response-reachable component. Reachability is the transitive `$ref` closure seeded from all operation response bodies — never derived from name suffixes. Request-only components are excluded. Enum schemas are not duplicated (they remain in `api-enums.ts`). Each `Responses.*` member carries a `/** Referenced by: opId (response|items) */` JSDoc line listing direct response references.
-- **`@deprecated` bare aliases (plan 1b):** existing bare `export type X = components['schemas']['X']` aliases are kept for one minor cycle and annotated with `@deprecated` JSDoc naming the direction-typed replacement (`Responses.X` for response-reachable schemas, `Types.<opId>.Request` for request-only schemas). A `Requests` namespace is intentionally absent — request bodies are always operation-shaped.
-- **File docstring rewrite (plan 1b):** `api-schemas.ts` docstring now explains the direction-typed surface: what `Responses.*` asserts (same policy as `ApiResponse` / `RequireAll`), when to prefer `StrictResponse`, and why there is no `Requests` namespace.
 - **Source JSDoc on `Types.<opId>` members (plan 1c):** when an operation's request or response body directly resolves to a named `$ref`, the generated `Response`, `StrictResponse`, and `Request` type declarations each carry a `Source: components['schemas']['X'] (METHOD /path)` JSDoc suffix. Greppable cross-repo (FE type → BE schema class), doc-only, never part of the type contract.
-
-## [0.28.0] - 2026-09-07
-
-### Added
-
-- `--default-non-nullable <true|false>` CLI flag forwarded natively to `openapi-typescript` as `defaultNonNullable`. Default is `true` (current behaviour). The default will flip to `false` in the next major version. Note: `defaultNonNullable: true` is only sound for response types ("the server fills the default"); using it for request bodies (e.g. PATCH groups whose properties carry `default: null`) incorrectly makes those properties non-optional.
-- `openapi-typescript` is now a direct dependency (was peer-only) so the programmatic API is available without a separate install step for CLI users.
+- **`--default-non-nullable <true|false>` CLI flag** forwarded natively to `openapi-typescript` as `defaultNonNullable`. Default is `true` (current behaviour). The default will flip to `false` in the next major version. Note: `defaultNonNullable: true` is only sound for response types ("the server fills the default"); using it for request bodies (e.g. PATCH groups whose properties carry `default: null`) incorrectly makes those properties non-optional.
+- **Config-file mode:** create `openapi-codegen.config.json` in your project root to codegen multiple specs in one invocation. Running `openapi-codegen` with no arguments discovers and uses the config automatically. CLI positional arguments still work for one-off use. The config shape is `{ "options": { shared options }, "specs": [ { "input", "output", per-spec overrides } ] }`. See `--help` for an example.
 - `RequireAll<T>`, `Writable<T>`, and `Mutable<T>` are now exported from the package root. Consumers can use these utilities directly instead of hand-rolling equivalents.
   - `RequireAll<T>` — deep-require all fields; the response presence policy applied internally by `ApiResponse`.
   - `Writable<T>` — direction: response shape → request shape. Excludes properties whose `readonly` modifier originates from an OpenAPI `readOnly: true` marker, recursing into nested objects and arrays. Previously shallow (only top-level keys were filtered).
   - `Mutable<T>` — direction: response shape → mutable store shape. Strips all TypeScript `readonly` modifiers without removing keys, recursing into nested objects and arrays (including `readonly` arrays). Replaces hand-rolled `CleanMutable` utilities in consumers.
-- JSDoc on all three utilities explains direction semantics (`readonly` = spec `readOnly` artifact; `RequireAll` = response presence policy) and cross-links the related utilities.
+- `openapi-typescript` is now a direct dependency (was peer-only) so the programmatic API is available without a separate install step for CLI users.
 
 ### Changed
 
+- **Transitional docstrings on `Response` and `StrictResponse`:** generated `api-types.ts` now carries multi-line JSDoc on both type aliases explaining the duality, its transitional nature, and when it collapses (`x-direction-finalized: true`).
 - `generateTypes` now calls the `openapi-typescript` programmatic API (`openapiTS` + `astToString`) instead of shelling out via `npx openapi-typescript`. Removes the ESLint post-fix step; generated output is byte-equivalent after formatting. The `defaultNonNullable` option and future options are forwarded natively without shell escaping.
-- All generated files are now formatted with prettier programmatically during codegen (no separate post-step required). Output is lint-clean by construction: `eslint --no-fix` exits 0 on fresh generated output.
+- All generated files are now formatted with prettier programmatically during codegen (no separate post-step required). Output is lint-clean by construction: `eslint --no-fix` exits 0 on fresh generated output. `api-value-schemas.ts` output format changed from JSON-style to formatted TypeScript literal — regenerate to pick up the change.
 - `prettier` is now a direct dependency so the programmatic formatter is available without a separate install.
 
-### Added
+### Deprecated
 
-- Config-file mode: create `openapi-codegen.config.json` in your project root to codegen multiple specs in one invocation. Running `openapi-codegen` with no arguments discovers and uses the config automatically. CLI positional arguments still work for one-off use. The config shape is `{ "options": { shared options }, "specs": [ { "input", "output", per-spec overrides } ] }`. See `--help` for an example.
+- **Bare `api-schemas.ts` aliases** (`export type X = components['schemas']['X']`): direction-blind aliases are footguns with specs that encode dump-direction `required`. Kept for one minor cycle with `@deprecated` JSDoc naming the replacement (`Responses.X` for response-reachable schemas, `Types.<opId>.Request` for request-only schemas). Will be removed in the next major version. A `Requests` namespace is intentionally absent — request bodies are always operation-shaped.
 
 ### Fixed
 
-- `Writable<T>` is now deep: nested `readOnly`-derived `readonly` properties are excluded from generated `Request` types. Previously, `readonly` properties inside nested objects (e.g. a `createdAt` field inside a PATCH group) leaked through into request types.
+- **`Writable<T>` and `Mutable<T>` leaf guard:** `unknown`, `null`, `Date`, `Blob`, `File`, and `Function` values inside object types now pass through unchanged instead of being degraded to `{}`. This fixes request body types that contain `additionalProperties: true` or untyped JSON columns — previously `unknown`-valued properties became `{}`, breaking assignment of `null` and other valid values.
+- **`Writable<T>` is now deep:** nested `readOnly`-derived `readonly` properties are excluded from generated `Request` types. Previously, `readonly` properties inside nested objects (e.g. a `createdAt` field inside a PATCH group) leaked through into request types.
+- **Empty-object sentinel stripped from generated unions (plan §1f):** `openapi-typescript` renders `{ "properties": {} }` (empty-properties schema) as `Record<string, never>`, which appears in generated `anyOf`/`oneOf` union types (e.g. `GroupA | Record<string, never> | null`). The codegen pipeline now strips the sentinel member from all union types in `openapi-types.ts` via a post-generation transform. Standalone `Record<string, never>` assignments (`webhooks`, `$defs` boilerplate) are preserved. Consumers no longer need hand-rolled `CleanGroup`/`Clean` utilities to work around this artifact.
+- **`api-schemas.ts` file docstring rewritten (plan 1b):** now explains the direction-typed surface, what `Responses.*` asserts (same policy as `ApiResponse` / `RequireAll`), when to prefer `StrictResponse`, and why there is no `Requests` namespace.
 
 ## [0.27.0] - 2026-09-01
 

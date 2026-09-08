@@ -210,6 +210,22 @@ type _MRNested = _MutableRequired['nested']
 type _MR_NX = Assert<Equals<_MRNested['x'], boolean>>
 
 // =============================================================================
+// Test 11: Leaf guard — unknown, Date, Function pass through without degrading
+// =============================================================================
+
+// Mutable<unknown> must be unknown, not {} (leaf guard: unknown does not extend object)
+type _MutableUnknown = Mutable<unknown>
+type _MutableUnknown_IsUnknown = Assert<Equals<_MutableUnknown, unknown>>
+
+// Mutable<Date> must be Date, not a mapped type over Date internals
+type _MutableDate = Mutable<Date>
+type _MutableDate_IsDate = Assert<Equals<_MutableDate, Date>>
+
+// Writable over a type with an unknown-valued property must not degrade unknown to {}
+type _WritableWithUnknown = Writable<{ data: Record<string, unknown> }>
+type _WritableWithUnknown_DataType = Assert<Equals<_WritableWithUnknown['data'], Record<string, unknown>>>
+
+// =============================================================================
 // Ensure types are imported (avoid "unused import" lint errors)
 // =============================================================================
 

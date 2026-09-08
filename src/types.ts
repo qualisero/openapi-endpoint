@@ -590,11 +590,15 @@ export type Writable<T> = T extends (infer E)[]
   ? Writable<E>[]
   : T extends readonly (infer E)[]
     ? Writable<E>[]
-    : {
-        -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
-          ? K
-          : never]: Writable<T[K]>
-      }
+    : T extends object
+      ? T extends ((...args: never[]) => unknown) | Date | Blob | File
+        ? T
+        : {
+            -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
+              ? K
+              : never]: Writable<T[K]>
+          }
+      : T
 
 /**
  * Deep-strip all TypeScript `readonly` modifiers from `T`, recursing into
@@ -625,7 +629,11 @@ export type Mutable<T> = T extends (infer E)[]
   ? Mutable<E>[]
   : T extends readonly (infer E)[]
     ? Mutable<E>[]
-    : { -readonly [K in keyof T]: Mutable<T[K]> }
+    : T extends object
+      ? T extends ((...args: never[]) => unknown) | Date | Blob | File
+        ? T
+        : { -readonly [K in keyof T]: Mutable<T[K]> }
+      : T
 
 /**
  * Extract the request body type.

@@ -1,13 +1,83 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import * as prettier from 'prettier'
+import typescriptPlugin from 'prettier/plugins/typescript'
+import estreePlugin from 'prettier/plugins/estree'
+import openapiTS, { astToString, COMMENT_HEADER } from 'openapi-typescript'
 import { HttpMethod } from './types.js'
 import { toPascalCase, buildMemberLabelMap, type EnumCase } from './enum-naming.js'
 import { toJsonSchema, collectRefNames } from './json-schema-convert.js'
 import { stripRecordStringNeverFromUnions } from './codegen-transforms.js'
 
-const execAsync = promisify(exec)
+/**
+ * Prettier options matching the repo's own config (package.json "prettier" field).
+ * Applied to every generated TypeScript file so output is lint-clean by construction.
+ */
+const PRETTIER_TS_OPTIONS: prettier.Options = {
+  parser: 'typescript',
+  semi: false,
+  singleQuote: true,
+  tabWidth: 2,
+  trailingComma: 'all',
+  printWidth: 120,
+  endOfLine: 'lf',
+}
+
+/** Format a TypeScript source string with prettier (plugins bundled to avoid dynamic loading). */
+async function formatTs(content: string): Promise<string> {
+  return prettier.format(content, { ...PRETTIER_TS_OPTIONS, plugins: [estreePlugin, typescriptPlugin] })
+}
+
+/**
+ * Resolved options for a single codegen run (one spec → one output directory).
+ * Shared between the positional-arg CLI path and the config-file path.
+ */
+interface ResolvedOptions {
+  excludePrefix: string | null
+  useStrictResponse: boolean
+  enumCase: EnumCase
+  emitValueSchemasMode: 'request' | 'all' | null
+  defaultNonNullable: boolean
+}
+
+const DEFAULT_OPTIONS: ResolvedOptions = {
+  excludePrefix: '_deprecated',
+  useStrictResponse: false,
+  enumCase: 'pascal',
+  emitValueSchemasMode: null,
+  defaultNonNullable: true,
+}
+
+/**
+ * Shape of openapi-codegen.config.json discovered in the working directory.
+ *
+ * @example
+ * {
+ *   "options": { "enumCase": "const", "defaultNonNullable": false },
+ *   "specs": [
+ *     { "input": "../specs/api.json", "output": "src/api/openapi_generated/api" },
+ *     { "input": "../specs/other.json", "output": "src/api/openapi_generated/other", "enumCase": "pascal" }
+ *   ]
+ * }
+ */
+interface CodegenConfigOptions {
+  enumCase?: EnumCase
+  defaultNonNullable?: boolean
+  useStrictResponse?: boolean
+  /** Use 'false' (string) or omit to disable prefix exclusion. */
+  excludePrefix?: string | false
+  emitValueSchemas?: 'request' | 'all' | false
+}
+
+interface CodegenConfigSpec extends CodegenConfigOptions {
+  input: string
+  output: string
+}
+
+interface CodegenConfig {
+  options?: CodegenConfigOptions
+  specs: CodegenConfigSpec[]
+}
 
 /**
  * Standard HTTP methods used in OpenAPI specifications.
@@ -24,6 +94,8 @@ interface OpenAPIPath {
 }
 
 interface OpenAPISpec {
+  /** OAS extension: set to `true` by the BE finalize pass when dump-direction `required` is fully encoded in the spec (plan §3). */
+  'x-direction-finalized'?: boolean
   paths: {
     [path: string]: OpenAPIPath
   }
@@ -144,41 +216,21 @@ async function fetchOpenAPISpec(input: string): Promise<string> {
   }
 }
 
-async function generateTypes(openapiContent: string, outputDir: string): Promise<void> {
+async function generateTypes(openApiSpec: OpenAPISpec, outputDir: string, defaultNonNullable: boolean): Promise<void> {
   console.log('🔨 Generating TypeScript types using openapi-typescript...')
 
-  // Write the OpenAPI spec to a temporary file
-  const tempSpecPath = path.join(outputDir, 'temp-openapi.json')
-  fs.writeFileSync(tempSpecPath, openapiContent)
-
-  try {
-    // Run openapi-typescript
-    const typesOutputPath = path.join(outputDir, 'openapi-types.ts')
-    const command = `npx openapi-typescript "${tempSpecPath}" --output "${typesOutputPath}"`
-
-    await execAsync(command)
-    console.log(`✅ Generated types file: ${typesOutputPath}`)
-
-    // Strip Record<string, never> sentinel from union types (openapi-typescript
-    // rendering artifact for empty-properties schemas in anyOf/oneOf groups).
-    const rawContent = fs.readFileSync(typesOutputPath, 'utf8')
-    const cleanedContent = stripRecordStringNeverFromUnions(rawContent)
-    if (cleanedContent !== rawContent) {
-      fs.writeFileSync(typesOutputPath, cleanedContent, 'utf8')
-      console.log('✅ Stripped Record<string, never> sentinel from union types')
-    }
-
-    // Format the generated file using eslint --fix
-    console.log('🎨 Formatting generated types file with ESLint...')
-    const eslintCommand = `npx eslint --fix "${typesOutputPath}"`
-    await execAsync(eslintCommand)
-    console.log(`✅ Formatted types file: ${typesOutputPath}`)
-  } finally {
-    // Clean up temp file
-    if (fs.existsSync(tempSpecPath)) {
-      fs.unlinkSync(tempSpecPath)
-    }
+  const typesOutputPath = path.join(outputDir, 'openapi-types.ts')
+  const ast = await openapiTS(openApiSpec as unknown as Parameters<typeof openapiTS>[0], { defaultNonNullable })
+  const raw = COMMENT_HEADER + astToString(ast)
+  // Strip Record<string, never> sentinel from union types (openapi-typescript
+  // rendering artifact for empty-properties schemas in anyOf/oneOf groups).
+  const stripped = stripRecordStringNeverFromUnions(raw)
+  if (stripped !== raw) {
+    console.log('✅ Stripped Record<string, never> sentinel from union types')
   }
+  const content = await formatTs(stripped)
+  fs.writeFileSync(typesOutputPath, content)
+  console.log(`✅ Generated types file: ${typesOutputPath}`)
 }
 
 /**
@@ -838,7 +890,7 @@ async function generateApiEnums(
   const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
   const enums = extractEnumsFromSpec(openApiSpec)
 
-  const tsContent = generateApiEnumsContent(enums, style)
+  const tsContent = await formatTs(generateApiEnumsContent(enums, style))
   const outputPath = path.join(outputDir, 'api-enums.ts')
   fs.writeFileSync(outputPath, tsContent)
 
@@ -855,10 +907,113 @@ function removeSchemaSuffix(name: string): string {
 }
 
 /**
- * Generates the content for api-schemas.ts file.
- * Creates type aliases for all schema objects with cleaned names.
+ * Computes the set of component schema names reachable from any 2xx response body
+ * (transitive $ref closure). Used to filter the Responses namespace and to tag
+ * request-only schemas with appropriate @deprecated guidance.
  */
-function generateApiSchemasContent(openApiSpec: OpenAPISpec): string {
+function computeResponseReachableSchemas(openApiSpec: OpenAPISpec, excludePrefix: string | null): Set<string> {
+  const rawSchemas = openApiSpec.components?.schemas ?? {}
+  const reachable = new Set<string>()
+  for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+    for (const [method, rawOp] of Object.entries(pathItem)) {
+      if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
+      const op = rawOp as OpenAPIOperation & { responses?: Record<string, OpenAPIBodyObject> }
+      if (!op.operationId) continue
+      if (excludePrefix && op.operationId.startsWith(excludePrefix)) continue
+      const responses = op.responses
+      if (!responses) continue
+      for (const [statusCode, response] of Object.entries(responses)) {
+        const code = parseInt(statusCode, 10)
+        if (!isNaN(code) && code >= 200 && code < 300) {
+          const schema = getJsonBodySchema(openApiSpec, response)
+          if (schema) {
+            for (const name of collectRefNames(schema, rawSchemas)) {
+              reachable.add(name)
+            }
+          }
+        }
+      }
+    }
+  }
+  return reachable
+}
+
+/**
+ * Builds a map of schema name → list of "opId (response|items)" labels for all
+ * direct-$ref and array-items-$ref 2xx response bodies.
+ */
+function buildSchemaResponseRefs(
+  openApiSpec: OpenAPISpec,
+  operationMap: Record<string, OperationInfo>,
+): Map<string, string[]> {
+  const refs = new Map<string, string[]>()
+  const addRef = (name: string, label: string) => {
+    if (!refs.has(name)) refs.set(name, [])
+    refs.get(name)!.push(label)
+  }
+  for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+    for (const [method, rawOp] of Object.entries(pathItem)) {
+      if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
+      const op = rawOp as OpenAPIOperation & { responses?: Record<string, OpenAPIBodyObject> }
+      if (!op.operationId || !(op.operationId in operationMap)) continue
+      const responses = op.responses
+      if (!responses) continue
+      for (const statusCode of ['200', '201', '202', '203', '204', '206']) {
+        const bodySchema = getJsonBodySchema(openApiSpec, responses[statusCode])
+        if (!bodySchema) continue
+        if (bodySchema.$ref) {
+          const name = bodySchema.$ref.split('/').pop()!
+          addRef(name, `${op.operationId} (response)`)
+        } else if (bodySchema.type === 'array' && bodySchema.items?.$ref) {
+          const name = bodySchema.items.$ref.split('/').pop()!
+          addRef(name, `${op.operationId} (items)`)
+        }
+        break
+      }
+    }
+  }
+  return refs
+}
+
+/**
+ * Builds a map of schema name → list of operationIds that reference the schema
+ * as a request body (across all media types including multipart).
+ */
+function buildSchemaRequestBodyRefs(
+  openApiSpec: OpenAPISpec,
+  operationMap: Record<string, OperationInfo>,
+): Map<string, string[]> {
+  const refs = new Map<string, string[]>()
+  for (const [_pathUrl, pathItem] of Object.entries(openApiSpec.paths)) {
+    for (const [method, rawOp] of Object.entries(pathItem)) {
+      if (!HTTP_METHODS.includes(method as (typeof HTTP_METHODS)[number])) continue
+      const op = rawOp as OpenAPIOperation & { requestBody?: OpenAPIBodyObject }
+      if (!op.operationId || !(op.operationId in operationMap)) continue
+      const requestBody = op.requestBody
+      if (!requestBody) continue
+      const resolved = derefBodyObject(requestBody, openApiSpec.components)
+      if (!resolved?.content) continue
+      const seen = new Set<string>()
+      for (const mediaObj of Object.values(resolved.content)) {
+        const schemaRef = mediaObj?.schema?.$ref
+        if (typeof schemaRef !== 'string') continue
+        const name = schemaRef.split('/').pop()!
+        if (seen.has(name)) continue
+        seen.add(name)
+        if (!refs.has(name)) refs.set(name, [])
+        refs.get(name)!.push(op.operationId)
+      }
+    }
+  }
+  return refs
+}
+
+/**
+ * Generates the content for api-schemas.ts file.
+ * Emits a direction-typed Responses namespace (response-reachable schemas only,
+ * wrapped in RequireAll) and bare aliases with @deprecated tags (plan 1b).
+ */
+function generateApiSchemasContent(openApiSpec: OpenAPISpec, excludePrefix: string | null): string {
   if (!openApiSpec.components?.schemas || Object.keys(openApiSpec.components.schemas).length === 0) {
     return `// Auto-generated from OpenAPI specification
 // Do not edit this file manually
@@ -867,52 +1022,108 @@ function generateApiSchemasContent(openApiSpec: OpenAPISpec): string {
 `
   }
 
-  const header = `// Auto-generated from OpenAPI specification
-// Do not edit this file manually
+  const RESERVED_EXPORT_NAMES = new Set(['Error'])
+  const rawSchemas = openApiSpec.components.schemas
+  const operationMap = buildOperationMap(openApiSpec, excludePrefix)
 
-import type { components } from './openapi-types'
-
-/**
- * Type aliases for schema objects from the API spec.
- * These are references to components['schemas'] for convenient importing.
- *
- * @example
- * import type { Nuts, Address, BorrowerInfo } from './api-schemas'
- *
- * const nutsData: Nuts = { NUTS_ID: 'BE241', ... }
- */
-`
-
-  // Build set of enum schema names to skip (they're exported in api-enums.ts as runtime objects)
   const enumSchemaNames = new Set<string>()
-  for (const [schemaName, schema] of Object.entries(openApiSpec.components.schemas)) {
+  for (const [schemaName, schema] of Object.entries(rawSchemas)) {
     if (schema.enum && Array.isArray(schema.enum)) {
       enumSchemaNames.add(schemaName)
     }
   }
 
-  const schemaExports = Object.keys(openApiSpec.components.schemas)
+  const nonEnumSchemas = Object.keys(rawSchemas)
     .sort()
-    .filter((schemaName) => !enumSchemaNames.has(schemaName)) // Skip enum schemas
+    .filter((name) => !enumSchemaNames.has(name))
+
+  const responseReachable = computeResponseReachableSchemas(openApiSpec, excludePrefix)
+  const responseRefs = buildSchemaResponseRefs(openApiSpec, operationMap)
+  const requestBodyRefs = buildSchemaRequestBodyRefs(openApiSpec, operationMap)
+
+  // Responses namespace — response-reachable non-enum schemas only
+  const responseSchemas = nonEnumSchemas.filter((name) => responseReachable.has(name))
+  const responsesNsEntries = responseSchemas
     .map((schemaName) => {
-      // Remove schema suffix and convert to PascalCase
       const cleanedName = removeSchemaSuffix(schemaName)
       const exportedName = toPascalCase(cleanedName)
-
-      // Guard against names that shadow built-in globals (e.g. `Error` shadows the global Error constructor).
-      // Suffix them with 'Schema' so the generated alias is unambiguous.
-      // The original components['schemas'][...] access is left unchanged.
-      const RESERVED_EXPORT_NAMES = new Set(['Error'])
       const safeExportedName = RESERVED_EXPORT_NAMES.has(exportedName) ? `${exportedName}Schema` : exportedName
-
-      // Only add comment if the name changed (either suffix-stripped or reserved-name-guarded)
-      const comment = safeExportedName !== schemaName ? `// Schema: ${schemaName}\n` : ''
-
-      return `${comment}export type ${safeExportedName} = components['schemas']['${schemaName}']`
+      const directRefs = responseRefs.get(schemaName) ?? []
+      const jsdoc =
+        directRefs.length > 0
+          ? `  /** Referenced by: ${directRefs.join(', ')} */
+  export type ${safeExportedName} = RequireAll<components['schemas']['${schemaName}']>`
+          : `  export type ${safeExportedName} = RequireAll<components['schemas']['${schemaName}']>`
+      return jsdoc
     })
     .join('\n\n')
 
-  return header + '\n' + schemaExports + '\n'
+  const responsesNamespace =
+    responseSchemas.length > 0
+      ? `export namespace Responses {
+${responsesNsEntries}
+}`
+      : `// No response-reachable schemas found`
+
+  // Bare aliases with @deprecated tags
+  const bareAliases = nonEnumSchemas
+    .map((schemaName) => {
+      const cleanedName = removeSchemaSuffix(schemaName)
+      const exportedName = toPascalCase(cleanedName)
+      const safeExportedName = RESERVED_EXPORT_NAMES.has(exportedName) ? `${exportedName}Schema` : exportedName
+      const schemaComment = safeExportedName !== schemaName ? `// Schema: ${schemaName}\n` : ''
+
+      let deprecatedTag: string
+      if (responseReachable.has(schemaName)) {
+        deprecatedTag = `/** @deprecated Use Responses.${safeExportedName} instead. */\n`
+      } else {
+        const reqOps = requestBodyRefs.get(schemaName) ?? []
+        if (reqOps.length > 0) {
+          const typeRefs = reqOps.map((op) => `Types.${op}.Request`).join(', ')
+          deprecatedTag = `/** @deprecated Use ${typeRefs} instead. */\n`
+        } else {
+          deprecatedTag = `/** @deprecated This schema has no direction-typed replacement. */\n`
+        }
+      }
+
+      return `${schemaComment}${deprecatedTag}export type ${safeExportedName} = components['schemas']['${schemaName}']`
+    })
+    .join('\n\n')
+
+  const header = `/* eslint-disable */
+// Auto-generated from OpenAPI specification
+// Do not edit this file manually
+
+import type { components } from './openapi-types'
+import type { RequireAll } from '@qualisero/openapi-endpoint'
+
+/**
+ * Direction-typed schema aliases generated from the OpenAPI spec.
+ *
+ * ## Responses namespace
+ * Contains only the **response-reachable** component set \u2014 the transitive $ref
+ * closure seeded from all operation response bodies. Each member is wrapped in
+ * \`RequireAll<T>\`, asserting that the API serialises every documented field
+ * (same policy as \`ApiResponse\` / \`Types.<opId>.Response\`).
+ * For spec-fidelity without the serialise-everything assumption, use
+ * \`Types.<opId>.StrictResponse\` instead.
+ *
+ * ## Bare aliases (below)
+ * Direction-blind: they expose \`components['schemas']\` without a presence policy.
+ * Kept for one minor cycle with \`@deprecated\` tags indicating the direction-typed
+ * replacement. They will be removed in the next major release.
+ *
+ * ## Request direction
+ * Request bodies are operation-shaped. Use \`Types.<opId>.Request\` \u2014 there is
+ * intentionally no \`Requests\` namespace.
+ *
+ * @example
+ * import type { Responses } from './api-schemas'
+ * const pet: Responses.Pet = response.data
+ */
+`
+
+  return header + '\n' + responsesNamespace + '\n\n' + bareAliases + '\n'
 }
 
 /**
@@ -921,14 +1132,14 @@ import type { components } from './openapi-types'
 async function generateApiSchemas(
   openapiContent: string,
   outputDir: string,
-  _excludePrefix: string | null = '_deprecated',
+  excludePrefix: string | null = '_deprecated',
 ): Promise<void> {
   console.log('🔨 Generating api-schemas.ts file...')
 
   const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
   const schemaCount = Object.keys(openApiSpec.components?.schemas ?? {}).length
 
-  const tsContent = generateApiSchemasContent(openApiSpec)
+  const tsContent = await formatTs(generateApiSchemasContent(openApiSpec, excludePrefix))
   const outputPath = path.join(outputDir, 'api-schemas.ts')
   fs.writeFileSync(outputPath, tsContent)
 
@@ -1519,7 +1730,7 @@ async function generateApiClientFile(
   useStrictResponse = false,
 ): Promise<void> {
   const operationMap = buildOperationMap(openApiSpec, excludePrefix)
-  const content = generateApiClientContent(operationMap, useStrictResponse)
+  const content = await formatTs(generateApiClientContent(operationMap, useStrictResponse))
   fs.writeFileSync(path.join(outputDir, 'api-client.ts'), content)
   console.log(`✅ Generated api-client.ts (${Object.keys(operationMap).length} operations)`)
 }
@@ -1529,6 +1740,23 @@ async function generateApiClientFile(
 function printUsage(): void {
   console.log(`
 Usage: npx @qualisero/openapi-endpoint <openapi-input> <output-directory> [options]
+       npx @qualisero/openapi-endpoint   (no args: discovers openapi-codegen.config.json in cwd)
+
+Config-file mode:
+  Create openapi-codegen.config.json in your project root to codegen multiple specs in one
+  invocation. Running with no arguments discovers and uses the config automatically.
+
+  Example openapi-codegen.config.json:
+    {
+      "options": { "enumCase": "const", "defaultNonNullable": false },
+      "specs": [
+        { "input": "../specs/api.json", "output": "src/api/openapi_generated/api" },
+        { "input": "../specs/other.json", "output": "src/api/openapi_generated/other" }
+      ]
+    }
+
+  The "options" block sets shared defaults for all specs. Each spec entry can override
+  any option. CLI flags (e.g. --enum-case) only apply in positional-arg mode.
 
 Arguments:
   openapi-input      Path to OpenAPI JSON file or URL to fetch it from
@@ -1549,6 +1777,11 @@ Options:
                                 format keywords are emitted by design. (default: off)
                                 'request' = emit requestSchemas only (default when flag is present)
                                 'all'     = emit requestSchemas + first 2xx responseSchemas per operation
+  --default-non-nullable BOOL   Whether openapi-typescript treats properties with a 'default' as non-optional
+                                (default: true — current behaviour; will flip to false in the next major version)
+                                Only sound for responses ("the server fills the default"). For request bodies,
+                                defaultNonNullable:true makes PATCH group fields non-optional, which is incorrect.
+                                Pass 'false' to opt in to the future default: schema-declared optionality is kept.
   --help, -h                    Show this help message
 
 Examples:
@@ -1874,7 +2107,7 @@ async function generateApiOperationsFile(
   console.log('🔨 Generating api-operations.ts...')
   const operationMap = buildOperationMap(openApiSpec, excludePrefix)
   const opEnums = buildOperationEnums(openApiSpec, operationMap, style)
-  const content = generateApiOperationsContent(operationMap, opEnums, schemaEnumNames)
+  const content = await formatTs(generateApiOperationsContent(operationMap, opEnums, schemaEnumNames))
   fs.writeFileSync(path.join(outputDir, 'api-operations.ts'), content)
   console.log(`✅ Generated api-operations.ts (${Object.keys(operationMap).length} operations)`)
 }
@@ -1898,8 +2131,10 @@ function generateApiTypesContent(
 
   const namespaces = ids
     .map((id) => {
+      const info = operationMap[id]
       const query = isQuery(id)
       const fields = opEnums[id] ?? {}
+      const { responseSchema, requestBodySchema, method, path: opPath } = info
 
       const enumTypes = Object.entries(fields)
         .map(([fieldName, vals]) => {
@@ -1911,15 +2146,22 @@ function generateApiTypesContent(
         })
         .join('\n')
 
+      const responseSrc = responseSchema
+        ? ` Source: components['schemas']['${responseSchema}'] (${method} ${opPath})`
+        : ''
+      const requestSrc = requestBodySchema
+        ? ` Source: components['schemas']['${requestBodySchema}'] (${method} ${opPath})`
+        : ''
+
       const commonLines = [
-        `    /** Response type - ALL fields required (default). */`,
+        `    /**\n     * Response type \u2014 ALL fields required via RequireAll<T> (default, transitional).\n     *\n     * This is a stopgap for specs that do not yet encode dump-direction \`required\`:\n     * it asserts the API serialises every documented field, which may not be true\n     * when a backend serialiser omits fields without a \`dump_default\`.\n     *\n     * When the spec carries \`x-direction-finalized: true\`, presence policy is already\n     * encoded as spec-side \`required\` and RequireAll is a no-op \u2014 Response \u2261 StrictResponse.\n     * Use StrictResponse for spec-faithful optionality; in a later major the duality\n     * collapses and this alias is dropped for finalized specs.${responseSrc}\n     */`,
         `    export type Response       = _ApiResponse<OpenApiOperations, '${id}'>`,
-        `    /** Response type - only readonly/required fields required (strict mode). */`,
+        `    /**\n     * Response type \u2014 only \`readonly\`/\`required\` fields are required (spec-faithful).\n     *\n     * Reflects the spec as written: optional fields stay optional, readonly fields\n     * (server-generated) are required, and required fields are required.\n     *\n     * When the spec carries \`x-direction-finalized: true\`, this type is equivalent\n     * to Response (the transitional duality collapses). Prefer this type for\n     * spec fidelity; it becomes the sole type for finalized specs in a later major.${responseSrc}\n     */`,
         `    export type StrictResponse = _ApiResponseStrict<OpenApiOperations, '${id}'>`,
       ]
       if (!query) {
         commonLines.push(
-          `    /** Request body type. */`,
+          `    /** Request body type.${requestSrc} */`,
           `    export type Request      = _ApiRequest<OpenApiOperations, '${id}'>`,
         )
       }
@@ -1979,7 +2221,7 @@ async function generateApiTypesFile(
   console.log('🔨 Generating api-types.ts...')
   const operationMap = buildOperationMap(openApiSpec, excludePrefix)
   const opEnums = buildOperationEnums(openApiSpec, operationMap, style)
-  const content = generateApiTypesContent(operationMap, opEnums)
+  const content = await formatTs(generateApiTypesContent(operationMap, opEnums))
   fs.writeFileSync(path.join(outputDir, 'api-types.ts'), content)
   console.log(`✅ Generated api-types.ts`)
 }
@@ -2133,7 +2375,7 @@ async function generateApiValueSchemasFile(
   mode: 'request' | 'all',
 ): Promise<void> {
   console.log('🔨 Generating api-value-schemas.ts...')
-  const content = generateApiValueSchemasContent(openApiSpec, excludePrefix, mode)
+  const content = await formatTs(generateApiValueSchemasContent(openApiSpec, excludePrefix, mode))
   fs.writeFileSync(path.join(outputDir, 'api-value-schemas.ts'), content)
   console.log(`✅ Generated api-value-schemas.ts`)
 }
@@ -2201,12 +2443,203 @@ function assertNoEnumLabelCollisions(openApiSpec: OpenAPISpec, excludePrefix: st
   buildOperationEnums(openApiSpec, operationMap, style)
 }
 
+/**
+ * Detects the x-direction-finalized root marker (plan §3) and logs an advisory notice.
+ *
+ * When the spec producer stamps this key, presence policy is fully encoded as dump-direction
+ * `required` in the spec. In that case:
+ * - RequireAll used by ApiResponse is a no-op over fully-required schemas (harmless).
+ * - --use-strict-response is redundant (Response ≡ StrictResponse for this spec).
+ *
+ * No behaviour change is made; this is log-only in the 0.28.x cycle.
+ * The duality collapses (RequireAll wrapper dropped) in the later major gated on this marker.
+ */
+function logDirectionFinalizedNotice(openApiSpec: OpenAPISpec, useStrictResponse: boolean): void {
+  if (openApiSpec['x-direction-finalized'] !== true) return
+  console.log(
+    `ℹ️  Spec marker x-direction-finalized: true — presence policy is spec-side (dump-direction required encoded in spec).`,
+  )
+  console.log(`   ApiResponse's RequireAll wrapper is a no-op over fully-required schemas for this spec.`)
+  if (!useStrictResponse) {
+    console.log(
+      `   --use-strict-response is redundant for this spec: Response ≡ StrictResponse when x-direction-finalized.`,
+    )
+  }
+}
+
+/**
+ * Core generation pipeline for a single spec. All CLI paths (positional args and config-file)
+ * converge here.
+ */
+async function generateForSpec(openapiInput: string, outputDir: string, opts: ResolvedOptions): Promise<void> {
+  const { excludePrefix, useStrictResponse, enumCase, emitValueSchemasMode, defaultNonNullable } = opts
+
+  // Ensure output directory exists
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true })
+    console.log(`📁 Created output directory: ${outputDir}`)
+  }
+
+  // Fetch and parse OpenAPI spec once
+  const openapiContent = await fetchOpenAPISpec(openapiInput)
+  const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
+
+  // §3 marker detection: log advisory when spec encodes presence policy natively (log-only; no behaviour change)
+  logDirectionFinalizedNotice(openApiSpec, useStrictResponse)
+
+  // Add missing operationIds
+  addMissingOperationIds(openApiSpec)
+  const openapiContentWithIds = JSON.stringify(openApiSpec, null, 2)
+
+  // Collect schema enum names for re-export
+  const schemaEnumNames = extractEnumsFromSpec(openApiSpec).map((e) => e.name)
+
+  // Fail fast: detect collisions before any file is written
+  assertNoSchemaAliasCollisions(openApiSpec)
+  assertNoEnumLabelCollisions(openApiSpec, excludePrefix, enumCase)
+
+  // Generate all files
+  await Promise.all([
+    generateTypes(openApiSpec, outputDir, defaultNonNullable),
+    generateApiEnums(openapiContentWithIds, outputDir, excludePrefix, enumCase),
+    generateApiSchemas(openapiContentWithIds, outputDir, excludePrefix),
+    generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames, enumCase),
+    generateApiTypesFile(openApiSpec, outputDir, excludePrefix, enumCase),
+    generateApiClientFile(openApiSpec, outputDir, excludePrefix, useStrictResponse),
+    ...(emitValueSchemasMode !== null
+      ? [generateApiValueSchemasFile(openApiSpec, outputDir, excludePrefix, emitValueSchemasMode)]
+      : []),
+  ])
+}
+
+/**
+ * Parse a CodegenConfigOptions object (from config file or per-spec overrides) into a
+ * ResolvedOptions, merging over a base set of defaults.
+ */
+function mergeConfigOptions(base: ResolvedOptions, overrides: CodegenConfigOptions): ResolvedOptions {
+  const result = { ...base }
+  if (overrides.enumCase !== undefined) result.enumCase = overrides.enumCase
+  if (overrides.defaultNonNullable !== undefined) result.defaultNonNullable = overrides.defaultNonNullable
+  if (overrides.useStrictResponse !== undefined) result.useStrictResponse = overrides.useStrictResponse
+  if (overrides.excludePrefix !== undefined) {
+    result.excludePrefix = overrides.excludePrefix === false ? null : overrides.excludePrefix
+  }
+  if (overrides.emitValueSchemas !== undefined) {
+    result.emitValueSchemasMode = overrides.emitValueSchemas === false ? null : overrides.emitValueSchemas
+  }
+  return result
+}
+
+/**
+ * Load and validate openapi-codegen.config.json from the given path.
+ * Throws if the file is malformed or missing required fields.
+ */
+function loadCodegenConfig(configPath: string): CodegenConfig {
+  const raw = fs.readFileSync(configPath, 'utf8')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error(`Failed to parse ${configPath}: not valid JSON`)
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error(`${configPath}: must be a JSON object`)
+  }
+  const cfg = parsed as Record<string, unknown>
+  if (!Array.isArray(cfg.specs)) {
+    throw new Error(`${configPath}: "specs" must be an array`)
+  }
+  for (let i = 0; i < cfg.specs.length; i++) {
+    const spec = cfg.specs[i] as Record<string, unknown>
+    if (typeof spec.input !== 'string') {
+      throw new Error(`${configPath}: specs[${i}].input must be a string`)
+    }
+    if (typeof spec.output !== 'string') {
+      throw new Error(`${configPath}: specs[${i}].output must be a string`)
+    }
+  }
+  return parsed as CodegenConfig
+}
+
+/**
+ * Log the resolved options for a spec run.
+ */
+function logOptions(opts: ResolvedOptions): void {
+  if (opts.excludePrefix) {
+    console.log(`🚫 Excluding operations with operationId prefix: '${opts.excludePrefix}'`)
+  } else {
+    console.log(`✅ Including all operations (no exclusion filter)`)
+  }
+  if (opts.useStrictResponse) {
+    console.log(`✅ Using ApiResponseStrict (only readonly/required fields required)`)
+  } else {
+    console.log(`✅ Using ApiResponse (ALL fields required)`)
+  }
+  if (opts.enumCase === 'const') {
+    console.log(`✅ Using CONSTANT_CASE enum labels (--enum-case const)`)
+  } else {
+    console.log(`✅ Using PascalCase enum labels (default)`)
+  }
+  if (opts.emitValueSchemasMode !== null) {
+    console.log(`✅ Emitting value schemas (mode: ${opts.emitValueSchemasMode}) → api-value-schemas.ts`)
+  } else {
+    console.log(`🚫 Value schema emission disabled (use --emit-value-schemas to enable)`)
+  }
+  if (opts.defaultNonNullable) {
+    console.log(
+      `✅ defaultNonNullable: true (properties with 'default' are non-optional; pass --default-non-nullable false to opt out)`,
+    )
+  } else {
+    console.log(`✅ defaultNonNullable: false (schema-declared optionality preserved)`)
+  }
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+  if (args.includes('--help') || args.includes('-h')) {
     printUsage()
     process.exit(0)
+  }
+
+  // ─── Config-file mode ───────────────────────────────────────────────────────
+  // When invoked with no positional args, discover openapi-codegen.config.json
+  // in the working directory and run codegen for every spec entry.
+  if (args.length === 0) {
+    const configPath = path.join(process.cwd(), 'openapi-codegen.config.json')
+    if (!fs.existsSync(configPath)) {
+      printUsage()
+      process.exit(0)
+    }
+
+    let cfg: CodegenConfig
+    try {
+      cfg = loadCodegenConfig(configPath)
+    } catch (err) {
+      console.error('❌ Error loading config:', err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+
+    console.log(`📋 Loaded config: ${configPath} (${cfg.specs.length} spec(s))`)
+    const sharedOpts = mergeConfigOptions(DEFAULT_OPTIONS, cfg.options ?? {})
+
+    for (let i = 0; i < cfg.specs.length; i++) {
+      const specEntry = cfg.specs[i]
+      const specOpts = mergeConfigOptions(sharedOpts, specEntry)
+      const inputPath = path.resolve(path.dirname(configPath), specEntry.input)
+      const outputDir = path.resolve(path.dirname(configPath), specEntry.output)
+      console.log(`\n▶ Spec ${i + 1}/${cfg.specs.length}: ${specEntry.input} → ${specEntry.output}`)
+      logOptions(specOpts)
+      try {
+        await generateForSpec(inputPath, outputDir, specOpts)
+      } catch (err) {
+        console.error(`❌ Error generating spec ${i + 1}:`, err instanceof Error ? err.message : err)
+        process.exit(1)
+      }
+    }
+
+    console.log('\n🎉 All specs generated successfully!')
+    return
   }
 
   if (args.length < 2) {
@@ -2217,11 +2650,13 @@ async function main(): Promise<void> {
 
   const [openapiInput, outputDir, ...optionArgs] = args
 
-  // Parse options
-  let excludePrefix: string | null = '_deprecated' // default
-  let useStrictResponse = false // default to false
-  let enumCase: EnumCase = 'pascal' // default
-  let emitValueSchemasMode: 'request' | 'all' | null = null // null = off
+  // ─── Positional-arg (one-off) mode ──────────────────────────────────────────────────
+  // Parse options (all default to the same values used in config-file mode)
+  let excludePrefix: string | null = DEFAULT_OPTIONS.excludePrefix
+  let useStrictResponse: boolean = DEFAULT_OPTIONS.useStrictResponse
+  let enumCase: EnumCase = DEFAULT_OPTIONS.enumCase
+  let emitValueSchemasMode: 'request' | 'all' | null = DEFAULT_OPTIONS.emitValueSchemasMode
+  let defaultNonNullable: boolean = DEFAULT_OPTIONS.defaultNonNullable
 
   for (let i = 0; i < optionArgs.length; i++) {
     if (optionArgs[i] === '--exclude-prefix') {
@@ -2277,6 +2712,21 @@ async function main(): Promise<void> {
         printUsage()
         process.exit(1)
       }
+    } else if (optionArgs[i] === '--default-non-nullable') {
+      if (i + 1 < optionArgs.length) {
+        const value = optionArgs[i + 1]
+        if (value !== 'true' && value !== 'false') {
+          console.error(`❌ Error: --default-non-nullable must be 'true' or 'false', got: ${JSON.stringify(value)}`)
+          printUsage()
+          process.exit(1)
+        }
+        defaultNonNullable = value === 'true'
+        i++ // Skip next arg since we consumed it
+      } else {
+        console.error('❌ Error: --default-non-nullable requires a value (true or false)')
+        printUsage()
+        process.exit(1)
+      }
     } else {
       console.error(`❌ Error: Unknown option: ${JSON.stringify(optionArgs[i])}`)
       printUsage()
@@ -2284,69 +2734,11 @@ async function main(): Promise<void> {
     }
   }
 
+  const opts: ResolvedOptions = { excludePrefix, useStrictResponse, enumCase, emitValueSchemasMode, defaultNonNullable }
+  logOptions(opts)
+
   try {
-    // Ensure output directory exists
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true })
-      console.log(`📁 Created output directory: ${outputDir}`)
-    }
-
-    // Log exclusion settings
-    if (excludePrefix) {
-      console.log(`🚫 Excluding operations with operationId prefix: '${excludePrefix}'`)
-    } else {
-      console.log(`✅ Including all operations (no exclusion filter)`)
-    }
-
-    // Log response typing setting
-    if (useStrictResponse) {
-      console.log(`✅ Using ApiResponseStrict (only readonly/required fields required)`)
-    } else {
-      console.log(`✅ Using ApiResponse (ALL fields required)`)
-    }
-
-    // Log enum casing style
-    if (enumCase === 'const') {
-      console.log(`✅ Using CONSTANT_CASE enum labels (--enum-case const)`)
-    } else {
-      console.log(`✅ Using PascalCase enum labels (default)`)
-    }
-
-    // Log value-schemas setting
-    if (emitValueSchemasMode !== null) {
-      console.log(`✅ Emitting value schemas (mode: ${emitValueSchemasMode}) → api-value-schemas.ts`)
-    } else {
-      console.log(`🚫 Value schema emission disabled (use --emit-value-schemas to enable)`)
-    }
-
-    // Fetch and parse OpenAPI spec once
-    let openapiContent = await fetchOpenAPISpec(openapiInput)
-    const openApiSpec: OpenAPISpec = JSON.parse(openapiContent)
-
-    // Add missing operationIds
-    addMissingOperationIds(openApiSpec)
-    openapiContent = JSON.stringify(openApiSpec, null, 2)
-
-    // Collect schema enum names for re-export
-    const schemaEnumNames = extractEnumsFromSpec(openApiSpec).map((e) => e.name)
-
-    // Fail fast: detect collisions before any file is written
-    assertNoSchemaAliasCollisions(openApiSpec)
-    assertNoEnumLabelCollisions(openApiSpec, excludePrefix, enumCase)
-
-    // Generate all files
-    await Promise.all([
-      generateTypes(openapiContent, outputDir),
-      generateApiEnums(openapiContent, outputDir, excludePrefix, enumCase),
-      generateApiSchemas(openapiContent, outputDir, excludePrefix),
-      generateApiOperationsFile(openApiSpec, outputDir, excludePrefix, schemaEnumNames, enumCase),
-      generateApiTypesFile(openApiSpec, outputDir, excludePrefix, enumCase),
-      generateApiClientFile(openApiSpec, outputDir, excludePrefix, useStrictResponse),
-      ...(emitValueSchemasMode !== null
-        ? [generateApiValueSchemasFile(openApiSpec, outputDir, excludePrefix, emitValueSchemasMode)]
-        : []),
-    ])
-
+    await generateForSpec(openapiInput, outputDir, opts)
     console.log('🎉 Code generation completed successfully!')
   } catch (error) {
     console.error('❌ Error:', error instanceof Error ? error.message : error)

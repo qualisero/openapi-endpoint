@@ -172,7 +172,7 @@ describe('openapi-typescript sentinel emission audit', () => {
       },
     }
 
-    const ast = await openapiTS(spec as Parameters<typeof openapiTS>[0])
+    const ast = await openapiTS(spec as unknown as Parameters<typeof openapiTS>[0])
     const raw = astToString(ast)
 
     // Confirm the sentinel IS present in the raw output (audit finding: still present in 7.x)

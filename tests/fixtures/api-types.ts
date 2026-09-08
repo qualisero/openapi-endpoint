@@ -25,9 +25,29 @@ import type { operations as OpenApiOperations } from './openapi-types'
  */
 export namespace Types {
   export namespace createPet {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /pets) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (POST /pets)
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'createPet'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /pets) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (POST /pets)
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'createPet'>
     /** Request body type. Source: components['schemas']['NewPet'] (POST /pets) */
     export type Request = _ApiRequest<OpenApiOperations, 'createPet'>
@@ -39,9 +59,29 @@ export namespace Types {
   }
 
   export namespace deletePet {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'deletePet'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'deletePet'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'deletePet'>
@@ -53,9 +93,29 @@ export namespace Types {
   }
 
   export namespace getConfigJson {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'getConfigJson'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getConfigJson'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getConfigJson'>
@@ -65,9 +125,29 @@ export namespace Types {
   }
 
   export namespace getDataV1Json {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'getDataV1Json'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getDataV1Json'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getDataV1Json'>
@@ -77,9 +157,29 @@ export namespace Types {
   }
 
   export namespace getOwners {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'getOwners'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getOwners'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getOwners'>
@@ -89,9 +189,29 @@ export namespace Types {
   }
 
   export namespace getPet {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (GET /pets/{petId}) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (GET /pets/{petId})
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'getPet'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (GET /pets/{petId}) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (GET /pets/{petId})
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPet'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPet'>
@@ -101,9 +221,29 @@ export namespace Types {
   }
 
   export namespace getPetPetId {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (GET /api/pet/{pet_id}) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (GET /api/pet/{pet_id})
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'getPetPetId'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (GET /api/pet/{pet_id}) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (GET /api/pet/{pet_id})
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPetPetId'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPetPetId'>
@@ -113,9 +253,29 @@ export namespace Types {
   }
 
   export namespace listPets {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'listPets'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'listPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'listPets'>
@@ -130,9 +290,29 @@ export namespace Types {
   }
 
   export namespace listUserPets {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'listUserPets'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'listUserPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'listUserPets'>
@@ -142,9 +322,29 @@ export namespace Types {
   }
 
   export namespace postOwners {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'postOwners'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postOwners'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postOwners'>
@@ -156,9 +356,29 @@ export namespace Types {
   }
 
   export namespace postPetAdopt {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt)
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'postPetAdopt'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt)
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postPetAdopt'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postPetAdopt'>
@@ -170,9 +390,29 @@ export namespace Types {
   }
 
   export namespace postPetGiveTreats {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'postPetGiveTreats'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postPetGiveTreats'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postPetGiveTreats'>
@@ -184,9 +424,29 @@ export namespace Types {
   }
 
   export namespace searchPets {
-    /** Response type - ALL fields required (default). */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs.
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'searchPets'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major.
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'searchPets'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'searchPets'>
@@ -196,9 +456,29 @@ export namespace Types {
   }
 
   export namespace updatePet {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (PUT /pets/{petId}) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (PUT /pets/{petId})
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePet'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (PUT /pets/{petId}) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (PUT /pets/{petId})
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePet'>
     /** Request body type. Source: components['schemas']['NewPet'] (PUT /pets/{petId}) */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePet'>
@@ -210,9 +490,29 @@ export namespace Types {
   }
 
   export namespace updatePetPetId {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id}) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id})
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePetPetId'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id}) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id})
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePetPetId'>
     /** Request body type. Source: components['schemas']['NewPet'] (PATCH /api/pet/{pet_id}) */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePetPetId'>
@@ -224,9 +524,29 @@ export namespace Types {
   }
 
   export namespace uploadPetPic {
-    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /pets/{petId}/upload) */
+    /**
+     * Response type — ALL fields required via RequireAll<T> (default, transitional).
+     *
+     * This is a stopgap for specs that do not yet encode dump-direction `required`:
+     * it asserts the API serialises every documented field, which may not be true
+     * when a backend serialiser omits fields without a `dump_default`.
+     *
+     * When the spec carries `x-direction-finalized: true`, presence policy is already
+     * encoded as spec-side `required` and RequireAll is a no-op — Response ≡ StrictResponse.
+     * Use StrictResponse for spec-faithful optionality; in a later major the duality
+     * collapses and this alias is dropped for finalized specs. Source: components['schemas']['Pet'] (POST /pets/{petId}/upload)
+     */
     export type Response = _ApiResponse<OpenApiOperations, 'uploadPetPic'>
-    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /pets/{petId}/upload) */
+    /**
+     * Response type — only `readonly`/`required` fields are required (spec-faithful).
+     *
+     * Reflects the spec as written: optional fields stay optional, readonly fields
+     * (server-generated) are required, and required fields are required.
+     *
+     * When the spec carries `x-direction-finalized: true`, this type is equivalent
+     * to Response (the transitional duality collapses). Prefer this type for
+     * spec fidelity; it becomes the sole type for finalized specs in a later major. Source: components['schemas']['Pet'] (POST /pets/{petId}/upload)
+     */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'uploadPetPic'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'uploadPetPic'>
