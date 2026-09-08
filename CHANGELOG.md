@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.2] - 2026-09-08
+
+### Fixed
+
+- **Empty-object sentinel stripped from generated unions (plan §1f):** `openapi-typescript` renders `{ "properties": {} }` (empty-properties schema) as `Record<string, never>`, which appears in generated `anyOf`/`oneOf` union types (e.g. `GroupA | Record<string, never> | null`). The codegen pipeline now strips the sentinel member from all union types in `openapi-types.ts` via a post-generation transform. Standalone `Record<string, never>` assignments (`webhooks`, `$defs` boilerplate) are preserved. Consumers no longer need hand-rolled `CleanGroup`/`Clean` utilities to work around this artifact.
+
+## [0.28.1] - 2026-09-08
+
+### Added
+
+- **`Responses` namespace in `api-schemas.ts` (plan 1b):** codegen now emits `export namespace Responses { ... }` containing one `RequireAll<components['schemas']['X']>` entry per response-reachable component. Reachability is the transitive `$ref` closure seeded from all operation response bodies — never derived from name suffixes. Request-only components are excluded. Enum schemas are not duplicated (they remain in `api-enums.ts`). Each `Responses.*` member carries a `/** Referenced by: opId (response|items) */` JSDoc line listing direct response references.
+- **`@deprecated` bare aliases (plan 1b):** existing bare `export type X = components['schemas']['X']` aliases are kept for one minor cycle and annotated with `@deprecated` JSDoc naming the direction-typed replacement (`Responses.X` for response-reachable schemas, `Types.<opId>.Request` for request-only schemas). A `Requests` namespace is intentionally absent — request bodies are always operation-shaped.
+- **File docstring rewrite (plan 1b):** `api-schemas.ts` docstring now explains the direction-typed surface: what `Responses.*` asserts (same policy as `ApiResponse` / `RequireAll`), when to prefer `StrictResponse`, and why there is no `Requests` namespace.
+- **Source JSDoc on `Types.<opId>` members (plan 1c):** when an operation's request or response body directly resolves to a named `$ref`, the generated `Response`, `StrictResponse`, and `Request` type declarations each carry a `Source: components['schemas']['X'] (METHOD /path)` JSDoc suffix. Greppable cross-repo (FE type → BE schema class), doc-only, never part of the type contract.
+
+## [0.28.0] - 2026-09-07
+
+### Added
+
+- `--default-non-nullable <true|false>` CLI flag forwarded natively to `openapi-typescript` as `defaultNonNullable`. Default is `true` (current behaviour). The default will flip to `false` in the next major version. Note: `defaultNonNullable: true` is only sound for response types ("the server fills the default"); using it for request bodies (e.g. PATCH groups whose properties carry `default: null`) incorrectly makes those properties non-optional.
+- `openapi-typescript` is now a direct dependency (was peer-only) so the programmatic API is available without a separate install step for CLI users.
+- `RequireAll<T>`, `Writable<T>`, and `Mutable<T>` are now exported from the package root. Consumers can use these utilities directly instead of hand-rolling equivalents.
+  - `RequireAll<T>` — deep-require all fields; the response presence policy applied internally by `ApiResponse`.
+  - `Writable<T>` — direction: response shape → request shape. Excludes properties whose `readonly` modifier originates from an OpenAPI `readOnly: true` marker, recursing into nested objects and arrays. Previously shallow (only top-level keys were filtered).
+  - `Mutable<T>` — direction: response shape → mutable store shape. Strips all TypeScript `readonly` modifiers without removing keys, recursing into nested objects and arrays (including `readonly` arrays). Replaces hand-rolled `CleanMutable` utilities in consumers.
+- JSDoc on all three utilities explains direction semantics (`readonly` = spec `readOnly` artifact; `RequireAll` = response presence policy) and cross-links the related utilities.
+
+### Changed
+
+- `generateTypes` now calls the `openapi-typescript` programmatic API (`openapiTS` + `astToString`) instead of shelling out via `npx openapi-typescript`. Removes the ESLint post-fix step; generated output is byte-equivalent after formatting. The `defaultNonNullable` option and future options are forwarded natively without shell escaping.
+- All generated files are now formatted with prettier programmatically during codegen (no separate post-step required). Output is lint-clean by construction: `eslint --no-fix` exits 0 on fresh generated output.
+- `prettier` is now a direct dependency so the programmatic formatter is available without a separate install.
+
+### Added
+
+- Config-file mode: create `openapi-codegen.config.json` in your project root to codegen multiple specs in one invocation. Running `openapi-codegen` with no arguments discovers and uses the config automatically. CLI positional arguments still work for one-off use. The config shape is `{ "options": { shared options }, "specs": [ { "input", "output", per-spec overrides } ] }`. See `--help` for an example.
+
+### Fixed
+
+- `Writable<T>` is now deep: nested `readOnly`-derived `readonly` properties are excluded from generated `Request` types. Previously, `readonly` properties inside nested objects (e.g. a `createdAt` field inside a PATCH group) leaked through into request types.
+
 ## [0.27.0] - 2026-09-01
 
 ### Changed

@@ -25,11 +25,11 @@ import type { operations as OpenApiOperations } from './openapi-types'
  */
 export namespace Types {
   export namespace createPet {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /pets) */
     export type Response = _ApiResponse<OpenApiOperations, 'createPet'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /pets) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'createPet'>
-    /** Request body type. */
+    /** Request body type. Source: components['schemas']['NewPet'] (POST /pets) */
     export type Request = _ApiRequest<OpenApiOperations, 'createPet'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'createPet'>
@@ -89,9 +89,9 @@ export namespace Types {
   }
 
   export namespace getPet {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (GET /pets/{petId}) */
     export type Response = _ApiResponse<OpenApiOperations, 'getPet'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (GET /pets/{petId}) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPet'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPet'>
@@ -101,9 +101,9 @@ export namespace Types {
   }
 
   export namespace getPetPetId {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (GET /api/pet/{pet_id}) */
     export type Response = _ApiResponse<OpenApiOperations, 'getPetPetId'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (GET /api/pet/{pet_id}) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'getPetPetId'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'getPetPetId'>
@@ -156,9 +156,9 @@ export namespace Types {
   }
 
   export namespace postPetAdopt {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt) */
     export type Response = _ApiResponse<OpenApiOperations, 'postPetAdopt'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /api/pet/{pet_id}/adopt) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'postPetAdopt'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'postPetAdopt'>
@@ -196,11 +196,11 @@ export namespace Types {
   }
 
   export namespace updatePet {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (PUT /pets/{petId}) */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePet'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (PUT /pets/{petId}) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePet'>
-    /** Request body type. */
+    /** Request body type. Source: components['schemas']['NewPet'] (PUT /pets/{petId}) */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePet'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'updatePet'>
@@ -210,11 +210,11 @@ export namespace Types {
   }
 
   export namespace updatePetPetId {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id}) */
     export type Response = _ApiResponse<OpenApiOperations, 'updatePetPetId'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (PATCH /api/pet/{pet_id}) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'updatePetPetId'>
-    /** Request body type. */
+    /** Request body type. Source: components['schemas']['NewPet'] (PATCH /api/pet/{pet_id}) */
     export type Request = _ApiRequest<OpenApiOperations, 'updatePetPetId'>
     /** Path parameters. */
     export type PathParams = _ApiPathParams<OpenApiOperations, 'updatePetPetId'>
@@ -224,9 +224,9 @@ export namespace Types {
   }
 
   export namespace uploadPetPic {
-    /** Response type - ALL fields required (default). */
+    /** Response type - ALL fields required (default). Source: components['schemas']['Pet'] (POST /pets/{petId}/upload) */
     export type Response = _ApiResponse<OpenApiOperations, 'uploadPetPic'>
-    /** Response type - only readonly/required fields required (strict mode). */
+    /** Response type - only readonly/required fields required (strict mode). Source: components['schemas']['Pet'] (POST /pets/{petId}/upload) */
     export type StrictResponse = _ApiResponseStrict<OpenApiOperations, 'uploadPetPic'>
     /** Request body type. */
     export type Request = _ApiRequest<OpenApiOperations, 'uploadPetPic'>

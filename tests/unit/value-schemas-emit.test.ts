@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
+import { runInNewContext } from 'vm'
 import { spawnSync } from 'child_process'
 import { buildSync } from 'esbuild'
 import Ajv from 'ajv'
@@ -20,6 +21,12 @@ import { resolveSchema } from '@/value-schemas'
  * Matches from the first `= ` after the marker to the next `\n\nexport const`
  * or to end-of-file (whichever comes first).
  */
+/**
+ * Extract and evaluate a generated `export const NAME: TYPE = <value>` from the file text.
+ * Uses the Node.js VM module to handle both the old JSON-style output (double-quoted keys)
+ * and the newer prettier-formatted TypeScript object literal style (unquoted keys, single
+ * quotes, trailing commas). All formats are valid JS object expressions.
+ */
 function extractConstJson(fileText: string, constName: string): string {
   // Match up to the '= ' that starts the value
   const markerRe = new RegExp(`export const ${constName}[^=]+=\\s`)
@@ -28,7 +35,11 @@ function extractConstJson(fileText: string, constName: string): string {
   const valueStart = m.index + m[0].length
   const nextExport = fileText.indexOf('\nexport const ', valueStart)
   const raw = nextExport === -1 ? fileText.slice(valueStart) : fileText.slice(valueStart, nextExport)
-  return raw.trim()
+  const trimmed = raw.trim()
+  // Evaluate as a JS expression to handle both JSON-style and TS-literal-style output.
+  // This handles: unquoted keys, single-quoted strings, trailing commas, $ref keys.
+  const parsed: unknown = runInNewContext(`(${trimmed})`)
+  return JSON.stringify(parsed)
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +59,9 @@ describe('--emit-value-schemas CLI flag (real subprocess)', { timeout: 30_000 },
       bundle: true,
       platform: 'node',
       outfile: CLI,
+      // prettier (a CLI dependency) uses import.meta.url in its CJS wrapper;
+      // define it to a placeholder URL so createRequire initialises successfully.
+      define: { 'import.meta.url': JSON.stringify('file:///tmp/openapi-codegen-bundle.js') },
     })
   })
 

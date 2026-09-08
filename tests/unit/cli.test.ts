@@ -1408,3 +1408,52 @@ describe('schema name transformations', () => {
     expect(transformSchemaName('avm_response_schema')).toBe('AvmResponse')
   })
 })
+
+// ──────────────────────────────────────────────────────────────────────────
+// --default-non-nullable flag parsing (mirrors the logic in cli.ts main())
+// ──────────────────────────────────────────────────────────────────────────
+
+describe('--default-non-nullable flag parsing', () => {
+  /**
+   * Minimal replica of the flag-parsing block in cli.ts main().
+   * Returns the resolved defaultNonNullable value or throws on bad input.
+   */
+  function parseDefaultNonNullable(args: string[]): boolean {
+    let defaultNonNullable = true // same default as CLI
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--default-non-nullable') {
+        if (i + 1 >= args.length) throw new Error('--default-non-nullable requires a value')
+        const value = args[i + 1]
+        if (value !== 'true' && value !== 'false') throw new Error(`bad value: ${value}`)
+        defaultNonNullable = value === 'true'
+        i++
+      }
+    }
+    return defaultNonNullable
+  }
+
+  it('defaults to true when flag is absent', () => {
+    expect(parseDefaultNonNullable([])).toBe(true)
+  })
+
+  it('parses --default-non-nullable true as true', () => {
+    expect(parseDefaultNonNullable(['--default-non-nullable', 'true'])).toBe(true)
+  })
+
+  it('parses --default-non-nullable false as false', () => {
+    expect(parseDefaultNonNullable(['--default-non-nullable', 'false'])).toBe(false)
+  })
+
+  it('throws when no value follows the flag', () => {
+    expect(() => parseDefaultNonNullable(['--default-non-nullable'])).toThrow('--default-non-nullable requires a value')
+  })
+
+  it('throws when an invalid value is supplied', () => {
+    expect(() => parseDefaultNonNullable(['--default-non-nullable', 'yes'])).toThrow('bad value: yes')
+  })
+
+  it('uses the last occurrence when flag is repeated', () => {
+    // Last-write-wins is the simplest correct behaviour
+    expect(parseDefaultNonNullable(['--default-non-nullable', 'true', '--default-non-nullable', 'false'])).toBe(false)
+  })
+})

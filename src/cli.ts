@@ -5,6 +5,7 @@ import { promisify } from 'util'
 import { HttpMethod } from './types.js'
 import { toPascalCase, buildMemberLabelMap, type EnumCase } from './enum-naming.js'
 import { toJsonSchema, collectRefNames } from './json-schema-convert.js'
+import { stripRecordStringNeverFromUnions } from './codegen-transforms.js'
 
 const execAsync = promisify(exec)
 
@@ -157,6 +158,16 @@ async function generateTypes(openapiContent: string, outputDir: string): Promise
 
     await execAsync(command)
     console.log(`✅ Generated types file: ${typesOutputPath}`)
+
+    // Strip Record<string, never> sentinel from union types (openapi-typescript
+    // rendering artifact for empty-properties schemas in anyOf/oneOf groups).
+    const rawContent = fs.readFileSync(typesOutputPath, 'utf8')
+    const cleanedContent = stripRecordStringNeverFromUnions(rawContent)
+    if (cleanedContent !== rawContent) {
+      fs.writeFileSync(typesOutputPath, cleanedContent, 'utf8')
+      console.log('✅ Stripped Record<string, never> sentinel from union types')
+    }
+
     // Format the generated file using eslint --fix
     console.log('🎨 Formatting generated types file with ESLint...')
     const eslintCommand = `npx eslint --fix "${typesOutputPath}"`

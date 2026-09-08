@@ -396,7 +396,19 @@ export type MutateAsyncFn<
  */
 type AnyOps = object
 
-type RequireAll<T> = T extends (infer E)[]
+/**
+ * Deep-require all fields of `T`, recursing into nested objects and arrays.
+ *
+ * **Direction semantics — response presence policy (stopgap).**
+ * Consumed by {@link ApiResponse}: the API is assumed to serialise every
+ * documented field, so all optional modifiers are stripped. This is a
+ * transitional approximation; once specs carry dump-direction `required` the
+ * wrapper becomes a no-op over already-required schemas.
+ *
+ * @see {@link Writable} — direction: response shape → request shape (drops `readOnly` props)
+ * @see {@link Mutable}  — strips TypeScript `readonly` modifiers for mutable store shapes
+ */
+export type RequireAll<T> = T extends (infer E)[]
   ? RequireAll<E>[]
   : T extends readonly (infer E)[]
     ? readonly RequireAll<E>[]
@@ -558,11 +570,62 @@ export type ApiResponseStrict<Ops extends AnyOps, Op extends keyof Ops> = Requir
   ExtractResponseData<Ops, Op>
 >
 
-type Writable<T> = {
-  -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
-    ? K
-    : never]: T[K]
-}
+/**
+ * Deep-strip properties whose TypeScript `readonly` modifier originates from
+ * an OpenAPI `readOnly: true` marker, recursing into nested objects and arrays.
+ *
+ * **Direction semantics — response shape → request shape.**
+ * `readOnly` fields (e.g. server-assigned `id`, `createdAt`) must not appear
+ * in request bodies. `Writable<T>` *excludes* those keys entirely at every
+ * nesting level so generated `Request` types are always write-safe.
+ *
+ * Consumed by {@link ApiRequest}. Previously shallow (only top-level keys
+ * were filtered); now recurses like {@link RequireAll} so nested `readOnly`
+ * props (e.g. a `createdAt` inside a PATCH group object) are also excluded.
+ *
+ * @see {@link Mutable}     — strips the `readonly` modifier without removing keys
+ * @see {@link RequireAll}  — response presence policy (deep-require)
+ */
+export type Writable<T> = T extends (infer E)[]
+  ? Writable<E>[]
+  : T extends readonly (infer E)[]
+    ? Writable<E>[]
+    : {
+        -readonly [K in keyof T as IfEquals<Pick<T, K>, { -readonly [Q in K]: T[K] }, false, true> extends false
+          ? K
+          : never]: Writable<T[K]>
+      }
+
+/**
+ * Deep-strip all TypeScript `readonly` modifiers from `T`, recursing into
+ * nested objects and arrays (including `readonly` arrays).
+ *
+ * **Direction semantics — response shape → mutable store shape.**
+ * openapi-typescript emits `readonly` on every property derived from a spec
+ * `readOnly: true` marker. `Mutable<T>` removes those modifiers so response
+ * types can be stored in reactive state (Vue `ref`/`reactive`, Pinia stores)
+ * without TypeScript complaining about mutation.
+ *
+ * Unlike {@link Writable}, `Mutable` keeps all properties — it only removes
+ * the `readonly` modifier, not the keys themselves.
+ *
+ * @example
+ * ```ts
+ * import type { Mutable, RequireAll } from '@qualisero/openapi-endpoint'
+ * import type { components } from './openapi-types'
+ *
+ * // Pinia store state — fully mutable, all fields present:
+ * type PetState = Mutable<RequireAll<components['schemas']['Pet']>>
+ * ```
+ *
+ * @see {@link Writable}    — excludes `readOnly` keys for request types
+ * @see {@link RequireAll}  — response presence policy (deep-require)
+ */
+export type Mutable<T> = T extends (infer E)[]
+  ? Mutable<E>[]
+  : T extends readonly (infer E)[]
+    ? Mutable<E>[]
+    : { -readonly [K in keyof T]: Mutable<T[K]> }
 
 /**
  * Extract the request body type.

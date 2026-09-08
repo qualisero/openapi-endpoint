@@ -271,6 +271,15 @@ describe('CLI Integration Tests', () => {
 // depend on a pre-existing dist/ directory (which is gitignored and absent in CI).
 // ────────────────────────────────────────────────────────────────────────────
 
+/** esbuild options shared across all subprocess test suites. */
+const ESBUILD_DEFINE = {
+  // prettier (a direct CLI dependency) uses `import.meta.url` in its CJS wrapper to set up
+  // createRequire. When esbuild bundles to CJS, import.meta is an empty object and url is
+  // undefined, causing a crash. Defining it to any valid file URL lets prettier initialise;
+  // plugin loading still works because we pass plugins explicitly to prettier.format().
+  'import.meta.url': JSON.stringify('file:///tmp/openapi-codegen-bundle.js'),
+}
+
 describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
   const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
   const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
@@ -284,6 +293,7 @@ describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
       bundle: true,
       platform: 'node',
       outfile: CLI,
+      define: ESBUILD_DEFINE,
     })
   })
 
@@ -335,10 +345,10 @@ describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
     expect(opsContent).toContain('PENDING:')
     expect(opsContent).toContain('ADOPTED:')
 
-    // Values are unchanged
-    expect(opsContent).toContain('"available"')
-    expect(opsContent).toContain('"pending"')
-    expect(opsContent).toContain('"adopted"')
+    // Values are unchanged (prettier uses single quotes)
+    expect(opsContent).toContain("'available'")
+    expect(opsContent).toContain("'pending'")
+    expect(opsContent).toContain("'adopted'")
   })
 
   it('collision spec exits non-zero under --enum-case const and writes no generated files', () => {
@@ -422,6 +432,7 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
       bundle: true,
       platform: 'node',
       outfile: CLI,
+      define: ESBUILD_DEFINE,
     })
   })
 
@@ -626,7 +637,7 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
     expect(tscResult.status).toBe(0)
   })
 
-  it('generated files (after prettier) are byte-equal to tests/fixtures/ so hand-patched drift is detected', () => {
+  it('generated files are byte-equal to tests/fixtures/ so hand-patched drift is detected', () => {
     // Generate from toy-openapi.json with default flags — same invocation that produced the fixtures.
     const genResult = spawnSync('node', [CLI, TOY_SPEC, outDir], {
       encoding: 'utf8',
@@ -634,21 +645,16 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
     })
     expect(genResult.status).toBe(0)
 
-    // Format with the repo's own prettier config so the comparison is apples-to-apples.
+    // Since v0.28.0, the CLI runs prettier programmatically during codegen, so the output
+    // is already formatted. No separate post-step is needed.
     // Fixtures are covered by `prettier --check .` and are always in project-formatted form;
-    // raw CLI output must be formatted the same way before diffing.
+    // the CLI now emits project-formatted output directly.
     const projRoot = process.cwd()
-    const prettierResult = spawnSync(
-      'npx',
-      ['prettier', '--config', path.join(projRoot, 'package.json'), '--write', `${outDir}/`],
-      { cwd: projRoot, encoding: 'utf8', timeout: 30_000 },
-    )
-    expect(prettierResult.status).toBe(0)
 
     // All six generated files must be byte-equal to the checked-in fixtures.
     // None of these files are intentionally divergent: they are all produced from
     // toy-openapi.json with default flags. If any file differs, the fixture was
-    // hand-patched and must be resynchronised (re-run CLI, run prettier, copy).
+    // hand-patched and must be resynchronised (re-run CLI and copy).
     const fixturesDir = path.join(projRoot, 'tests/fixtures')
     const generatedFiles = [
       'api-client.ts',
@@ -662,6 +668,330 @@ describe('CLI error-policy and typed-error output (real subprocess)', { timeout:
       const generated = fs.readFileSync(path.join(outDir, file), 'utf8')
       const fixture = fs.readFileSync(path.join(fixturesDir, file), 'utf8')
       expect(generated, `fixture ${file} diverges from CLI output — re-run CLI and copy`).toBe(fixture)
+    }
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────
+// --default-non-nullable flag: programmatic codegen assertion
+// Tests that openapiTS({ defaultNonNullable }) propagates through the generated
+// openapi-types.ts as expected — a property with a 'default' is optional when
+// defaultNonNullable is false and non-optional when defaultNonNullable is true.
+// ──────────────────────────────────────────────────────────────────────────
+
+describe('CLI --default-non-nullable flag (real subprocess)', { timeout: 30_000 }, () => {
+  const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
+  const outDir = '/tmp/openapi-default-non-nullable-test'
+
+  // A minimal spec with one property that carries a 'default': the property is
+  // not in 'required', so its optionality depends entirely on defaultNonNullable.
+  const FIXTURE_SPEC = {
+    openapi: '3.0.3',
+    info: { title: 'Test', version: '1' },
+    paths: {
+      '/items': {
+        get: {
+          operationId: 'listItems',
+          responses: {
+            '200': {
+              description: 'OK',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Item' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Item: {
+          type: 'object',
+          properties: {
+            // 'name' has a default but is NOT in required:
+            // defaultNonNullable:true → name: string (non-optional)
+            // defaultNonNullable:false → name?: string (optional)
+            name: { type: 'string', default: 'unnamed' },
+            id: { type: 'integer' },
+          },
+        },
+      },
+    },
+  }
+
+  const specPath = path.join(os.tmpdir(), 'openapi-default-non-nullable-spec.json')
+
+  beforeAll(() => {
+    buildSync({
+      entryPoints: [path.join(process.cwd(), 'src/cli.ts')],
+      bundle: true,
+      platform: 'node',
+      outfile: CLI,
+      define: ESBUILD_DEFINE,
+    })
+    fs.writeFileSync(specPath, JSON.stringify(FIXTURE_SPEC, null, 2))
+  })
+
+  beforeEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  afterEach(() => {
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true })
+    }
+  })
+
+  it('defaultNonNullable:true (default) makes a property with a default non-optional', () => {
+    // Default flag behaviour: --default-non-nullable true (omitting the flag)
+    const result = spawnSync('node', [CLI, specPath, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const typesContent = fs.readFileSync(path.join(outDir, 'openapi-types.ts'), 'utf8')
+
+    // With defaultNonNullable:true, 'name' (which has default:'unnamed') must be non-optional.
+    // In the generated types, 'name: string' (no '?') appears inside Item.
+    expect(typesContent).toMatch(/name:\s+string/)
+    expect(typesContent).not.toMatch(/name\?:\s+string/)
+  })
+
+  it('--default-non-nullable false keeps a property with a default optional', () => {
+    const result = spawnSync('node', [CLI, specPath, outDir, '--default-non-nullable', 'false'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const typesContent = fs.readFileSync(path.join(outDir, 'openapi-types.ts'), 'utf8')
+
+    // With defaultNonNullable:false, 'name' stays optional ('name?: string').
+    expect(typesContent).toMatch(/name\?:\s+string/)
+  })
+
+  it('--default-non-nullable true produces same output as default', () => {
+    const withTrue = spawnSync('node', [CLI, specPath, outDir, '--default-non-nullable', 'true'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(withTrue.status).toBe(0)
+    const withTrueContent = fs.readFileSync(path.join(outDir, 'openapi-types.ts'), 'utf8')
+
+    if (fs.existsSync(outDir)) fs.rmSync(outDir, { recursive: true, force: true })
+
+    const withDefault = spawnSync('node', [CLI, specPath, outDir], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(withDefault.status).toBe(0)
+    const withDefaultContent = fs.readFileSync(path.join(outDir, 'openapi-types.ts'), 'utf8')
+
+    expect(withTrueContent).toBe(withDefaultContent)
+  })
+
+  it('rejects invalid --default-non-nullable value and exits non-zero', () => {
+    const result = spawnSync('node', [CLI, specPath, outDir, '--default-non-nullable', 'yes'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).not.toBe(0)
+    const combined = (result.stderr ?? '') + (result.stdout ?? '')
+    expect(combined).toMatch(/--default-non-nullable/)
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────
+// Config-file mode tests (1e): openapi-codegen.config.json discovered in cwd
+// ───────────────────────────────────────────────────────────────────────────
+describe('CLI config-file mode (openapi-codegen.config.json)', { timeout: 60_000 }, () => {
+  const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
+
+  // Two fixture specs to test multi-spec config.
+  const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
+  const WIDGET_SPEC = path.join(process.cwd(), 'tests/fixtures/value-schemas-openapi.json')
+
+  const configDir = path.join(os.tmpdir(), 'openapi-config-test-cwd')
+  const outDir1 = path.join(configDir, 'out-toy')
+  const outDir2 = path.join(configDir, 'out-widget')
+  const configPath = path.join(configDir, 'openapi-codegen.config.json')
+
+  beforeAll(() => {
+    buildSync({
+      entryPoints: [path.join(process.cwd(), 'src/cli.ts')],
+      bundle: true,
+      platform: 'node',
+      outfile: CLI,
+      define: ESBUILD_DEFINE,
+    })
+  })
+
+  beforeEach(() => {
+    if (fs.existsSync(configDir)) {
+      fs.rmSync(configDir, { recursive: true, force: true })
+    }
+    fs.mkdirSync(configDir, { recursive: true })
+  })
+
+  afterEach(() => {
+    if (fs.existsSync(configDir)) {
+      fs.rmSync(configDir, { recursive: true, force: true })
+    }
+  })
+
+  it('no args and no config file prints help and exits 0', () => {
+    // configDir has no config file yet (beforeEach only creates the dir)
+    const result = spawnSync('node', [CLI], {
+      cwd: configDir,
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(0)
+    const combined = (result.stdout ?? '') + (result.stderr ?? '')
+    expect(combined).toMatch(/Usage:/)
+  })
+
+  it('config-file run over 2 fixture specs produces both outputs', () => {
+    const config = {
+      options: { enumCase: 'pascal' as const, defaultNonNullable: true },
+      specs: [
+        { input: TOY_SPEC, output: outDir1 },
+        { input: WIDGET_SPEC, output: outDir2 },
+      ],
+    }
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+
+    const result = spawnSync('node', [CLI], {
+      cwd: configDir,
+      encoding: 'utf8',
+      timeout: 60_000,
+    })
+
+    const combined = (result.stdout ?? '') + (result.stderr ?? '')
+    if (result.status !== 0) {
+      throw new Error(`CLI config-file mode failed:\n${combined}`)
+    }
+    expect(result.status).toBe(0)
+
+    // Both output directories must contain generated files.
+    const generatedFiles = [
+      'openapi-types.ts',
+      'api-client.ts',
+      'api-operations.ts',
+      'api-types.ts',
+      'api-enums.ts',
+      'api-schemas.ts',
+    ]
+    for (const file of generatedFiles) {
+      expect(fs.existsSync(path.join(outDir1, file)), `toy spec: ${file} should exist`).toBe(true)
+      expect(fs.existsSync(path.join(outDir2, file)), `widget spec: ${file} should exist`).toBe(true)
+    }
+
+    // Sanity-check content: toy spec has Pet operations; widget spec has createWidget.
+    const toyClient = fs.readFileSync(path.join(outDir1, 'api-client.ts'), 'utf8')
+    expect(toyClient).toContain('listPets')
+
+    const widgetClient = fs.readFileSync(path.join(outDir2, 'api-client.ts'), 'utf8')
+    expect(widgetClient).toContain('createWidget')
+  })
+
+  it('CLI arg (--enum-case const) overrides shared config-file option (enumCase: pascal) per-spec', () => {
+    // This test verifies the positional-arg CLI path still honours its flags
+    // (the config-file path and the CLI arg path are separate code paths).
+    const outDir = path.join(configDir, 'out-cli-arg')
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir, '--enum-case', 'const'], {
+      cwd: configDir,
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+    // CONSTANT_CASE label for 'adopted' is ADOPTED
+    expect(enumsContent).toMatch(/ADOPTED:/)
+    expect(enumsContent).not.toMatch(/Adopted:/)
+  })
+
+  it('per-spec option in config overrides shared option', () => {
+    const config = {
+      options: { enumCase: 'pascal' as const },
+      specs: [
+        // toy spec uses the shared pascal option (default)
+        { input: TOY_SPEC, output: outDir1 },
+        // widget spec overrides to const
+        { input: WIDGET_SPEC, output: outDir2, enumCase: 'const' as const },
+      ],
+    }
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+
+    const result = spawnSync('node', [CLI], {
+      cwd: configDir,
+      encoding: 'utf8',
+      timeout: 60_000,
+    })
+    expect(result.status).toBe(0)
+
+    const toyEnums = fs.readFileSync(path.join(outDir1, 'api-enums.ts'), 'utf8')
+    expect(toyEnums).toMatch(/Adopted:/) // pascal (shared option)
+
+    const widgetEnums = fs.readFileSync(path.join(outDir2, 'api-enums.ts'), 'utf8')
+    expect(widgetEnums).toMatch(/ALPHA:|BETA:|GAMMA:/) // const (per-spec override)
+  })
+
+  it('generated output from config-file mode passes eslint with zero errors (lint-clean by construction)', () => {
+    // Generate a spec into a directory INSIDE the project so eslint's base path covers it.
+    // We use the standard toy spec to get a comprehensive output.
+    const projRoot = process.cwd()
+    const lintTestDir = path.join(projRoot, `tests/fixtures/eslint-lint-clean-test-${Date.now()}`)
+
+    const config = {
+      options: {},
+      specs: [{ input: TOY_SPEC, output: lintTestDir }],
+    }
+    const lintConfigDir = path.join(os.tmpdir(), `openapi-lint-cwd-${Date.now()}`)
+    fs.mkdirSync(lintConfigDir, { recursive: true })
+    const lintConfigPath = path.join(lintConfigDir, 'openapi-codegen.config.json')
+    fs.writeFileSync(lintConfigPath, JSON.stringify(config, null, 2))
+
+    try {
+      const genResult = spawnSync('node', [CLI], {
+        cwd: lintConfigDir,
+        encoding: 'utf8',
+        timeout: 30_000,
+      })
+      if (genResult.status !== 0) {
+        throw new Error(`Codegen failed:\n${(genResult.stdout ?? '') + (genResult.stderr ?? '')}`)
+      }
+
+      // Run eslint with --no-fix (exit 0 = zero fixable errors).
+      // Only TypeScript files that aren't in .d.ts are linted.
+      const generatedTs = fs
+        .readdirSync(lintTestDir)
+        .filter((f) => f.endsWith('.ts'))
+        .map((f) => path.join(lintTestDir, f))
+
+      const eslintResult = spawnSync('npx', ['eslint', '--no-fix', ...generatedTs], {
+        cwd: projRoot,
+        encoding: 'utf8',
+        timeout: 30_000,
+      })
+
+      const lintOutput = (eslintResult.stdout ?? '') + (eslintResult.stderr ?? '')
+      if (eslintResult.status !== 0) {
+        throw new Error(`eslint found errors in generated output (should be zero):\n${lintOutput}`)
+      }
+      expect(eslintResult.status).toBe(0)
+    } finally {
+      if (fs.existsSync(lintTestDir)) fs.rmSync(lintTestDir, { recursive: true, force: true })
+      if (fs.existsSync(lintConfigDir)) fs.rmSync(lintConfigDir, { recursive: true, force: true })
     }
   })
 })

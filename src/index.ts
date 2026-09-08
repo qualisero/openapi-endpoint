@@ -50,6 +50,47 @@ export type {
   ApiQueryParams,
   ApiErrorOf,
   ApiErrorData,
+
+  // Direction vocabulary — usable directly by consumers
+
+  /**
+   * Deep-require all fields of `T`, recursing into nested objects and arrays.
+   *
+   * **Direction: response presence policy.**
+   * Asserts that the API serialises every documented field (transitional
+   * approximation; collapses once specs carry dump-direction `required`).
+   *
+   * @see {@link Writable} — strips `readOnly` props for request types
+   * @see {@link Mutable}  — strips `readonly` modifiers for mutable store shapes
+   */
+  RequireAll,
+
+  /**
+   * Deep-strip properties whose `readonly` modifier originates from an OpenAPI
+   * `readOnly: true` marker, recursing into nested objects and arrays.
+   *
+   * **Direction: response shape → request shape.**
+   * Excludes server-assigned fields (`id`, `createdAt`, …) at every nesting
+   * level so generated `Request` types are always write-safe.
+   *
+   * @see {@link Mutable}    — strips the `readonly` modifier without removing keys
+   * @see {@link RequireAll} — response presence policy
+   */
+  Writable,
+
+  /**
+   * Deep-strip all TypeScript `readonly` modifiers from `T`, recursing into
+   * nested objects and arrays (including `readonly` arrays).
+   *
+   * **Direction: response shape → mutable store shape.**
+   * Keeps all properties; only removes the `readonly` modifier so response
+   * types can be stored in Vue `ref`/`reactive` or Pinia state without
+   * TypeScript mutation errors.
+   *
+   * @see {@link Writable}    — excludes `readOnly` keys for request types
+   * @see {@link RequireAll}  — response presence policy
+   */
+  Mutable,
 } from './types'
 
 // ============================================================================

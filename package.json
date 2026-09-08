@@ -1,6 +1,6 @@
 {
   "name": "@qualisero/openapi-endpoint",
-  "version": "0.27.0",
+  "version": "0.28.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/qualisero/openapi-endpoint.git"
@@ -60,6 +60,10 @@
     "axios": ">=1.12",
     "openapi-typescript": "^7.9.1",
     "vue": ">=3.3"
+  },
+  "dependencies": {
+    "openapi-typescript": "^7.9.1",
+    "prettier": "^3.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
