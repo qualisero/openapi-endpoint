@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-09-08
+
 ### Fixed
 
 - Enum codegen: generated enum objects in `api-enums.ts` now preserve the member order declared in the OpenAPI spec. The deduplication key was built with `enumValues.sort()`, which sorts in place and therefore mutated the array that the writer emits, so every enum came out sorted alphabetically by value: a spec declaring `low`, `medium`, `high` generated `HIGH`, `LOW`, `MEDIUM`, silently destroying semantic ordering for consumers that iterate `Object.values()` / `EnumHelper.values()` (select options, sliders, severity scales). Deduplication is now order-sensitive: enums are merged into a primary plus aliases only when they declare the same values in the same order, so an alias can no longer inherit a different order than its own spec declaration. Regenerate to pick up the corrected order; member order in generated output changes for any spec whose enums are not already alphabetical.
