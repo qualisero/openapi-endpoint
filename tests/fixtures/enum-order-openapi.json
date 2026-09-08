@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Enum Order Test API",
+    "description": "Spec with semantically ordered enums, an exact duplicate, and a reordered duplicate",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "SeverityLevel": {
+        "type": "string",
+        "enum": ["low", "medium", "high"]
+      },
+      "TrafficLevel": {
+        "type": "string",
+        "enum": ["low", "medium", "high"]
+      },
+      "ReversedLevel": {
+        "type": "string",
+        "enum": ["high", "medium", "low"]
+      }
+    }
+  }
+}
