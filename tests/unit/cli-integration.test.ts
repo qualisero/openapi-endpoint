@@ -276,11 +276,14 @@ describe('CLI Integration Tests', () => {
  * in emitted order.
  */
 function enumMemberKeys(enumsContent: string, enumName: string): string[] {
-  const block = new RegExp(`export const ${enumName} = \\{\\n([\\s\\S]*?)\\n\\} as const`).exec(enumsContent)
+  // `enumName` comes from a spec-derived schema name, so escape it before interpolation.
+  const escapedName = enumName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const block = new RegExp(`export const ${escapedName} = \\{\\n([\\s\\S]*?)\\n\\} as const`).exec(enumsContent)
   if (!block) {
     throw new Error(`Enum ${enumName} not found in generated api-enums.ts`)
   }
-  return [...block[1].matchAll(/^\s*([A-Za-z0-9_]+):/gm)].map((m) => m[1])
+  // `$` is a valid identifier character, so it must be matched in member keys too.
+  return [...block[1].matchAll(/^\s*([A-Za-z0-9_$]+):/gm)].map((m) => m[1])
 }
 
 describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
