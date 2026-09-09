@@ -1,0 +1,115 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Group Union Sentinel Test API",
+    "version": "1.0.0",
+    "description": "Fixture for 1f audit: empty-properties schemas in anyOf unions produce Record<string, never> in openapi-typescript output."
+  },
+  "paths": {
+    "/assessments/{id}": {
+      "get": {
+        "operationId": "getAssessment",
+        "summary": "Get an assessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assessment detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Assessment" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAssessment",
+        "summary": "Partially update an assessment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/AssessmentGroupA" },
+                  { "$ref": "#/components/schemas/AssessmentGroupB" },
+                  {
+                    "type": "object",
+                    "properties": {},
+                    "description": "Empty sentinel object — no-op group; renders as Record<string, never> in openapi-typescript"
+                  },
+                  { "type": "null" }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated assessment",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Assessment" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Assessment": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "score": {
+            "type": ["number", "null"]
+          }
+        }
+      },
+      "AssessmentGroupA": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "notes": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "AssessmentGroupB": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

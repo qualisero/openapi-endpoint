@@ -43,6 +43,8 @@ npm install @qualisero/openapi-endpoint
 
 ## Code Generation
 
+### Basic usage
+
 ```bash
 # From local file
 npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated
@@ -53,6 +55,38 @@ npx @qualisero/openapi-endpoint https://api.example.com/openapi.json ./src/gener
 # Also emit JSON Schema value constraints (add 'all' for response schemas too)
 npx @qualisero/openapi-endpoint ./api/openapi.json ./src/generated --emit-value-schemas
 ```
+
+### Config file mode
+
+Create `openapi-codegen.config.json` in your project root to codegen multiple specs in one invocation:
+
+```json
+{
+  "options": {
+    "enumCase": "const",
+    "defaultNonNullable": false
+  },
+  "specs": [
+    {
+      "input": "../specs/api-v1.json",
+      "output": "src/generated/api-v1"
+    },
+    {
+      "input": "../specs/api-v2.json",
+      "output": "src/generated/api-v2"
+    }
+  ]
+}
+```
+
+Run `openapi-codegen` with no arguments to discover and use the config automatically. Passing positional arguments bypasses the config entirely: one-off runs use CLI flags only.
+
+### Common CLI flags
+
+- `--enum-case <pascal|const>` — Enum label casing (default: `pascal`)
+- `--emit-value-schemas [request|all]` — Emit JSON Schema constraints (default: off)
+- `--default-non-nullable <true|false>` — Forward to openapi-typescript (default: `true`). Note: `defaultNonNullable: true` is only sound for responses; it makes PATCH request bodies non-optional when they carry `default: null`, which is usually incorrect. The default will flip to `false` in the next major version.
+- `--use-strict-response` — Use `ApiResponseStrict` (only readonly/required fields required) instead of `ApiResponse` (all fields required)
 
 Generated files:
 
@@ -350,6 +384,8 @@ const { data } = api.listPets.useQuery({
 
 ### Type Helpers
 
+#### Response and request types
+
 ```typescript
 import type {
   ApiResponse, // Response type (ALL fields required - default)
@@ -367,6 +403,49 @@ type PetResponse = ApiResponse<OpType.getPet>
 type PetResponseStrict = ApiResponseStrict<OpType.getPet>
 // { readonly id: string, name: string, tag?: string, status?: 'available' | ... }
 ```
+
+> **Transitional note — `Response` vs `StrictResponse` duality:**
+> `ApiResponse` (the default) wraps the spec type in `RequireAll<T>`, asserting that the API
+> serialises every documented field. This is a stopgap for specs that do not yet encode
+> dump-direction `required` explicitly — it may be overly strict if the backend omits optional
+> fields. `ApiResponseStrict` is spec-faithful (only `required`/`readonly` fields are required).
+>
+> Specs stamped with `x-direction-finalized: true` (an OAS extension set by the BE finalize pass)
+> already encode presence policy as dump-direction `required`. For those specs `Response` ≡
+> `StrictResponse` and `--use-strict-response` is redundant — the codegen will log an advisory.
+> In a later major release the duality collapses and the `RequireAll` wrapper is dropped for
+> finalized specs.
+
+#### Direction utilities
+
+Three utilities are exported for working with response/request direction transformations:
+
+```typescript
+import type { RequireAll, Writable, Mutable } from '@qualisero/openapi-endpoint'
+
+// RequireAll<T> — deep-require all fields (the policy applied by ApiResponse)
+type StrictPet = RequireAll<Pet>
+
+// Writable<T> — convert response → request (exclude readonly fields, recurse nested objects/arrays)
+type PetRequest = Writable<Pet>
+
+// Mutable<T> — strip readonly modifiers without removing keys (useful for store/copy shapes)
+type MutablePet = Mutable<Pet>
+```
+
+#### Response-reachable schemas namespace
+
+The generated `api-schemas.ts` exports a `Responses` namespace containing direction-typed aliases for all response-reachable components, with traceability JSDoc:
+
+```typescript
+import type { Responses } from './generated/api-schemas'
+
+// Response-reachable schemas are wrapped in RequireAll (same policy as ApiResponse)
+// JSDoc shows which operations reference each schema
+type AssetDetail = Responses.AssetDetail
+```
+
+Bare component aliases (e.g. `export type Asset = components['schemas']['Asset']`) remain for one minor cycle but are deprecated — migrate to `Responses.*` for response-typed access or `Types.<opId>.Request` for request bodies.
 
 ### Enums
 

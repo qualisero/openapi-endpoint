@@ -1,7 +1,7 @@
 /**
  * Runtime tests for createApiErrorCaches error policy
  *
- * Numbered to match the plan's §3.5 test list:
+ * Covered cases:
  * (1) onError fires exactly once after all retries exhaust
  * (2) skipGlobalError:true → zero calls
  * (3) predicate: suppressed when true, fires when false, receives error
