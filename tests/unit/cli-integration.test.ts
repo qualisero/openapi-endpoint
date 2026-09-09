@@ -911,6 +911,25 @@ describe('CLI config-file mode (openapi-codegen.config.json)', { timeout: 60_000
     }
   })
 
+  it('invalid option value in config fails fast with a clear error', () => {
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({
+        options: { enumCase: 'Pascal' },
+        specs: [{ input: TOY_SPEC, output: outDir1 }],
+      }),
+    )
+    const result = spawnSync('node', [CLI], {
+      cwd: configDir,
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.status).not.toBe(0)
+    expect((result.stdout ?? '') + (result.stderr ?? '')).toContain("enumCase: must be 'pascal' or 'const'")
+    // Nothing generated: validation failed before any spec ran
+    expect(fs.existsSync(outDir1)).toBe(false)
+  })
+
   it('no args and no config file prints help and exits 0', () => {
     // configDir has no config file yet (beforeEach only creates the dir)
     const result = spawnSync('node', [CLI], {

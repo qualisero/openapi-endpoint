@@ -1,7 +1,8 @@
 // @vitest-environment node
 /**
- * Tests for plan 1b (Responses namespace, reachability filter, @deprecated bare aliases)
- * and plan 1c (Source JSDoc traceability on Types.<opId> members).
+ * Tests for the direction-typed api-schemas.ts surface (Responses namespace,
+ * reachability filter, @deprecated bare aliases) and Source JSDoc traceability
+ * on Types.<opId> members.
  *
  * Uses the direction-openapi.json fixture which contains:
  *   - PetDetail  — response-only component (appears in responses only)
@@ -57,7 +58,7 @@ afterAll(() => {
 // api-schemas.ts: Responses namespace reachability
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('api-schemas.ts — Responses namespace (plan 1b)', { timeout: 60_000 }, () => {
+describe('api-schemas.ts — Responses namespace', { timeout: 60_000 }, () => {
   let schemasContent: string
 
   beforeAll(() => {
@@ -102,7 +103,7 @@ describe('api-schemas.ts — Responses namespace (plan 1b)', { timeout: 60_000 }
 // api-schemas.ts: Referenced-by JSDoc on Responses members
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('api-schemas.ts — Referenced-by JSDoc (plan 1b)', { timeout: 60_000 }, () => {
+describe('api-schemas.ts — Referenced-by JSDoc', { timeout: 60_000 }, () => {
   let schemasContent: string
 
   beforeAll(() => {
@@ -131,7 +132,7 @@ describe('api-schemas.ts — Referenced-by JSDoc (plan 1b)', { timeout: 60_000 }
 // api-schemas.ts: @deprecated bare aliases
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('api-schemas.ts — @deprecated bare aliases (plan 1b)', { timeout: 60_000 }, () => {
+describe('api-schemas.ts — @deprecated bare aliases', { timeout: 60_000 }, () => {
   let schemasContent: string
 
   beforeAll(() => {
@@ -170,10 +171,10 @@ describe('api-schemas.ts — @deprecated bare aliases (plan 1b)', { timeout: 60_
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// api-types.ts: Source JSDoc on Types.<opId> members (plan 1c)
+// api-types.ts: Source JSDoc on Types.<opId> members
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('api-types.ts — Source JSDoc traceability (plan 1c)', { timeout: 60_000 }, () => {
+describe('api-types.ts — Source JSDoc traceability', { timeout: 60_000 }, () => {
   let typesContent: string
 
   beforeAll(() => {
@@ -211,10 +212,74 @@ describe('api-types.ts — Source JSDoc traceability (plan 1c)', { timeout: 60_0
 
   it('emits Source JSDoc on StrictResponse (same schema as Response)', () => {
     // For createPet (direct $ref → PetDetail), both Response and StrictResponse carry a
-    // Source: annotation.  The block-comment format changed in phase 6: Source now appears
-    // at the end of the multi-line JSDoc rather than on a one-liner.
+    // Source: annotation at the end of the multi-line JSDoc.
     const createPetBlock = typesContent.match(/export namespace createPet \{[\s\S]*?\}/)
     expect(createPetBlock).not.toBeNull()
     expect(createPetBlock![0]).toContain("Source: components['schemas']['PetDetail'] (POST /pets)")
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// api-schemas.ts: no unused RequireAll import when no schema is response-reachable
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('api-schemas.ts — no response-reachable schemas', { timeout: 60_000 }, () => {
+  const emptyOutDir = '/tmp/openapi-direction-test-output-empty'
+  const emptySpecPath = '/tmp/openapi-direction-request-only-spec.json'
+
+  beforeAll(() => {
+    // Spec with a single request-only schema: nothing is response-reachable,
+    // so the generated Responses namespace is empty and the RequireAll import
+    // must be omitted (an unused import fails consumers with noUnusedLocals).
+    fs.writeFileSync(
+      emptySpecPath,
+      JSON.stringify({
+        openapi: '3.1.0',
+        info: { title: 'Request-only', version: '1.0.0' },
+        paths: {
+          '/items': {
+            post: {
+              operationId: 'createItem',
+              requestBody: {
+                content: { 'application/json': { schema: { $ref: '#/components/schemas/ItemCreateArgs' } } },
+              },
+              responses: { '204': { description: 'No content' } },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            ItemCreateArgs: { type: 'object', properties: { name: { type: 'string' } } },
+          },
+        },
+      }),
+    )
+    if (fs.existsSync(emptyOutDir)) {
+      fs.rmSync(emptyOutDir, { recursive: true, force: true })
+    }
+    const result = spawnSync('node', [CLI, emptySpecPath, emptyOutDir], { encoding: 'utf8', timeout: 60_000 })
+    if (result.status !== 0) {
+      throw new Error(`CLI failed:\n${(result.stdout ?? '') + (result.stderr ?? '')}`)
+    }
+  })
+
+  afterAll(() => {
+    if (fs.existsSync(emptyOutDir)) {
+      fs.rmSync(emptyOutDir, { recursive: true, force: true })
+    }
+    if (fs.existsSync(emptySpecPath)) {
+      fs.rmSync(emptySpecPath, { force: true })
+    }
+  })
+
+  it('omits the RequireAll import and emits no Responses members', () => {
+    const content = fs.readFileSync(path.join(emptyOutDir, 'api-schemas.ts'), 'utf8')
+    // The header docstring may mention RequireAll in prose; only the import matters
+    // for noUnusedLocals (TS6133).
+    expect(content).not.toContain('import type { RequireAll }')
+    expect(content).not.toContain('= RequireAll<')
+    expect(content).toContain('// No response-reachable schemas found')
+    // The request-only schema keeps its @deprecated bare alias
+    expect(content).toContain('@deprecated Use Types.createItem.Request instead.')
   })
 })

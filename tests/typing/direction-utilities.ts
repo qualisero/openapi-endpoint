@@ -225,6 +225,14 @@ type _MutableDate_IsDate = Assert<Equals<_MutableDate, Date>>
 type _WritableWithUnknown = Writable<{ data: Record<string, unknown> }>
 type _WritableWithUnknown_DataType = Assert<Equals<_WritableWithUnknown['data'], Record<string, unknown>>>
 
+// RequireAll must have the same leaf guard: unknown-valued properties (e.g. from
+// additionalProperties: true) stay unknown — null must remain assignable to them.
+type _RequireAllUnknown = RequireAll<{ data?: Record<string, unknown>; extra?: unknown; at?: Date }>
+type _RequireAllUnknown_Data = Assert<Equals<_RequireAllUnknown['data'], Record<string, unknown>>>
+type _RequireAllUnknown_Extra = Assert<Equals<_RequireAllUnknown['extra'], unknown>>
+type _RequireAllUnknown_Date = Assert<Equals<_RequireAllUnknown['at'], Date>>
+type _RequireAllTopUnknown = Assert<Equals<RequireAll<unknown>, unknown>>
+
 // =============================================================================
 // Ensure types are imported (avoid "unused import" lint errors)
 // =============================================================================

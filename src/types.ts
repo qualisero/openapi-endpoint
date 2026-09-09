@@ -398,6 +398,8 @@ type AnyOps = object
 
 /**
  * Deep-require all fields of `T`, recursing into nested objects and arrays.
+ * Leaf types (`unknown`, `Date`, `Blob`, `File`, functions, primitives) pass
+ * through unchanged.
  *
  * **Direction semantics — response presence policy (stopgap).**
  * Consumed by {@link ApiResponse}: the API is assumed to serialise every
@@ -412,7 +414,11 @@ export type RequireAll<T> = T extends (infer E)[]
   ? RequireAll<E>[]
   : T extends readonly (infer E)[]
     ? readonly RequireAll<E>[]
-    : { [K in keyof T]-?: RequireAll<T[K]> }
+    : T extends object
+      ? T extends ((...args: never[]) => unknown) | Date | Blob | File
+        ? T
+        : { [K in keyof T]-?: RequireAll<T[K]> }
+      : T
 
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B
 

@@ -79,7 +79,7 @@ Create `openapi-codegen.config.json` in your project root to codegen multiple sp
 }
 ```
 
-Run `openapi-codegen` with no arguments to discover and use the config automatically. CLI positional arguments still work for one-off use and override config values.
+Run `openapi-codegen` with no arguments to discover and use the config automatically. Passing positional arguments bypasses the config entirely: one-off runs use CLI flags only.
 
 ### Common CLI flags
 

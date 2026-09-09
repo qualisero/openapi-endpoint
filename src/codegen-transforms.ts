@@ -29,11 +29,21 @@
  */
 export function stripRecordStringNeverFromUnions(content: string): string {
   // Remove trailing member:  `SomeType | Record<string, never>`
-  //                       or `SomeType | Record<string, never> | null`
-  let result = content.replace(/\s*\|\s*Record<string,\s*never>/g, '')
+  // Skipped when the preceding member is `null`/`undefined` (`null | Record<string, never>`):
+  // stripping there could collapse the union to a bare null type.
+  let result = content.replace(
+    /(\bnull\b|\bundefined\b)?\s*\|\s*Record<string,\s*never>/g,
+    (match, nullish: string | undefined) => (nullish ? match : ''),
+  )
 
   // Remove leading member:   `Record<string, never> | SomeType`
-  result = result.replace(/Record<string,\s*never>\s*\|\s*/g, '')
+  // Skipped when the rest of the union is only `null`/`undefined`
+  // (e.g. an index-signature value type `Record<string, never> | null` from
+  // `additionalProperties: { anyOf: [emptyObject, null] }`): stripping would silently
+  // change the value type to `null`.
+  // The lookahead sits directly after `|` and consumes whitespace itself,
+  // so the outer `\s*` cannot backtrack around it.
+  result = result.replace(/Record<string,\s*never>\s*\|(?!\s*(?:null|undefined)\s*[;,)\]}>\n])\s*/g, '')
 
   return result
 }

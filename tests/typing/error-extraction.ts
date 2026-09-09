@@ -1,5 +1,5 @@
 /**
- * §3.5 typed-channel tests — error extraction (compile-time assertions).
+ * Typed-error-channel tests — error extraction (compile-time assertions).
  *
  * These tests never run — validated by `npm run types:test` (tsc --noEmit).
  *
@@ -8,7 +8,7 @@
  * being regenerated (though some tests also reference fixture operations
  * for the real-hook usage pattern).
  *
- * Covered cases (per plan §3.5):
+ * Covered cases:
  *  1. Operation with only a `default` error response
  *  2. 4xx declaring NO body → unknown, not never
  *  3. Two different 4xx bodies → union

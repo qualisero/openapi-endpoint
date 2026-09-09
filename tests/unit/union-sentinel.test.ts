@@ -1,5 +1,5 @@
 /**
- * Regression tests for plan §1f: empty-object sentinel in group unions.
+ * Regression tests for the empty-object sentinel in group unions.
  *
  * openapi-typescript renders `{ "properties": {} }` (empty-properties schema)
  * as `Record<string, never>`.  When such a schema appears inside an anyOf/oneOf
@@ -13,6 +13,8 @@
  * 2. After the transform, union types contain no `Record<string, never>` member.
  * 3. Standalone `Record<string, never>` assignments (webhooks, $defs — standard
  *    openapi-typescript boilerplate for absent spec sections) are preserved.
+ * 4. Unions whose only other member is `null`/`undefined` are preserved:
+ *    stripping there would change the type to bare null/undefined.
  */
 
 // @vitest-environment node
@@ -44,6 +46,24 @@ describe('stripRecordStringNeverFromUnions', () => {
     const output = stripRecordStringNeverFromUnions(input)
     expect(output).toBe(`type Foo = components["schemas"]["GroupA"] | null;`)
     expect(output).not.toContain('Record<string, never>')
+  })
+
+  it('preserves the sentinel when the only other union member is null (index-signature value type)', () => {
+    // additionalProperties: { anyOf: [emptyObject, null] } renders as an index
+    // signature whose value type is `Record<string, never> | null`. Stripping the
+    // sentinel would silently change the value type to `null`.
+    const input = `data: {\n  [key: string]: Record<string, never> | null;\n};`
+    expect(stripRecordStringNeverFromUnions(input)).toBe(input)
+  })
+
+  it('preserves the sentinel when it trails a null-only union', () => {
+    const input = `type Foo = null | Record<string, never>;`
+    expect(stripRecordStringNeverFromUnions(input)).toBe(input)
+  })
+
+  it('preserves the sentinel when the only other union member is undefined', () => {
+    const input = `type Foo = Record<string, never> | undefined;`
+    expect(stripRecordStringNeverFromUnions(input)).toBe(input)
   })
 
   it('preserves standalone Record<string, never> assignment (webhooks/defs boilerplate)', () => {

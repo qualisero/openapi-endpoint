@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Tests for x-direction-finalized root marker detection (plan §3).
+ * Tests for x-direction-finalized root marker detection.
  *
  * When the spec carries `x-direction-finalized: true`, the CLI must log an advisory
  * notice that presence policy is spec-side (RequireAll is a no-op) and that
