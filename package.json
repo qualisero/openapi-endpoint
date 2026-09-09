@@ -58,7 +58,6 @@
     "@tanstack/vue-query": ">=5.90",
     "@vue/reactivity": ">=3.3",
     "axios": ">=1.12",
-    "openapi-typescript": "^7.9.1",
     "vue": ">=3.3"
   },
   "dependencies": {

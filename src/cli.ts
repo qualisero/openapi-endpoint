@@ -64,7 +64,7 @@ interface CodegenConfigOptions {
   enumCase?: EnumCase
   defaultNonNullable?: boolean
   useStrictResponse?: boolean
-  /** Use 'false' (string) or omit to disable prefix exclusion. */
+  /** Prefix of operationIds to exclude. Use JSON `false` to disable prefix exclusion; omit for the default ('_deprecated'). */
   excludePrefix?: string | false
   emitValueSchemas?: 'request' | 'all' | false
 }
