@@ -454,6 +454,10 @@ function _parseOperationsFromSpec(
 /**
  * Helper function to add enum values to the enums list with deduplication.
  * If a duplicate is found, it adds the new name as an alias instead of creating a separate enum.
+ *
+ * The dedup key is order-sensitive: enums are only merged when they declare the same values in
+ * the same order. `enumValues` is never mutated here, so generated members keep the exact order
+ * declared in the OpenAPI spec (e.g. `low`, `medium`, `high` stays semantically ordered).
  */
 function addEnumIfUnique(
   enumName: string,
@@ -462,9 +466,9 @@ function addEnumIfUnique(
   enums: EnumInfo[],
   seenEnumValues: Map<string, string>,
 ): void {
-  const valuesKey = JSON.stringify(enumValues.sort())
+  const valuesKey = JSON.stringify(enumValues)
 
-  // Check if we've seen this exact set of values before
+  // Check if we've seen this exact list of values before
   const existingName = seenEnumValues.get(valuesKey)
   if (existingName) {
     // Find the existing enum and add this as an alias

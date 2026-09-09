@@ -73,9 +73,9 @@ export type ListPetsPriority = PetPriority
  * Enum values from components.schemas.PetStatus
  */
 export const PetStatus = {
-  Adopted: 'adopted' as const,
   Available: 'available' as const,
   Pending: 'pending' as const,
+  Adopted: 'adopted' as const,
 } as const
 
 export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus]

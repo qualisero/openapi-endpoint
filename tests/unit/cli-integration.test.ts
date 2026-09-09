@@ -280,11 +280,27 @@ const ESBUILD_DEFINE = {
   'import.meta.url': JSON.stringify('file:///tmp/openapi-codegen-bundle.js'),
 }
 
+/**
+ * Extracts the member keys of a generated `export const <name> = { ... } as const` block,
+ * in emitted order.
+ */
+function enumMemberKeys(enumsContent: string, enumName: string): string[] {
+  // `enumName` comes from a spec-derived schema name, so escape it before interpolation.
+  const escapedName = enumName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const block = new RegExp(`export const ${escapedName} = \\{\\n([\\s\\S]*?)\\n\\} as const`).exec(enumsContent)
+  if (!block) {
+    throw new Error(`Enum ${enumName} not found in generated api-enums.ts`)
+  }
+  // `$` is a valid identifier character, so it must be matched in member keys too.
+  return [...block[1].matchAll(/^\s*([A-Za-z0-9_$]+):/gm)].map((m) => m[1])
+}
+
 describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
   const CLI = path.join(os.tmpdir(), 'openapi-cli-test-bundle.js')
   const TOY_SPEC = path.join(process.cwd(), 'tests/fixtures/toy-openapi.json')
   const COLLISION_SPEC = path.join(process.cwd(), 'tests/fixtures/collision-openapi.json')
   const COLLISION_PASCAL_SPEC = path.join(process.cwd(), 'tests/fixtures/collision-pascal-openapi.json')
+  const ENUM_ORDER_SPEC = path.join(process.cwd(), 'tests/fixtures/enum-order-openapi.json')
   const outDir = '/tmp/openapi-enum-case-test'
 
   beforeAll(() => {
@@ -328,6 +344,54 @@ describe('CLI --enum-case flag (real subprocess)', { timeout: 30_000 }, () => {
     expect(enumsContent).not.toMatch(/^\s+Adopted:/m)
     expect(enumsContent).not.toMatch(/^\s+Available:/m)
     expect(enumsContent).not.toMatch(/^\s+Pending:/m)
+  })
+
+  it('emits enum members in spec declaration order, not alphabetical order', () => {
+    const result = spawnSync('node', [CLI, TOY_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+    const members = enumMemberKeys(enumsContent, 'PetStatus')
+
+    // Spec declares ['available', 'pending', 'adopted']; alphabetical would start with ADOPTED.
+    expect(members).toEqual(['AVAILABLE', 'PENDING', 'ADOPTED'])
+  })
+
+  it('preserves spec order for semantically ordered enums and their aliases', () => {
+    const result = spawnSync('node', [CLI, ENUM_ORDER_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+
+    // low/medium/high must not degrade to the alphabetical HIGH/LOW/MEDIUM.
+    expect(enumMemberKeys(enumsContent, 'SeverityLevel')).toEqual(['LOW', 'MEDIUM', 'HIGH'])
+
+    // Identical values in identical order still deduplicate to an alias.
+    expect(enumsContent).toContain('export const TrafficLevel = SeverityLevel')
+  })
+
+  it('keeps enums with the same values in a different order separate', () => {
+    const result = spawnSync('node', [CLI, ENUM_ORDER_SPEC, outDir, '--enum-case', 'const'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+
+    expect(result.status).toBe(0)
+
+    const enumsContent = fs.readFileSync(path.join(outDir, 'api-enums.ts'), 'utf8')
+
+    // Deduplication is order-sensitive, so ReversedLevel keeps its own declaration order
+    // instead of silently inheriting SeverityLevel's order through an alias.
+    expect(enumsContent).not.toContain('export const ReversedLevel = SeverityLevel')
+    expect(enumMemberKeys(enumsContent, 'ReversedLevel')).toEqual(['HIGH', 'MEDIUM', 'LOW'])
   })
 
   it('--enum-case const generates ALL_CAPS keys in api-operations.ts enum consts', () => {
