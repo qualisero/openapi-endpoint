@@ -715,7 +715,20 @@ function addCommonSuffixAliases(enums: EnumInfo[]): void {
 
     if (affectedEnums.length === 0) continue
 
-    // Use the first affected enum as the base (it has the values we need)
+    // Never merge enums whose value sets differ: a shared name suffix does not
+    // make them the same enum. Promoting would alias every name to the first
+    // variant's values, producing types that cannot represent the other
+    // operations' valid values. Comparison is order-sensitive, consistent with
+    // the dedup key in addEnumIfUnique (spec order is meaningful).
+    const distinctValueSets = new Set(affectedEnums.map((e) => JSON.stringify(e.values)))
+    if (distinctValueSets.size > 1) {
+      console.log(
+        `  ↳ Skipping suffix ${suffix}: ${affectedEnums.length} enums share the name but have ${distinctValueSets.size} different value sets`,
+      )
+      continue
+    }
+
+    // Use the first affected enum as the base (all affected enums share its values)
     const primaryEnum = affectedEnums[0]
 
     // Collect all names that should become aliases

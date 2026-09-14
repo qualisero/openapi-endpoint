@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-09-12
+
+### Fixed
+
+- **Common-suffix enum promotion no longer merges enums with different value sets.** Previously, enums whose names shared a 3+ word suffix were collapsed into one promoted enum carrying the first variant's values, aliasing every operation-specific name to it: aliases for operations with disjoint values (e.g. `'accepted' | 'refused'` vs `'needs_review'`) could not represent valid request values. Promotion now requires an identical (order-sensitive) value set across all affected enums; otherwise the operation-specific names are kept with their truthful values.
+
 ## [0.28.0] - 2026-09-08
 
 ### Added
