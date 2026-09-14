@@ -1,0 +1,67 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Suffix Conflict Test API",
+    "description": "Spec where enums share a 3-word name suffix but have different value sets (must not be merged by suffix promotion), plus a control group with identical values (must still be promoted)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "AssessmentUpdateArgs": {
+        "type": "object",
+        "properties": {
+          "external_assessment_status": {
+            "type": "string",
+            "enum": ["needs_review"]
+          }
+        }
+      },
+      "ExpertAssessmentUpdateArgs": {
+        "type": "object",
+        "properties": {
+          "external_assessment_status": {
+            "type": "string",
+            "enum": ["accepted", "refused"]
+          }
+        }
+      },
+      "HotlinerAssessmentUpdateArgs": {
+        "type": "object",
+        "properties": {
+          "external_assessment_status": {
+            "type": "string",
+            "enum": ["accepted", "refused"]
+          }
+        }
+      },
+      "CardCheckout": {
+        "type": "object",
+        "properties": {
+          "payment_method_type": {
+            "type": "string",
+            "enum": ["card", "transfer"]
+          }
+        }
+      },
+      "InvoiceCheckout": {
+        "type": "object",
+        "properties": {
+          "payment_method_type": {
+            "type": "string",
+            "enum": ["card", "transfer"]
+          }
+        }
+      },
+      "RefundCheckout": {
+        "type": "object",
+        "properties": {
+          "payment_method_type": {
+            "type": "string",
+            "enum": ["card", "transfer"]
+          }
+        }
+      }
+    }
+  }
+}
