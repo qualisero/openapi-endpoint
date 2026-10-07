@@ -19,7 +19,7 @@
  * before writing the response body.
  */
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest'
-import type { QueryClient } from '@tanstack/vue-query'
+import { QueryClient } from '@tanstack/vue-query'
 import { effectScope } from 'vue'
 import { createApiClient } from '../fixtures/api-client'
 import { createTestScope } from '../helpers'
@@ -245,6 +245,36 @@ describe('mutation cache update vs invalidation', () => {
         { id: '123', name: 'Old' },
         { id: '123', name: 'Updated' },
       )
+    })
+
+    it('the cache write happens in the same synchronous turn as the pre-write cancel (no await gap)', async () => {
+      // If an `await` sat between cancelQueries and setQueryData, a GET started
+      // in that microtask gap (e.g. a component mounting in a Vue flush) would
+      // escape the cancel. Hold the exact-key cancel promise open and assert
+      // the write has already happened while it is still pending.
+      const itemKey = ['api', 'pet', '42']
+      const exactCancel = deferred<void>()
+      const realCancel = (filters: Parameters<QueryClient['cancelQueries']>[0]) =>
+        QueryClient.prototype.cancelQueries.call(queryClient, filters)
+      cancelQueries.mockImplementation((filters) => {
+        const f = filters as { exact?: boolean } | undefined
+        if (f?.exact === true) {
+          void realCancel(filters)
+          return exactCancel.promise
+        }
+        return realCancel(filters)
+      })
+      mockAxios.mockResolvedValueOnce({ data: { id: '42', name: 'Patched' } })
+      const mutation = run(() => api.updatePetPetId.useMutation({ pet_id: '42' }))
+
+      const mutationPromise = mutation.mutateAsync({ data: { name: 'Patched' } })
+      await vi.waitFor(() => expect(exactCancels(itemKey)).toHaveLength(1))
+
+      // Cancel promise is still pending here, yet the write has already run.
+      expect(setQueryData).toHaveBeenCalledWith(itemKey, { id: '42', name: 'Patched' })
+
+      exactCancel.resolve()
+      await mutationPromise
     })
 
     it('PATCH with dontUpdateCache: true: no pre-write cancel, item invalidation still runs', async () => {
