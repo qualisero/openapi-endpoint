@@ -217,6 +217,11 @@ export function useEndpointMutation<
           hasResponseBody &&
           [HttpMethod.PUT, HttpMethod.PATCH].includes(config.method)
         if (cacheUpdated) {
+          // Discard any GET that started during the mutation round trip: a stale
+          // body landing after this write would otherwise overwrite it (TanStack
+          // has no timestamp guard in Query.setData). The pre-request cancel in
+          // mutationFn only covers fetches that were already in flight back then.
+          await config.queryClient.cancelQueries({ queryKey: queryKey.value, exact: true })
           await config.queryClient.setQueryData(queryKey.value, data)
         }
 

@@ -29,6 +29,10 @@ function no4xxRetry(_failureCount: number, error: Error): boolean {
 /**
  * Private helper: build the query function for useEndpointQuery and useEndpointLazyQuery.
  * Extracted to avoid duplicating axios call logic and error handling.
+ *
+ * TanStack's `signal` is forwarded to axios so cancelled queries abort the
+ * network request instead of only being discarded client-side. A caller-
+ * supplied `axiosOptions.signal` (call-time, then hook-time) takes priority.
  * @internal
  */
 function buildQueryFn<TResponse>(
@@ -39,14 +43,15 @@ function buildQueryFn<TResponse>(
   callAxiosOptions?: AxiosRequestConfigExtended,
   errorHandler?: (error: AxiosError) => TResponse | void | Promise<TResponse | void>,
   headersSink?: ShallowRef<Record<string, string>>,
-): () => Promise<TResponse> {
-  return async () => {
+): (context?: { signal?: AbortSignal }) => Promise<TResponse> {
+  return async ({ signal }: { signal?: AbortSignal } = {}) => {
     try {
       const response = await config.axios({
         method: config.method.toLowerCase(),
         url: getResolvedPath(),
         ...hookAxiosOptions,
         ...callAxiosOptions,
+        signal: callAxiosOptions?.signal ?? hookAxiosOptions?.signal ?? signal,
         params: {
           ...(hookAxiosOptions?.params || {}),
           ...(callAxiosOptions?.params || {}),

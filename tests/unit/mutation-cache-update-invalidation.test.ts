@@ -10,6 +10,13 @@
  *
  * When the cache update does not happen (dontUpdateCache: true, empty response
  * body, POST/DELETE), item-level invalidation behaves as before.
+ *
+ * Race guard: a GET on the same key that starts *during* the mutation round
+ * trip is not covered by the pre-request cancelQueries. Without a second
+ * cancel right before setQueryData, that GET's (older) body would land after
+ * the write and overwrite it (TanStack's Query.setData has no timestamp
+ * guard). The mutation therefore cancels the exact item key again immediately
+ * before writing the response body.
  */
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest'
 import type { QueryClient } from '@tanstack/vue-query'
@@ -25,12 +32,14 @@ describe('mutation cache update vs invalidation', () => {
   let run: <T>(fn: () => T) => T
   let setQueryData: MockInstance<QueryClient['setQueryData']>
   let invalidateQueries: MockInstance<QueryClient['invalidateQueries']>
+  let cancelQueries: MockInstance<QueryClient['cancelQueries']>
 
   beforeEach(() => {
     vi.clearAllMocks()
     ;({ api, scope, queryClient, run } = createTestScope())
     setQueryData = vi.spyOn(queryClient, 'setQueryData')
     invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    cancelQueries = vi.spyOn(queryClient, 'cancelQueries')
   })
 
   afterEach(() => {
@@ -47,6 +56,26 @@ describe('mutation cache update vs invalidation', () => {
     return invalidateQueries.mock.calls.filter(
       ([filters]) => JSON.stringify((filters as { queryKey?: unknown[] })?.queryKey) === JSON.stringify(itemKey),
     )
+  }
+
+  /** cancelQueries calls whose filter is `{ queryKey: itemKey, exact: true }`. */
+  function exactCancels(itemKey: unknown[]) {
+    return cancelQueries.mock.calls.filter(([filters]) => {
+      const f = filters as { queryKey?: unknown[]; exact?: boolean } | undefined
+      return f?.exact === true && JSON.stringify(f.queryKey) === JSON.stringify(itemKey)
+    })
+  }
+
+  /**
+   * Returns a deferred promise so a test can hold a request open and release
+   * it at a chosen point in the timeline.
+   */
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>((r) => {
+      resolve = r
+    })
+    return { promise, resolve }
   }
 
   it('PUT with response body: updates cache and does NOT invalidate the exact item query', async () => {
@@ -141,6 +170,118 @@ describe('mutation cache update vs invalidation', () => {
 
     expect(setQueryData).toHaveBeenCalled()
     expect(invalidateQueries).not.toHaveBeenCalled()
+  })
+
+  describe('stale GET started during the mutation round trip', () => {
+    /**
+     * Timeline:
+     *   1. mutation request is sent (pre-request cancel has already run)
+     *   2. a GET on the same key starts and is held open
+     *   3. mutation resolves with `fresh` and writes it to the cache
+     *   4. the GET is released with the older `stale` body
+     * Asserts the cache holds `fresh`, the query is idle and not invalidated,
+     * and exactly one exact-key cancel ran before the write.
+     */
+    async function assertStaleGetDiscarded(
+      method: 'put' | 'patch',
+      itemKey: unknown[],
+      startMutation: () => Promise<unknown>,
+      startQuery: () => { data: { value: unknown } },
+      stale: unknown,
+      fresh: unknown,
+    ) {
+      const mutationRequest = deferred<{ data: unknown }>()
+      const getRequest = deferred<{ data: unknown }>()
+      mockAxios.mockImplementation((cfg: { method: string }) =>
+        cfg.method === 'get' ? getRequest.promise : mutationRequest.promise,
+      )
+
+      const mutationPromise = startMutation()
+      // Let mutationFn run past its pre-request cancelQueries and send the request.
+      await vi.waitFor(() => expect(mockAxios).toHaveBeenCalledWith(expect.objectContaining({ method })))
+
+      const query = startQuery()
+      await vi.waitFor(() => expect(mockAxios).toHaveBeenCalledWith(expect.objectContaining({ method: 'get' })))
+      expect(queryClient.getQueryState(itemKey)?.fetchStatus).toBe('fetching')
+
+      mutationRequest.resolve({ data: fresh })
+      await mutationPromise
+
+      getRequest.resolve({ data: stale })
+      // Flush the GET's continuation; it must be discarded, not written.
+      await new Promise((r) => setTimeout(r, 0))
+
+      expect(queryClient.getQueryData(itemKey)).toEqual(fresh)
+      expect(query.data.value).toEqual(fresh)
+      const state = queryClient.getQueryState(itemKey)
+      expect(state?.isInvalidated).toBe(false)
+      expect(state?.fetchStatus).toBe('idle')
+      // Pre-request cancel (exact: false) plus the pre-write cancel (exact: true).
+      expect(exactCancels(itemKey)).toHaveLength(1)
+      const cancelOrder = cancelQueries.mock.invocationCallOrder.at(-1)!
+      const writeOrder = setQueryData.mock.invocationCallOrder.at(-1)!
+      expect(cancelOrder).toBeLessThan(writeOrder)
+    }
+
+    it('PATCH: the GET is cancelled before the write and the cache keeps the PATCH body', async () => {
+      const mutation = run(() => api.updatePetPetId.useMutation({ pet_id: '42' }))
+      await assertStaleGetDiscarded(
+        'patch',
+        ['api', 'pet', '42'],
+        () => mutation.mutateAsync({ data: { name: 'Patched' } }),
+        () => run(() => api.getPetPetId.useQuery({ pet_id: '42' })),
+        { id: '42', name: 'Old' },
+        { id: '42', name: 'Patched' },
+      )
+    })
+
+    it('PUT: the GET is cancelled before the write and the cache keeps the PUT body', async () => {
+      const mutation = run(() => api.updatePet.useMutation({ petId: '123' }))
+      await assertStaleGetDiscarded(
+        'put',
+        ['pets', '123'],
+        () => mutation.mutateAsync({ data: { name: 'Updated' } }),
+        () => run(() => api.getPet.useQuery({ petId: '123' })),
+        { id: '123', name: 'Old' },
+        { id: '123', name: 'Updated' },
+      )
+    })
+
+    it('PATCH with dontUpdateCache: true: no pre-write cancel, item invalidation still runs', async () => {
+      mockAxios.mockResolvedValueOnce({ data: { id: '42', name: 'Patched' } })
+      const mutation = run(() => api.updatePetPetId.useMutation({ pet_id: '42' }, { dontUpdateCache: true }))
+
+      await mutation.mutateAsync({ data: { name: 'Patched' } })
+
+      expect(setQueryData).not.toHaveBeenCalled()
+      expect(exactCancels(['api', 'pet', '42'])).toHaveLength(0)
+      // Only the pre-request cancel ran.
+      expect(cancelQueries).toHaveBeenCalledTimes(1)
+      expect(cancelQueries).toHaveBeenCalledWith({ queryKey: ['api', 'pet', '42'], exact: false })
+      expect(itemInvalidations(['api', 'pet', '42'])).toHaveLength(1)
+    })
+
+    it('POST: no cache write and no pre-write cancel', async () => {
+      mockAxios.mockResolvedValueOnce({ data: { id: 'new', name: 'Fluffy' } })
+      const mutation = run(() => api.createPet.useMutation())
+
+      await mutation.mutateAsync({ data: { name: 'Fluffy' } })
+
+      expect(setQueryData).not.toHaveBeenCalled()
+      expect(exactCancels(['pets'])).toHaveLength(0)
+      expect(cancelQueries).toHaveBeenCalledTimes(1)
+    })
+
+    it('DELETE: no cache write and no pre-write cancel', async () => {
+      mockAxios.mockResolvedValueOnce({ data: {} })
+      const mutation = run(() => api.deletePet.useMutation({ petId: '123' }))
+
+      await mutation.mutateAsync()
+
+      expect(setQueryData).not.toHaveBeenCalled()
+      expect(exactCancels(['pets', '123'])).toHaveLength(0)
+      expect(cancelQueries).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('POST: invalidation is unchanged (prefix invalidation, no cache update)', async () => {
