@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.28.1] - 2026-09-09
+## [0.28.2] - 2026-10-07
+
+### Changed
+
+- Normalized `package.json` metadata (`repository.url` uses the `git+https://` form, `bin` path has no `./` prefix) so `npm publish` no longer emits auto-correction warnings. No runtime change.
+
+## [0.28.1] - 2026-10-07
 
 ### Fixed
 
