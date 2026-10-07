@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-09-09
+
+### Fixed
+
+- **Stale GET no longer overwrites a PUT/PATCH response in the cache.** `useMutation` cancelled in-flight queries before sending the request, but a GET on the same key that started _during_ the mutation round trip was left running; when it landed after the response body was written with `setQueryData`, it overwrote the cache with the older body. The mutation now cancels the exact item key again immediately before the write. Guarantee: when the response body is written to the cache, any in-flight GET on the same key is cancelled first, and after `mutateAsync` resolves `useQuery(...).data` for that key equals the response body.
+- **TanStack `signal` is forwarded to axios.** `useQuery` and `useLazyQuery.fetch` now pass TanStack's `AbortSignal` to the request, so cancelled queries abort the network call instead of only being discarded client-side. A caller-supplied `axiosOptions.signal` (call-time, then hook-time) keeps priority.
+
 ## [0.28.0] - 2026-09-08
 
 ### Added

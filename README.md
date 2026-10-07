@@ -1,6 +1,6 @@
 # OpenApiEndpoint
 
-[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.26.0)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
+[![npm version](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint.svg?v=0.28.1)](https://badge.fury.io/js/@qualisero%2Fopenapi-endpoint)
 [![CI](https://github.com/qualisero/openapi-endpoint/workflows/CI/badge.svg?refresh=20260827)](https://github.com/qualisero/openapi-endpoint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://qualisero.github.io/openapi-endpoint/)
@@ -149,6 +149,8 @@ const query = api.getPet.useQuery({ petId: '123' })
 query.onLoad((pet) => console.log('Pet:', pet.name))
 ```
 
+**Request cancellation:** TanStack's `AbortSignal` is forwarded to axios, so a cancelled query (`queryClient.cancelQueries`, last observer unmounting mid-fetch, or a mutation on the same key) aborts the network request instead of only discarding the result. To drive cancellation yourself, pass `axiosOptions: { signal }`: an explicit signal takes priority over the TanStack one (call-time `fetch()` options win over hook-time options for `useLazyQuery`).
+
 ### Getting a URL without fetching
 
 Every query operation also exposes `urlFor()`, which returns a plain URL string without performing a request. This is the right tool for `<img :src>`, anchor `href`, `window.open`, or native `fetch`:
@@ -196,6 +198,8 @@ const mutation = api.createPet.useMutation({
   onSuccess: (response) => console.log('Created:', response.data),
 })
 ```
+
+**Cache guarantee for PUT/PATCH:** when the response body is written to the cache (the default unless `dontUpdateCache: true` or the body is empty), any in-flight GET on the same key is cancelled first. After `mutateAsync` resolves, `useQuery(...).data` for that key equals the response body, and the item query is left fresh (not invalidated, no refetch spawned). The list path is still invalidated.
 
 ### Serialised mutations
 
